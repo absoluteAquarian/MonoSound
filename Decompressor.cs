@@ -78,8 +78,8 @@ namespace MonoSound{
 
 			using(BinaryReader reader = new BinaryReader(stream)){
 				Stream decompressedStream = Pre_ReadAsset(reader, stream);
-
-				data = Simulate_ContentReader_ReadAsset(reader, out pcmData, out header);
+				using(BinaryReader decompressedReader = new BinaryReader(decompressedStream))
+					data = Simulate_ContentReader_ReadAsset(reader, out pcmData, out header);
 			}
 
 			return data;
