@@ -31,12 +31,13 @@ namespace MonoSound.Filters.Instances{
 			Free();
 		}
 
-		public void Free(){
-			if(mParam == null)
+		public virtual void Reset(){ }
+
+		public virtual void Free(){
+			if(mParam == (float*)IntPtr.Zero)
 				return;
 
 			Marshal.FreeHGlobal((IntPtr)mParam);
-			mParam = null;
 		}
 
 		public virtual SoLoudResult initParams(int aNumParams){

@@ -3,6 +3,8 @@ using MonoSound.Filters;
 using MonoSound.Filters.Instances;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace MonoSound{
 	/// <summary>
@@ -15,6 +17,21 @@ namespace MonoSound{
 		/// The next filter ID should one be registered.  Automatically assigned to new filters
 		/// </summary>
 		public static int NextFilterID{ get; private set; }
+
+		/// <summary>
+		/// Whether the Echo filter is allowed to generate over 30 seconds' worth of samples for a sound, which can happen when using high Delay and low Decay parameters.
+		/// </summary>
+		public static bool AllowEchoOversampling{ get; set; }
+
+		/// <summary>
+		/// If enabled, this folder path will be where filtered sounds are saved to. This property should be set after <seealso cref="Init"/> is called.
+		/// </summary>
+		public static string LogDirectory{ get; set; }
+
+		/// <summary>
+		/// Enables or disables the saving of filtered sounds.  Set <seealso cref="LogDirectory"/> to where the filtered sounds will be saved to
+		/// </summary>
+		public static bool LogFilters{ get; set; }
 
 		private static bool initialized = false;
 
@@ -29,6 +46,9 @@ namespace MonoSound{
 			NextFilterID = 0;
 
 			initialized = true;
+
+			if(Directory.Exists(LogDirectory))
+				Directory.Delete(LogDirectory, true);
 		}
 
 		/// <summary>
@@ -38,6 +58,8 @@ namespace MonoSound{
 			SoundFilterManager.DeInit();
 
 			FilterSimulations.bqrFilter?.Free();
+			FilterSimulations.echFilter?.Free();
+			FilterSimulations.revFilter?.Free();
 
 			customFilters = null;
 
@@ -83,6 +105,39 @@ namespace MonoSound{
 		}
 
 		/// <summary>
+		/// Applies the wanted filters to the sound file in the order requested.
+		/// </summary>
+		/// <param name="file">The path to the sound file. Extension required.</param>
+		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		/// <returns></returns>
+		public static SoundEffect GetMultiFilteredEffect(string file, params int[] filterIDs){
+			ThrowIfNotInitialized();
+
+			if(!AllFiltersIDsExist(filterIDs))
+				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", "filterIDs");
+
+			return SoundFilterManager.CreateFilteredSFX(file, GetFiltersFromIDs(filterIDs));
+		}
+
+		private static Filter[] GetFiltersFromIDs(int[] ids){
+			//LINQ bad
+			Filter[] filters = new Filter[ids.Length];
+			for(int i = 0; i < ids.Length; i++)
+				filters[i] = customFilters[ids[i]];
+			return filters;
+		}
+
+		private static bool AllFiltersIDsExist(int[] ids){
+			bool success = true;
+
+			for(int i = 0; i < ids.Length; i++)
+				if(!customFilters.ContainsKey(ids[i]))
+					success = false;
+
+			return success;
+		}
+
+		/// <summary>
 		/// Registers a Biquad Resonant filter.
 		/// </summary>
 		/// <param name="type">The filter type to use. Must either be <seealso cref="SoundFilterType.LowPass"/>, <seealso cref="SoundFilterType.BandPass"/> or <seealso cref="SoundFilterType.HighPass"/></param>
@@ -117,6 +172,50 @@ namespace MonoSound{
 			customFilters.Add(bqf.ID, bqf);
 
 			return bqf.ID;
+		}
+
+		/// <summary>
+		/// Registers an Echo filter.
+		/// </summary>
+		/// <param name="strength">How strong the filter effect is. 0 = no effect, 1 = full effect</param>
+		/// <param name="initialDelay">The initial delay in seconds before the echo starts</param>
+		/// <param name="decayFactor">The factor applied to the volume of each successive echo.  Expected values are between 0 and 1</param>
+		/// <param name="filterStrength">How strongly this filter will prefer using old samples over new samples when processing the sound.  Expected values are between 0 (no effect) and 1 (full effect)</param>
+		/// <returns></returns>
+		public static int RegisterEchoFilter(float strength, float initialDelay, float decayFactor, float filterStrength){
+			ThrowIfNotInitialized();
+
+			EchoFilter ech = new EchoFilter();
+			ech.setParams(initialDelay, decayFactor, filterStrength);
+			ech.SetStrength(strength);
+			ech.ID = NextFilterID++;
+			ech.type = SoundFilterType.Echo;
+
+			customFilters.Add(ech.ID, ech);
+
+			return ech.ID;
+		}
+
+		/// <summary>
+		/// Registers a Reverb filter
+		/// </summary>
+		/// <param name="filterStrength">How strong the filter effect is. 0 = no effect, 1 = full effect</param>
+		/// <param name="lowFrequencyReverbStrength">How much the filter affects low frequencies. 0 = fast decaying, 1 = slow decaying. Defaults to 0.5</param>
+		/// <param name="highFrequencyReverbStrength">How much the filter affects high frequencies. 0 = fast decaying, 1 = slow decaying. Defaults to 0.5</param>
+		/// <param name="reverbStrength">How strong the reverb effect is. Expected values are between 0 and 1. Defaults to 1</param>
+		/// <returns></returns>
+		public static int RegisterReverbFilter(float filterStrength, float lowFrequencyReverbStrength, float highFrequencyReverbStrength, float reverbStrength){
+			ThrowIfNotInitialized();
+
+			FreeverbFilter rev = new FreeverbFilter();
+			rev.setParams(0, lowFrequencyReverbStrength, highFrequencyReverbStrength, reverbStrength);
+			rev.SetStrength(filterStrength);
+			rev.ID = NextFilterID++;
+			rev.type = SoundFilterType.Reverb;
+
+			customFilters.Add(rev.ID, rev);
+
+			return rev.ID;
 		}
 	}
 }

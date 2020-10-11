@@ -3,12 +3,16 @@ using MonoSound.Audio;
 using MonoSound.Filters.Instances;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 
 namespace MonoSound.Filters{
 	internal static class SoundFilterManager{
 		public static int Max_Filters_Loaded = 200;
 		private static List<FilterPackage> filters;
+
+		private static readonly string[] validExtensions = new string[]{ ".xnb", ".wav", ".ogg" };
 
 		public static void Init(){
 			filters = new List<FilterPackage>();
@@ -21,9 +25,21 @@ namespace MonoSound.Filters{
 
 		public static void Clear() => filters?.Clear();
 
-		private static bool HasFilteredSFX(string path, Filter filter, out FilterPackage package){
+		private static bool HasFilteredSFX(string path, out FilterPackage package, params Filter[] filtersToCheck){
 			foreach(FilterPackage p in filters){
-				if(p.asset == path && p.filterID == filter.ID){
+				bool allMatch = true;
+
+				if(p.asset != path)
+					continue;
+
+				foreach(Filter f in filtersToCheck){
+					if(!p.filterIDs.Contains(f.ID)){
+						allMatch = false;
+						break;
+					}
+				}
+
+				if(allMatch){
 					package = p;
 					return true;
 				}
@@ -33,50 +49,91 @@ namespace MonoSound.Filters{
 			return false;
 		}
 
-		public static SoundEffect CreateFilteredSFX(string path, Filter filter){
-			FormatWav wav;
+		private static void ThrowIfPathHasNoValidExtension(string path, out string extension){
+			extension = Path.GetExtension(path);
+
+			foreach(string ex in validExtensions)
+				if(ex == extension)
+					return;
+
+			//If we've reached this line, either the file had an extension and it wasn't a valid one or the file didn't have an extension
+			throw new ArgumentException($"The given path did not contain a valid extension: {extension}", "path");
+		}
+
+		public static SoundEffect CreateFilteredSFX(string path, params Filter[] filtersToApply){
+			FormatWav wav = null;
 			PCMData metaData;
 
-			string extension = Path.GetExtension(path);
-			if(!Path.HasExtension(path) || (extension != ".wav" && extension != ".xnb"))
-				throw new ArgumentException($"The given path did not contain a valid extension: {extension}", "path");
+			ThrowIfPathHasNoValidExtension(path, out string extension);
 
-			if(HasFilteredSFX(path, filter, out FilterPackage package))
+			if(filtersToApply.Length == 0)
+				throw new ArgumentException("Filters list was empty.", "filtersToApply");
+
+			if(HasFilteredSFX(path, out FilterPackage package, filtersToApply))
 				return package.effect;
 
-			if(Path.GetExtension(path) != ".wav"){
-				string xnbPath = Path.ChangeExtension(path, ".xnb");
+			switch(extension){
+				case ".xnb":
+					byte[] data = Decompressor.DecompressSoundEffectXNB(path, out metaData, out byte[] header);
 
-				if(HasFilteredSFX(xnbPath, filter, out package))
-					return package.effect;
+					wav = FormatWav.FromDecompressorData(data, header);
+					break;
+				case ".wav":
+					//Could've jumped here from the ".ogg" case.  Don't try and set the 'wav' variable if it was already set
+					if(wav is null)
+						wav = FormatWav.FromFileWAV(path);
 
-				byte[] data = Decompressor.DecompressSoundEffectXNB(xnbPath, out metaData, out byte[] header);
+					float duration = (int)((float)wav.DataLength / wav.ByteRate);
 
-				path = xnbPath;
-
-				wav = FormatWav.FromDecompressorData(data, header);
-			}else{
-				wav = FormatWav.FromFile(path);
-
-				float duration = (int)((float)wav.DataLength / wav.ByteRate);
-
-				//Ignore the loop fields because they probably aren't that important
-				metaData = new PCMData(){
-					bitsPerSample = wav.BitsPerSample,
-					channels = (AudioChannels)wav.ChannelCount,
-					duration = (int)(duration * 1000),
-					sampleRate = wav.SampleRate
-				};
+					//Ignore the loop fields because they probably aren't that important
+					metaData = new PCMData(){
+						bitsPerSample = wav.BitsPerSample,
+						channels = (AudioChannels)wav.ChannelCount,
+						duration = (int)(duration * 1000),
+						sampleRate = wav.SampleRate
+					};
+					break;
+				case ".ogg":
+					wav = FormatWav.FromFileOGG(path);
+					goto case ".wav";
+				default:
+					throw new InvalidOperationException("Path contained an invalid extension even after confirming that it had a valid one.");
 			}
 
 			FilterPackage cache = new FilterPackage(){
 				asset = path,
-				type = filter.type,
+				types = GetFilterTypes(filtersToApply),
 				metaData = metaData,
-				filterID = filter.ID
+				filterIDs = GetFilterIDs(filtersToApply)
 			};
 
-			if(FilterSimulations.SimulateFilter(wav, filter)){
+			bool success = false;
+			foreach(Filter f in filtersToApply){
+				success = FilterSimulations.SimulateFilter(wav, f);
+
+				if(!success)
+					return null;
+			}
+
+			if(MonoSoundManager.LogFilters){
+				try{
+					//Check that the path is a valid path
+					string directory = MonoSoundManager.LogDirectory;
+					string dummy = Path.GetFullPath(directory);
+
+					//Get the new file name
+					string file = Path.GetFileNameWithoutExtension(path);
+					file += GetFileNameExtra(cache.types);
+					file += ".wav";
+
+					//Save the file
+					wav.SaveToFile(Path.Combine(directory, file));
+				}catch(Exception ex){
+					throw new InvalidOperationException("Logging directory was set to an invalid path.", ex);
+				}
+			}
+
+			if(success){
 				SoundEffect effect = new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
 
 				cache.effect = effect;
@@ -90,6 +147,30 @@ namespace MonoSound.Filters{
 			}
 
 			return null;
+		}
+
+		private static SoundFilterType[] GetFilterTypes(Filter[] filtersToProcess){
+			//LINQ bad
+			SoundFilterType[] types = new SoundFilterType[filtersToProcess.Length];
+			for(int i = 0; i < filtersToProcess.Length; i++)
+				types[i] = filtersToProcess[i].type;
+			return types;
+		}
+
+		private static int[] GetFilterIDs(Filter[] filtersToProcess){
+			//LINQ bad
+			int[] ids = new int[filtersToProcess.Length];
+			for(int i = 0; i < filtersToProcess.Length; i++)
+				ids[i] = filtersToProcess[i].ID;
+			return ids;
+		}
+
+		private static string GetFileNameExtra(SoundFilterType[] types){
+			string ret = " - ";
+			for(int i = 0; i < types.Length; i++)
+				ret += $"{types[i]}|";
+			ret = ret.Substring(0, ret.Length - 1);
+			return ret;
 		}
 	}
 }

@@ -1,0 +1,12 @@
+﻿v1.1.0.0
+- Implemented the Freeverb (Reverb) and Echo sound filters from SoLoud
+- Sound files can now be passed through multiple filters at once
+- OGG Vorbis file format support (.ogg) via NVorbis
+- MonoSoundManager contains a new property, AllowEchoOversampling, which controls
+   whether the Echo filter is allowed to extend the original sound by over 30 seconds
+- MonoSound can now write the sampled sound to a file.  Set the
+   MonoSoundManager.LogDirectory property to the directory where the sounds will be
+   saved to and set MonoSoundManager.LogFilters to true to enable saving to files
+
+v1.0.0.0
+- First official release

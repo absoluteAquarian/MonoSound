@@ -1,10 +1,15 @@
-﻿using System;
+﻿using NVorbis;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
 namespace MonoSound.Audio{
 	internal sealed class FormatWav : IDisposable{
+		//WAVE data format found here:
+		// http://soundfile.sapp.org/doc/WaveFormat/
+		// https://medium.com/swlh/reversing-a-wav-file-in-c-482fc3dfe3c4
+
 		private byte[] data;
 
 		/// <summary>
@@ -95,7 +100,7 @@ namespace MonoSound.Audio{
 
 		private FormatWav(){ }
 
-		public static FormatWav FromFile(string file){
+		public static FormatWav FromFileWAV(string file){
 			if(Path.GetExtension(file) != ".wav")
 				throw new ArgumentException("File must be a .wav file", "file");
 
@@ -103,6 +108,107 @@ namespace MonoSound.Audio{
 			using(MemoryStream stream = new MemoryStream()){
 				reader.BaseStream.CopyTo(stream);
 				return FromBytes(stream.GetBuffer());
+			}
+		}
+
+		public static FormatWav FromFileOGG(string file){
+			if(Path.GetExtension(file) != ".ogg")
+				throw new ArgumentException("File must be a .ogg file", "file");
+
+			//OGG Vorbis specifications defined here: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-230001.3.2
+			//Example use found here: https://csharp.hotexamples.com/examples/-/NVorbis.VorbisReader/-/php-nvorbis.vorbisreader-class-examples.html
+			// TODO: finish this multiline comment
+
+			/*  OGG Vorbis format
+			 *  Note: the first three pages are always the identification, comment and setup Vorbis headers
+			 *        all pages after those three are for sound data alone
+			 *  
+			 *  Page format:
+			 *    4 bytes - capture pattern; always "OggS"
+			 *    1 byte  - version; always 0x00
+			 *    1 byte  - header type; 0x00 for normal page, 0x01 for continued page, 0x02 for starting page, 0x04 for ending page
+			 *    8 bytes - granule position; the "position" of this page.  how this is defined depends on what was used to encode the file (audio/video)
+			 *    4 bytes - serial number; a unique identifier shared by all pages in the file
+			 *    4 bytes - page sequence number; 0-based index of this page
+			 *    4 bytes - checksum
+			 *    1 byte  - segment count; how many segments this page contains
+			 *    N bytes - (amount of bytes dependent on what was read for "segment count") how many bytes this segment's packet contains; 0x00-0xFE means
+			 *              this segment has its own packet.  0xFF means this segment shares a packet with the next segment.  a final packet size that
+			 *              is a multiple of 255 will always end in a 0x00 (null) packet
+			 *    M bytes - (amount of bytes dependent on what segment this is based on the segment table) the segment data, in order
+			 *  
+			 *  Vorbis Identification Header format:
+			 *    1 byte  - packet type; 0x01 is identification header, 0x03 is comment header, 0x05 is setup header
+			 *    6 bytes - vorbis header indentifier; always "vorbis"
+			 *    4 bytes - vorbis version
+			 *    1 byte  - channel count
+			 *    4 bytes - sample rate
+			 *    4 bytes - upper bitrate
+			 *    4 bytes - nominal bitrate
+			 *    4 bytes - lower bitrate
+			 *    1 byte  - block sizes; split into 4 bits each; block size is 2^{4 bits read}; block size 0 (first 4 bits) must be smaller than block
+			 *              size 1 (second 4 bits)
+			 *    1 byte  - MSB must be not set for this header to be considered valid
+			 *    
+			 *    Failure to pass the last two checks renders the stream unreadable
+			 *  
+			 *  ----
+			 */
+
+			using(VorbisReader reader = new VorbisReader(file)){
+				byte[] header = new byte[16];
+				
+				//Type of Format
+				header[0] = 0x01;
+
+				//Number of Channels
+				byte[] arr = BitConverter.GetBytes((short)reader.Channels);
+				header[2] = arr[0];
+				header[3] = arr[1];
+
+				//Samples per Second
+				arr = BitConverter.GetBytes(reader.SampleRate);
+				header[4] = arr[0];
+				header[5] = arr[1];
+				header[6] = arr[2];
+				header[7] = arr[3];
+				
+				//Bytes per Second
+				arr = BitConverter.GetBytes(reader.SampleRate * reader.Channels * 2);
+				header[8] = arr[0];
+				header[9] = arr[1];
+				header[10] = arr[2];
+				header[11] = arr[3];
+				
+				//Block Align
+				arr = BitConverter.GetBytes((short)(reader.Channels * 2));
+				header[12] = arr[0];
+				header[13] = arr[1];
+
+				//Bits per Sample
+				header[14] = 16;
+
+				//Read the samples
+				float[] buffer = new float[reader.SampleRate / 10 * reader.Channels];
+				byte[] sampleWrite;
+				List<byte> samples = new List<byte>();
+				int count;
+				while((count = reader.ReadSamples(buffer, 0, buffer.Length)) > 0){
+					for(int i = 0; i < count; i++){
+						int temp = (int)(short.MaxValue * buffer[i]);
+						if(temp > short.MaxValue)
+							temp = short.MaxValue;
+						else if(temp < short.MinValue)
+							temp = short.MinValue;
+
+						sampleWrite = BitConverter.GetBytes((short)temp);
+
+						samples.Add(sampleWrite[0]);
+						samples.Add(sampleWrite[1]);
+					}
+				}
+
+				return FromDecompressorData(samples.ToArray(), header);
 			}
 		}
 
@@ -126,21 +232,17 @@ namespace MonoSound.Audio{
 			addon[15] = (byte)' ';
 
 			//Format header length
-			byte[] arr = BitConverter.GetBytes(header.Length);
-			addon[16] = arr[0];
-			addon[17] = arr[1];
-			addon[18] = arr[2];
-			addon[19] = arr[3];
+			addon[16] = 16;
 
 			//Type of Format, Number of Channels, Samples per Second, Bytes per Second, Block Align, Bits per Sample
-			Buffer.BlockCopy(header, 0, addon, 20, header.Length);
+			Buffer.BlockCopy(header, 0, addon, 20, 16);
 
 			addon[36] = (byte)'d';
 			addon[37] = (byte)'a';
 			addon[38] = (byte)'t';
 			addon[39] = (byte)'a';
 
-			arr = BitConverter.GetBytes(sampleData.Length);
+			byte[] arr = BitConverter.GetBytes(sampleData.Length);
 			addon[40] = arr[0];
 			addon[41] = arr[1];
 			addon[42] = arr[2];
@@ -216,17 +318,25 @@ namespace MonoSound.Audio{
 				byte[] newData = new byte[allSamples.Length * 2];
 
 				for(int i = 0; i < allSamples.Length; i++){
+					ClampSample(ref allSamples[i]);
+
 					short convert = (short)(allSamples[i] * short.MaxValue);
 					byte[] temp = BitConverter.GetBytes(convert);
 					newData[2 * i] = temp[0];
 					newData[2 * i + 1] = temp[1];
 				}
 
+				//Echo filter can cause extra data to be given
+				if(newData.Length + 44 > data.Length)
+					Array.Resize(ref data, newData.Length + 44);
+
 				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
 			}else if(BitsPerSample == 24){
 				byte[] newData = new byte[allSamples.Length * 3];
 
 				for(int i = 0; i < allSamples.Length; i++){
+					ClampSample(ref allSamples[i]);
+
 					int convert = (int)(allSamples[i] * WavSample.MaxValue_24BitPCM);
 					byte[] temp = BitConverter.GetBytes(convert);
 
@@ -239,11 +349,25 @@ namespace MonoSound.Audio{
 						newData[3 * i + 1] = temp[2];
 						newData[3 * i + 2] = temp[1];
 					}
-					
-					Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
 				}
+
+				//Echo filter can cause extra data to be given
+				if(newData.Length + 44 > data.Length)
+					Array.Resize(ref data, newData.Length + 44);
+					
+				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
 			}else
 				throw new InvalidOperationException("Attempted to process data for a bit depth that's not supported.  WAV files must use 16-bit or 24-bit PCM data");
+		}
+
+		/// <summary>
+		/// Forces the sample to be within (-1, 1)
+		/// </summary>
+		private void ClampSample(ref float sample){
+			if(sample < -1)
+				sample = -1 + 4e-5f;
+			if(sample > 1)
+				sample = 1 - 4e-5f;
 		}
 
 		private bool disposed;
