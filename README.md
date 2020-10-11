@@ -21,7 +21,7 @@ MonoSound is able to process WAVE data from `.wav` and compiled `.xnb` files dir
 
 First, the library needs to be initialized via `MonoSoundManager.Init();`, preferably in the `Game.LoadContent()` method.
 
-Then, custom sound filters can be registered at any time.  See the next section for what sound filters are implemented and examples of implementing them.
+Then, custom sound filters can be registered at any time.  See the next section for what sound filters are implemented and examples of using them.
 
 Finally, when the game is closed, `MonoSoundManager.DeInit()` must be called in `Game.UnloadContent()` to free up used resources.
 
