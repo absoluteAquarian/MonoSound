@@ -1,5 +1,5 @@
 # MonoSound
-A library for MonoGame projects which allows easy creation of filtered sound via SoLoud's sound filters.
+A library for MonoGame projects which allows easy creation of filtered sound via SoLoud's sound filters.  
 Supported MonoGame builds: DesktopGL
 
 The sound filter code was ported directly from the C++ sound filter library, SoLoud.
