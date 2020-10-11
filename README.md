@@ -57,11 +57,11 @@ lowPassEffect.Play();
 // NOTE: Sound filters should only be registered once!  Cache the return value and use it later.
 // Filter parameters:
 //   Strength ("Wetness"): 1x
-//   Freqency Cap: 1500 Hz
+//   Freqency Cap: 2000 Hz
 //     - the frequency at which any frequencies considered "out of range" of it are modified
 //   Resonance: 3
 //     - how strong the pass effect is
-int bandPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.BandPass, strength: 1f, frequencyCap: 1500, resonance: 3);
+int bandPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.BandPass, strength: 1f, frequencyCap: 2000, resonance: 3);
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
 SoundEffect bandPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", bandPass);
 bandPassEffect.Play();
@@ -72,11 +72,11 @@ bandPassEffect.Play();
 // NOTE: Sound filters should only be registered once!  Cache the return value and use it later.
 // Filter parameters:
 //   Strength ("Wetness"): 0.5x
-//   Freqency Cap: 7000 Hz
+//   Freqency Cap: 1500 Hz
 //     - the frequency at which any frequencies below it are modified
 //   Resonance: 8
 //     - how strong the pass effect is
-int highPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.HighPass, strength: 0.5f, frequencyCap: 7000, resonance: 8);
+int highPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.HighPass, strength: 0.5f, frequencyCap: 1500, resonance: 8);
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
 SoundEffect highPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", highPass);
 highPassEffect.Play();
