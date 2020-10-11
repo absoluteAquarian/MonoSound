@@ -178,15 +178,15 @@ namespace MonoSound{
 		/// Registers an Echo filter.
 		/// </summary>
 		/// <param name="strength">How strong the filter effect is. 0 = no effect, 1 = full effect</param>
-		/// <param name="initialDelay">The initial delay in seconds before the echo starts</param>
+		/// <param name="delay">The initial delay in seconds before each echo starts</param>
 		/// <param name="decayFactor">The factor applied to the volume of each successive echo.  Expected values are between 0 and 1</param>
 		/// <param name="filterStrength">How strongly this filter will prefer using old samples over new samples when processing the sound.  Expected values are between 0 (no effect) and 1 (full effect)</param>
 		/// <returns></returns>
-		public static int RegisterEchoFilter(float strength, float initialDelay, float decayFactor, float filterStrength){
+		public static int RegisterEchoFilter(float strength, float delay, float decayFactor, float filterStrength){
 			ThrowIfNotInitialized();
 
 			EchoFilter ech = new EchoFilter();
-			ech.setParams(initialDelay, decayFactor, filterStrength);
+			ech.setParams(delay, decayFactor, filterStrength);
 			ech.SetStrength(strength);
 			ech.ID = NextFilterID++;
 			ech.type = SoundFilterType.Echo;
