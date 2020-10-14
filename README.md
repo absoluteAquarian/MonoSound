@@ -18,7 +18,10 @@ The `LzxDecoder.cs` file also contains certain licenses.
 
 ### How it Works
 
-MonoSound is able to process WAVE data from `.wav` and compiled `.xnb` files directly.
+MonoSound is able to process WAVE data from the following formats:
+- `.wav`: WAV audio
+- `.xnb`: Compiled MonoGame `SoundEffect` files
+- `.ogg`: OGG Vorbis audio
 
 First, the library needs to be initialized via `MonoSoundManager.Init();`, preferably in the `Game.LoadContent()` method.
 
