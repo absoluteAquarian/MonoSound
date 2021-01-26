@@ -2,5 +2,4 @@
 
 - Low Pass filters can, for no reason, cause sound samples to be either 0 or +/-max.  Investigate
 - Playing too many filtered sounds at once can cause crashes.  Investigate
-- Implement wavebank suppoort
 - Implement the rest of SoLoud's sound filters

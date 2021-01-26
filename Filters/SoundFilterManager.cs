@@ -100,6 +100,22 @@ namespace MonoSound.Filters{
 					throw new InvalidOperationException("Path contained an invalid extension even after confirming that it had a valid one.");
 			}
 
+			return ApplyFilters(wav, path, metaData, filtersToApply);
+		}
+
+		public static SoundEffect CreateBankFilteredSFX(FormatWav wav, string name, params Filter[] filtersToApply){
+			float duration = (int)((float)wav.DataLength / wav.ByteRate);
+			PCMData data = new PCMData(){
+				bitsPerSample = wav.BitsPerSample,
+				channels = (AudioChannels)wav.ChannelCount,
+				duration = (int)(duration * 1000),
+				sampleRate = wav.SampleRate
+			};
+
+			return ApplyFilters(wav, name, data, filtersToApply);
+		}
+
+		private static SoundEffect ApplyFilters(FormatWav wav, string path, PCMData metaData, Filter[] filtersToApply){
 			FilterPackage cache = new FilterPackage(){
 				asset = path,
 				types = GetFilterTypes(filtersToApply),

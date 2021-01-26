@@ -1,4 +1,5 @@
-﻿using NVorbis;
+﻿using MonoSound.XACT;
+using NVorbis;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -186,7 +187,9 @@ namespace MonoSound.Audio{
 				header[13] = arr[1];
 
 				//Bits per Sample
-				header[14] = 16;
+				arr = BitConverter.GetBytes((short)16);
+				header[14] = arr[0];
+				header[15] = arr[1];
 
 				//Read the samples
 				float[] buffer = new float[reader.SampleRate / 10 * reader.Channels];
@@ -288,6 +291,39 @@ namespace MonoSound.Audio{
 			}
 
 			return wav;
+		}
+
+#pragma warning disable IDE0060
+		public static FormatWav FromSoundEffectConstructor(MiniFormatTag codec, byte[] buffer, int channels, int sampleRate, int blockAlignment, int loopStart, int loopLength){
+#pragma warning restore IDE0060
+			//WaveBank sounds always have 16 bits/sample for some reason
+			const int bitsPerSample = 16;
+
+			byte[] header = new byte[16];
+			var bytes = BitConverter.GetBytes((short)1);	//Force the PCM encoding... Others aren't allowed
+			header[0] = bytes[0];
+			header[1] = bytes[1];
+			bytes = BitConverter.GetBytes((short)channels);
+			header[2] = bytes[0];
+			header[3] = bytes[1];
+			bytes = BitConverter.GetBytes(sampleRate);
+			header[4] = bytes[0];
+			header[5] = bytes[1];
+			header[6] = bytes[2];
+			header[7] = bytes[3];
+			bytes = BitConverter.GetBytes(sampleRate * channels * bitsPerSample / 8);
+			header[8] = bytes[0];
+			header[9] = bytes[1];
+			header[10] = bytes[2];
+			header[11] = bytes[3];
+			bytes = BitConverter.GetBytes((short)blockAlignment);
+			header[12] = bytes[0];
+			header[13] = bytes[1];
+			bytes = BitConverter.GetBytes((short)bitsPerSample);
+			header[14] = bytes[0];
+			header[15] = bytes[1];
+
+			return FromDecompressorData(buffer, header);
 		}
 
 		public void SaveToFile(string file){

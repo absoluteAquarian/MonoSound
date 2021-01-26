@@ -1,4 +1,11 @@
-﻿v1.1.0.0
+﻿v1.2.0.0
+- Added support for sounds located in XACT sound and wave banks
+   (Dislaimer: any looping data stored in the sounds is effectively removed.  Looping sounds
+   will have to be set manually in code via SoundEffectInstance.IsLooped)
+- Added a sub-manager for streaming sound effects from compiled XNB files and XACT wave banks.
+   (Disclaimer: streamed sounds cannot have filters applied to them.)
+
+v1.1.0.0
 - Implemented the Freeverb (Reverb) and Echo sound filters from SoLoud
 - Sound files can now be passed through multiple filters at once
 - OGG Vorbis file format support (.ogg) via NVorbis

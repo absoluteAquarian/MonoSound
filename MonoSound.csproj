@@ -64,6 +64,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ReflectionHelpers.cs" />
     <Compile Include="SoLoudResult.cs" />
+    <Compile Include="Streaming\StreamManager.cs" />
+    <Compile Include="Streaming\StreamPackage.cs" />
+    <Compile Include="Streaming\StreamType.cs" />
+    <Compile Include="XACT\MonoSoundBank.cs" />
+    <Compile Include="XACT\MonoWaveBank.cs" />
+    <Compile Include="XACT\MonoXactSound.cs" />
     <None Include="LICENSE.txt" />
   </ItemGroup>
   <ItemGroup>

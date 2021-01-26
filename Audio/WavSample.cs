@@ -2,7 +2,7 @@
 
 namespace MonoSound.Audio{
 	internal struct WavSample{
-		public const int MaxValue_24BitPCM = 8388608;
+		public const int MaxValue_24BitPCM = 0x800000;
 
 		private byte[] data;
 		public byte[] Data{
