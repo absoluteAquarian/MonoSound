@@ -18,10 +18,10 @@ The `LzxDecoder.cs` file also contains certain licenses.
 
 Table of Contents |
 --- |
-[How it Works](https://github.com/absoluteAquarian/MonoSound/main/README.md#how-it-works) |
-[Implemented Sound Filters](https://github.com/absoluteAquarian/MonoSound/main/README.md#implemented-sound-filters) |
-[XACT Sound Playing](https://github.com/absoluteAquarian/MonoSound/main/README.md#xact-sound-playing) |
-[Sound Streaming](https://github.com/absoluteAquarian/MonoSound/main/README.md#sound-streaming) |
+[How it Works](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#how-it-works) |
+[Implemented Sound Filters](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#implemented-sound-filters) |
+[XACT Sound Playing](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#xact-sound-playing) |
+[Sound Streaming](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#sound-streaming) |
 
 ### How it Works
 
