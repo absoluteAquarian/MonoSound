@@ -16,6 +16,13 @@ The `LICENSE.txt` file included in this repository was taken from the [MonoGame 
 
 The `LzxDecoder.cs` file also contains certain licenses.
 
+Table of Contents |
+--- |
+[How it Works](https://github.com/absoluteAquarian/MonoSound/edit/main/README.md#how-it-works) |
+[Implemented Sound Filters](https://github.com/absoluteAquarian/MonoSound/edit/main/README.md#implemented-sound-filters) |
+[XACT Sound Playing](https://github.com/absoluteAquarian/MonoSound/edit/main/README.md#xact-sound-playing) |
+[Sound Streaming](https://github.com/absoluteAquarian/MonoSound/edit/main/README.md#sound-streaming) |
+
 ### How it Works
 
 MonoSound is able to process WAVE data from the following formats:
@@ -23,7 +30,8 @@ MonoSound is able to process WAVE data from the following formats:
 - `.xnb`: Compiled MonoGame `SoundEffect` files
 - `.ogg`: OGG Vorbis audio
 
-First, the library needs to be initialized via `MonoSoundManager.Init();`, preferably in the `Game.LoadContent()` method.
+First, the library needs to be initialized via `MonoSoundManager.Init();`, preferably in the `Game.LoadContent()` method.  
+(Until this method is called, most uses of the library will either result in thrown errors or undefined behaviour.)
 
 Then, custom sound filters can be registered at any time.  See the next section for what sound filters are implemented and examples of using them.
 
@@ -119,4 +127,48 @@ int reverb = MonoSoundManager.RegisterReverbFilter(strength: 0.5f, lowFrequencyR
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
 SoundEffect reverbEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", reverb);
 reverbEffect.Play();
+```
+
+### XACT Sound Playing
+
+MonoSound is able to load specific sounds from XACT wave banks as `SoundEffect`s via `MonoSoundManager.GetEffectFromBank(string, string, string)`.  
+DISCLAIMER: the requested wave bank will have all of its sound data loaded into memory if that hasn't happened already.  If this outcome is undesirable, use the [streaming alternative](https://github.com/absoluteAquarian/MonoSound/edit/main/README.md#sound-streaming) instead.  
+Furthermore, MonoSound only supports simple Cues.
+
+#### Example
+```cs
+SoundEffect xactSound = MonoSoundManager.GetEffectFromBank("Content/Sound Bank.xsb", "Content/Wave Bank.xwb", "mysound");
+xactSound.Play();
+```
+
+### Sound Streaming
+
+MonoSound has built-in support for streaming sounds from `.wav` files, compiled `.xnb` files and XACT `.xwb` wave banks.
+
+In order to register a streamed sound, either `MonoSoundManager.GetStreamedSound(string, bool)` or `MonoSoundManager.GetStreamedXACTSound(string, string, string, bool)` has to be called.  
+To stop the streamed sound and its streaming, call `MonoSoundManager.FreeStreamedSound(ref SoundEffectInstance)`.
+
+Do note that once a streamed sound has been registered from an XACT wave bank, that bank will **no longer be able** to be used for non-streaming purposes.  
+Furthermore, streamed sounds **cannot** have filters applied to them.
+
+#### WAV/XNB Example
+```cs
+SoundEffectInstance streamedSound = MonoSoundManager.GetStreamedSound("Content/cool_sound.xnb", looping: false);
+streamedSound.Play();
+
+...
+
+//Stop the sound.  This method automatically calls Stop() and Dispose() on the instance.
+MonoSoundManager.FreeStreamedSound(ref streamedSound);
+```
+
+#### XACT Example
+```cs
+SoundEffectInstance streamedXACTSound = MonoSoundManager.GetStreamedXACTSound("Content/Sound Bank.xsb", "Content/Wave Bank.xwb", "mysound", looping: true);
+streamedXACTSound.Play();
+
+...
+
+//Stop the sound.  This method automatically calls Stop() and Dispose() on the instance.
+MonoSoundManager.FreeStreamedSound(ref streamedXACTSound);
 ```
