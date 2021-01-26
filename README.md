@@ -132,7 +132,7 @@ reverbEffect.Play();
 ### XACT Sound Playing
 
 MonoSound is able to load specific sounds from XACT wave banks as `SoundEffect`s via `MonoSoundManager.GetEffectFromBank(string, string, string)`.  
-DISCLAIMER: the requested wave bank will have all of its sound data loaded into memory if that hasn't happened already.  If this outcome is undesirable, use the [streaming alternative](https://github.com/absoluteAquarian/MonoSound/edit/main/README.md#sound-streaming) instead.  
+DISCLAIMER: the requested wave bank will have all of its sound data loaded into memory if that hasn't happened already.  If this outcome is undesirable, use the [streaming alternative](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#sound-streaming) instead.  
 Furthermore, MonoSound only supports simple Cues.
 
 #### Example
