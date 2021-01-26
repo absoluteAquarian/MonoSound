@@ -158,7 +158,7 @@ streamedSound.Play();
 
 ...
 
-//Stop the sound.  This method automatically calls Stop() and Dispose() on the instance.
+//Stop the sound and its streaming.  This method automatically calls Stop() and Dispose() on the instance.
 MonoSoundManager.FreeStreamedSound(ref streamedSound);
 ```
 
@@ -169,6 +169,6 @@ streamedXACTSound.Play();
 
 ...
 
-//Stop the sound.  This method automatically calls Stop() and Dispose() on the instance.
+//Stop the sound and its streaming.  This method automatically calls Stop() and Dispose() on the instance.
 MonoSoundManager.FreeStreamedSound(ref streamedXACTSound);
 ```
