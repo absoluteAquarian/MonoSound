@@ -151,7 +151,7 @@ To stop the streamed sound and its streaming, call `MonoSoundManager.FreeStreame
 Do note that once a streamed sound has been registered from an XACT wave bank, that bank will **no longer be able** to be used for non-streaming purposes.  
 Furthermore, streamed sounds **cannot** have filters applied to them.
 
-#### WAV/XNB Example
+#### WAV/XNB/OGG Example
 ```cs
 SoundEffectInstance streamedSound = MonoSoundManager.GetStreamedSound("Content/cool_sound.xnb", looping: false);
 streamedSound.Play();
