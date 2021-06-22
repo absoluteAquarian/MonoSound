@@ -59,7 +59,7 @@ See `Filters/SoundFilterType.cs` for explanations of what each sound filter does
 //   Resonance: 5
 //     - how strong the pass effect is
 int lowPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.LowPass, strength: 1f, frequencyCap: 1000, resonance: 5);
-// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
+// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
 SoundEffect lowPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", lowPass);
 lowPassEffect.Play();
 ```
@@ -74,7 +74,7 @@ lowPassEffect.Play();
 //   Resonance: 3
 //     - how strong the pass effect is
 int bandPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.BandPass, strength: 1f, frequencyCap: 2000, resonance: 3);
-// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
+// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
 SoundEffect bandPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", bandPass);
 bandPassEffect.Play();
 ```
@@ -89,7 +89,7 @@ bandPassEffect.Play();
 //   Resonance: 8
 //     - how strong the pass effect is
 int highPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.HighPass, strength: 0.5f, frequencyCap: 1500, resonance: 8);
-// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
+// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
 SoundEffect highPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", highPass);
 highPassEffect.Play();
 ```
@@ -107,7 +107,7 @@ highPassEffect.Play();
 //     - how biased the sampler is towards using the data from the original samples
 //       the filtered sample and original sample are mixed regardless
 int echo = MonoSoundManager.RegisterEchoFilter(strength: 0.5f, delay: 0.125f, decayFactor: 0.6f, filterStrength: 0.7f);
-// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
+// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
 SoundEffect echoEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", echo);
 echoEffect.Play();
 ```
@@ -124,7 +124,7 @@ echoEffect.Play();
 //   Overall Reverb Strength: 1.0x
 //     - how strongly the effect is applied to the original samples
 int reverb = MonoSoundManager.RegisterReverbFilter(strength: 0.5f, lowFrequencyReverbStrength: 0.5f, highFrequencyReverbStrength: 0.5f, reverbStrength: 1f);
-// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file or a compiled .xnb file.
+// GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
 SoundEffect reverbEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", reverb);
 reverbEffect.Play();
 ```
