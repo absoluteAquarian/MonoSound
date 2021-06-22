@@ -143,7 +143,7 @@ xactSound.Play();
 
 ### Sound Streaming
 
-MonoSound has built-in support for streaming sounds from `.wav` files, compiled `.xnb` files and XACT `.xwb` wave banks.
+MonoSound has built-in support for streaming sounds from `.wav` files, compiled `.xnb` files, XACT `.xwb` wave banks and OGG Vorbis `.ogg` files.
 
 In order to register a streamed sound, either `MonoSoundManager.GetStreamedSound(string, bool)` or `MonoSoundManager.GetStreamedXACTSound(string, string, string, bool)` has to be called.  
 To stop the streamed sound and its streaming, call `MonoSoundManager.FreeStreamedSound(ref SoundEffectInstance)`.
