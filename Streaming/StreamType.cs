@@ -2,6 +2,7 @@
 	internal enum StreamType{
 		XNB,
 		XWB,
-		WAV
+		WAV,
+		OGG
 	}
 }

@@ -210,19 +210,23 @@ namespace MonoSound{
 		/// <summary>
 		/// Gets a streamed sound effect
 		/// </summary>
-		/// <param name="filePath">The path to the sound file. Must refer to a compiled .xnb file or a .wav file.</param>
+		/// <param name="filePath">The path to the sound file. Must refer to a compiled .xnb file, a .wav file or an .ogg file.</param>
 		/// <param name="looping">Whether the sound should loop or not</param>
 		public static SoundEffectInstance GetStreamedSound(string filePath, bool looping){
 			string extension = Path.GetExtension(filePath);
-			if(extension != ".xnb" && extension != ".wav")
-				throw new ArgumentException($"Input file must be a compiled XNB file or a WAV file: \"{filePath}\"");
+			if(extension != ".xnb" && extension != ".wav" && extension != ".ogg")
+				throw new ArgumentException($"Input file must be a compiled XNB file, a WAV file or an OGG Vorbis file: \"{filePath}\"");
 
-			if(extension == ".xnb")
-				return StreamManager.InitializeXNBStream(filePath, looping);
-			else if(extension == ".wav")
-				return StreamManager.InitializeWAVStream(filePath, looping);
-			
-			throw new Exception(); //Impossible to get here, but required to compile
+			switch(extension){
+				case ".xnb":
+					return StreamManager.InitializeXNBStream(filePath, looping);
+				case ".wav":
+					return StreamManager.InitializeWAVStream(filePath, looping);
+				case ".ogg":
+					return StreamManager.InitializeOGGStream(filePath, looping);
+				default:
+					throw new Exception(); //Impossible to get here, but required to compile
+			}
 		}
 
 		/// <summary>

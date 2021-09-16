@@ -1,4 +1,7 @@
-﻿v1.2.0.0
+﻿v1.3.0.0
+- Added support for streaming from OGG Vorbis (.ogg) sound files
+
+v1.2.0.0
 - Added support for sounds located in XACT sound and wave banks
    (Dislaimer: any looping data stored in the sounds is effectively removed.  Looping sounds
    will have to be set manually in code via SoundEffectInstance.IsLooped)

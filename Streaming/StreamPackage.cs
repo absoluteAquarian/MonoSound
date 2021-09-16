@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using MonoSound.XACT;
+using NVorbis;
 using System;
 using System.IO;
 
@@ -12,6 +13,7 @@ namespace MonoSound.Streaming{
 
 		//Each stream package keeps track of a separate instance of a "reader" to allow reading of the same file
 		private FileStream stream;
+		private VorbisReader vorbisStream;
 		public bool FinishedStreaming{ get; private set; }
 
 		public readonly int sampleRate;
@@ -27,6 +29,8 @@ namespace MonoSound.Streaming{
 
 		public bool looping;
 
+		private TimeSpan vorbisReadStart;
+
 		private StreamPackage(){ }
 
 		/// <summary>
@@ -39,10 +43,11 @@ namespace MonoSound.Streaming{
 				throw new ArgumentException("MonoSound internals error. Location: MonoSound.Streaming.StreamPackage..ctor(string, StreamType)");
 
 			this.type = type;
-			stream = new FileStream(file, FileMode.Open);
 
 			//Open the stream for use
 			if(type == StreamType.WAV){
+				stream = new FileStream(file, FileMode.Open);
+
 				//Read the header
 				byte[] header = new byte[44];
 				stream.Read(header, 0, 44);
@@ -51,6 +56,8 @@ namespace MonoSound.Streaming{
 				bitsPerSample = BitConverter.ToInt16(header, 34);
 				totalBytes = BitConverter.ToInt32(header, 40);
 			}else if(type == StreamType.XNB){
+				stream = new FileStream(file, FileMode.Open);
+
 				byte[] read = new byte[4];
 				stream.Read(read, 0, 4);
 				byte[] header = new byte[BitConverter.ToInt32(read, 0)];
@@ -62,6 +69,13 @@ namespace MonoSound.Streaming{
 
 				stream.Read(read, 0, 4);
 				totalBytes = BitConverter.ToInt32(read, 0);
+			}else if(type == StreamType.OGG){
+				//VorbisReader(string) disposes the stream on close by default
+				vorbisStream = new VorbisReader(file);
+				channels = (AudioChannels)vorbisStream.Channels;
+				sampleRate = vorbisStream.SampleRate;
+				bitsPerSample = -1;
+				totalBytes = -1;
 			}
 
 			PostCtor();
@@ -115,7 +129,10 @@ namespace MonoSound.Streaming{
 			sfx = new DynamicSoundEffectInstance(sampleRate, channels);
 			sfx.BufferNeeded += QueueBuffers;
 
-			sampleReadStart = stream.Position;
+			if(type != StreamType.OGG)
+				sampleReadStart = stream.Position;
+			else
+				vorbisReadStart = vorbisStream.DecodedTime;
 
 			readBytes = 0;
 			secondsRead = 0;
@@ -126,7 +143,11 @@ namespace MonoSound.Streaming{
 
 		public void Reset(){
 			//Move the "cursor" back to the beginning and reset the counters
-			stream.Position = sampleReadStart;
+			if(type == StreamType.OGG)
+				vorbisStream.DecodedTime = vorbisReadStart;
+			else
+				stream.Position = sampleReadStart;
+
 			readBytes = 0;
 			secondsRead = 0;
 		}
@@ -142,8 +163,46 @@ namespace MonoSound.Streaming{
 			if(FinishedStreaming)
 				return;
 
+			int samplesToRead;
+			byte[] read;
+
+			//Handle OGG files separately
+			if(type == StreamType.OGG){
+				//Float samples = 2 bytes per sample (converted to short samples)
+				samplesToRead = (int)(seconds * sampleRate * (short)channels);
+
+				float[] vorbisRead = new float[samplesToRead];
+				int readOggSamples = vorbisStream.ReadSamples(vorbisRead, 0, vorbisRead.Length);
+				readBytes += readOggSamples * 2;
+
+				read = new byte[readOggSamples * 2];
+
+				byte[] sampleWrite;
+				for(int i = 0; i < readOggSamples; i++){
+					int temp = (int)(short.MaxValue * vorbisRead[i]);
+					if(temp > short.MaxValue)
+						temp = short.MaxValue;
+					else if(temp < short.MinValue)
+						temp = short.MinValue;
+
+					sampleWrite = BitConverter.GetBytes((short)temp);
+
+					read[i * 2] = sampleWrite[0];
+					read[i * 2 + 1] = sampleWrite[1];
+				}
+
+				secondsRead += seconds;
+			
+				sfx.SubmitBuffer(read);
+
+				if(readOggSamples < vorbisRead.Length)
+					CheckLooping();
+
+				return;
+			}
+
 			//Read "seconds" amount of data from the stream, then send it to "sfx"
-			int samplesToRead = (int)(seconds * bitsPerSample / 8 * sampleRate * (short)channels);
+			samplesToRead = (int)(seconds * bitsPerSample / 8 * sampleRate * (short)channels);
 			if(samplesToRead + readBytes > totalBytes)
 				samplesToRead = totalBytes - readBytes;
 
@@ -151,22 +210,27 @@ namespace MonoSound.Streaming{
 				throw new InvalidOperationException("MonoSound internals error: Streamed audio requested an invalid amount of samples to read" +
 					$"\nObject state: {sampleRate}Hz | {channels} | {readBytes / bitsPerSample * 8 / (int)channels} out of {totalBytes / bitsPerSample * 8 / (int)channels} samples read");
 
-			byte[] read = new byte[samplesToRead];
+			read = new byte[samplesToRead];
 			readBytes += stream.Read(read, 0, samplesToRead);
 
 			secondsRead += seconds;
 			
 			sfx.SubmitBuffer(read);
 
-			if(readBytes >= totalBytes){
-				if(!looping){
-					FinishedStreaming = true;
+			if(readBytes >= totalBytes)
+				CheckLooping();
+		}
 
-					stream.Close();
-					stream.Dispose();
-				}else
-					Reset();
-			}
+		private void CheckLooping(){
+			if(!looping){
+				FinishedStreaming = true;
+
+				stream?.Close();
+				stream?.Dispose();
+
+				vorbisStream?.Dispose();
+			}else
+				Reset();
 		}
 
 		private bool disposed;
@@ -190,14 +254,17 @@ namespace MonoSound.Streaming{
 						//Exception can be thrown during the final stages of an app closing.  Just ignore it
 					}
 
-					stream.Close();
-					stream.Dispose();
+					stream?.Close();
+					stream?.Dispose();
+
+					vorbisStream?.Dispose();
 
 					FinishedStreaming = true;
 				}
 
 				sfx = null;
 				stream = null;
+				vorbisStream = null;
 			}
 		}
 	}

@@ -54,6 +54,21 @@ namespace MonoSound.Streaming{
 			return streams[name].sfx;
 		}
 
+		public static SoundEffectInstance InitializeOGGStream(string path, bool loopedSound){
+			StreamPackage package = new StreamPackage(path, StreamType.OGG){
+				looping = loopedSound
+			};
+
+			string name = GetSafeName(path);
+			lock(modifyLock){
+				streams.Add(name, package);
+
+				updateKeys = true;
+			}
+
+			return streams[name].sfx;
+		}
+
 		private static string GetSafeName(string original){
 			//This method allows multiple streamed sounds from the same file to be present in "streams" at the same time
 			if(!streams.ContainsKey(original))
