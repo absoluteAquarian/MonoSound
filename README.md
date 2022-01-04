@@ -39,7 +39,7 @@ Finally, when the game is closed, `MonoSoundManager.DeInit()` must be called in 
 
 ### Implemented Sound Filters
 
-MonoSound currently implements three of SoLoud's sound filters:
+MonoSound currently implements five of SoLoud's sound filters:
 
 1. Low Pass (Biquad Resonant)
 2. Band Pass (Biquad Resonant)
