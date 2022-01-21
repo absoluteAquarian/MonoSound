@@ -1,4 +1,6 @@
 # MonoSound
+[![NuGet download count](https://img.shields.io/nuget/dt/MonoSound)](https://www.nuget.org/packages/MonoSound)
+
 A library for MonoGame projects which allows easy creation of filtered sound via SoLoud's sound filters.  
 Supported MonoGame builds: DesktopGL
 
