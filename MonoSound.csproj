@@ -6,7 +6,7 @@
     <TieredCompilation>false</TieredCompilation>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	<Version>1.4.0.0</Version>
+	<Version>1.4.0.1</Version>
 	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	<Authors>John Baglio</Authors>
 	<Description>A library built for use with MonoGame DesktopGL projects.
@@ -18,7 +18,8 @@ The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGam
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<RepositoryUrl>https://github.com/absoluteAquarian/MonoSound</RepositoryUrl>
 	<PackageTags>monogame;sound;sound-filters;filters;xact;audio</PackageTags>
-	<PackageReleaseNotes>Added support for MPEG Audio Layer III (.mp3) files and loading SoundEffects without sound filters.</PackageReleaseNotes>
+	<PackageReleaseNotes>Added possibly missing XML file for the project</PackageReleaseNotes>
+	<GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <NoWarn>1701;1702;CA2211;CA1069;CS8618</NoWarn>
