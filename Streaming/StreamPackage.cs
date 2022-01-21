@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using MonoSound.XACT;
+using MP3Sharp;
 using NVorbis;
 using System;
 using System.IO;
@@ -12,7 +13,7 @@ namespace MonoSound.Streaming{
 		public readonly StreamType type;
 
 		//Each stream package keeps track of a separate instance of a "reader" to allow reading of the same file
-		private FileStream stream;
+		private Stream stream;
 		private VorbisReader vorbisStream;
 		public bool FinishedStreaming{ get; private set; }
 
@@ -75,6 +76,13 @@ namespace MonoSound.Streaming{
 				channels = (AudioChannels)vorbisStream.Channels;
 				sampleRate = vorbisStream.SampleRate;
 				bitsPerSample = -1;
+				totalBytes = -1;
+			}else if(type == StreamType.MP3){
+				MP3Stream mp3Stream;
+				stream = mp3Stream = new MP3Stream(new FileStream(file, FileMode.Open));
+				channels = AudioChannels.Stereo;  //MP3 decoder will double mono samples to force the audio to play as "stereo"
+				sampleRate = mp3Stream.Frequency;
+				bitsPerSample = (short)(mp3Stream.Format == SoundFormat.Pcm16BitMono ? 8 : 16);
 				totalBytes = -1;
 			}
 

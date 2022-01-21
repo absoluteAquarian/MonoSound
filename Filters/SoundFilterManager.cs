@@ -12,7 +12,7 @@ namespace MonoSound.Filters{
 		public static int Max_Filters_Loaded = 200;
 		private static List<FilterPackage> filters;
 
-		private static readonly string[] validExtensions = new string[]{ ".xnb", ".wav", ".ogg" };
+		private static readonly string[] validExtensions = new string[]{ ".xnb", ".wav", ".ogg", ".mp3" };
 
 		public static void Init(){
 			filters = new List<FilterPackage>();
@@ -60,17 +60,11 @@ namespace MonoSound.Filters{
 			throw new ArgumentException($"The given path did not contain a valid extension: {extension}", "path");
 		}
 
-		public static SoundEffect CreateFilteredSFX(string path, params Filter[] filtersToApply){
-			FormatWav wav = null;
-			PCMData metaData;
+		internal static void GetWavAndMetadata(string path, out FormatWav wav, out PCMData metaData){
+			wav = null;
+			metaData = default;
 
 			ThrowIfPathHasNoValidExtension(path, out string extension);
-
-			if(filtersToApply.Length == 0)
-				throw new ArgumentException("Filters list was empty.", "filtersToApply");
-
-			if(HasFilteredSFX(path, out FilterPackage package, filtersToApply))
-				return package.effect;
 
 			switch(extension){
 				case ".xnb":
@@ -96,9 +90,22 @@ namespace MonoSound.Filters{
 				case ".ogg":
 					wav = FormatWav.FromFileOGG(path);
 					goto case ".wav";
+				case ".mp3":
+					wav = FormatWav.FromFileMP3(path);
+					goto case ".wav";
 				default:
-					throw new InvalidOperationException("Path contained an invalid extension even after confirming that it had a valid one.");
+					throw new InvalidOperationException("Path contained an invalid extension");
 			}
+		}
+
+		public static SoundEffect CreateFilteredSFX(string path, params Filter[] filtersToApply){
+			if(filtersToApply.Length == 0)
+				throw new ArgumentException("Filters list was empty.", "filtersToApply");
+
+			if(HasFilteredSFX(path, out FilterPackage package, filtersToApply))
+				return package.effect;
+
+			GetWavAndMetadata(path, out var wav, out var metaData);
 
 			return ApplyFilters(wav, path, metaData, filtersToApply);
 		}

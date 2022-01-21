@@ -1,4 +1,6 @@
-﻿using MonoSound.XACT;
+﻿using Microsoft.Xna.Framework.Audio;
+using MonoSound.XACT;
+using MP3Sharp;
 using NVorbis;
 using System;
 using System.Collections.Generic;
@@ -114,7 +116,7 @@ namespace MonoSound.Audio{
 
 		public static FormatWav FromFileOGG(string file){
 			if(Path.GetExtension(file) != ".ogg")
-				throw new ArgumentException("File must be a .ogg file", "file");
+				throw new ArgumentException("File must be an .ogg file", "file");
 
 			//OGG Vorbis specifications defined here: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-230001.3.2
 			//Example use found here: https://csharp.hotexamples.com/examples/-/NVorbis.VorbisReader/-/php-nvorbis.vorbisreader-class-examples.html
@@ -264,6 +266,61 @@ namespace MonoSound.Audio{
 			actualStream[7] = arr[3];
 
 			return FromBytes(actualStream);
+		}
+
+		public static FormatWav FromFileMP3(string file){
+			if(Path.GetExtension(file) != ".mp3")
+				throw new ArgumentException("File must be an .mp3 file", "file");
+
+			using(MP3Stream stream = new MP3Stream(file)){
+				byte[] header = new byte[16];
+				
+				//Type of Format
+				header[0] = 0x01;
+
+				//Number of Channels
+				byte[] arr = BitConverter.GetBytes((short)AudioChannels.Stereo);  //MP3 decoder forces the samples to align to stereo
+				header[2] = arr[0];
+				header[3] = arr[1];
+
+				//Samples per Second
+				arr = BitConverter.GetBytes(stream.Frequency);
+				header[4] = arr[0];
+				header[5] = arr[1];
+				header[6] = arr[2];
+				header[7] = arr[3];
+				
+				//Bytes per Second
+				arr = BitConverter.GetBytes(stream.Frequency * 4);
+				header[8] = arr[0];
+				header[9] = arr[1];
+				header[10] = arr[2];
+				header[11] = arr[3];
+				
+				//Block Align
+				arr = BitConverter.GetBytes((short)4);
+				header[12] = arr[0];
+				header[13] = arr[1];
+
+				//Bits per Sample
+				arr = BitConverter.GetBytes((short)16);
+				header[14] = arr[0];
+				header[15] = arr[1];
+
+				//Read the samples
+				byte[] sampleWrite = new byte[1024];
+				List<byte> samples = new List<byte>();
+				int count;
+
+				while((count = stream.Read(sampleWrite, 0, 1024)) > 0){
+					byte[] read = new byte[count];
+					Buffer.BlockCopy(sampleWrite, 0, read, 0, count);
+
+					samples.AddRange(read);
+				}
+
+				return FromDecompressorData(samples.ToArray(), header);
+			}
 		}
 
 		public static FormatWav FromBytes(byte[] data){

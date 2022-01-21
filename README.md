@@ -21,6 +21,7 @@ Table of Contents |
 [How it Works](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#how-it-works) |
 [Implemented Sound Filters](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#implemented-sound-filters) |
 [XACT Sound Playing](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#xact-sound-playing) |
+[SoundEffect Loading](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#soundeffect-loading) |
 [Sound Streaming](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#sound-streaming) |
 
 ### How it Works
@@ -28,7 +29,9 @@ Table of Contents |
 MonoSound is able to process WAVE data from the following formats:
 - `.wav`: WAV audio
 - `.xnb`: Compiled MonoGame `SoundEffect` files
+- `.xwb`: XACT Wave Banks
 - `.ogg`: OGG Vorbis audio
+- `.mp3`: MPEG Audio Layer III audio
 
 First, the library needs to be initialized via `MonoSoundManager.Init();`, preferably in the `Game.LoadContent()` method.  
 (Until this method is called, most uses of the library will either result in thrown errors or undefined behaviour.)
@@ -39,7 +42,7 @@ Finally, when the game is closed, `MonoSoundManager.DeInit()` must be called in 
 
 ### Implemented Sound Filters
 
-MonoSound currently implements three of SoLoud's sound filters:
+MonoSound currently implements five of SoLoud's sound filters:
 
 1. Low Pass (Biquad Resonant)
 2. Band Pass (Biquad Resonant)
@@ -141,9 +144,16 @@ SoundEffect xactSound = MonoSoundManager.GetEffectFromBank("Content/Sound Bank.x
 xactSound.Play();
 ```
 
+### SoundEffect Loading
+The pipeline in MonoGame can be completely avoided by using this library.  Below is an example of loading a `SoundEffect` directly from a file and playing it:
+```cs
+SoundEffect sound = MonoSoundManager.GetEffect("Content/spooky.mp3");
+sound.Play();
+```
+
 ### Sound Streaming
 
-MonoSound has built-in support for streaming sounds from `.wav` files, compiled `.xnb` files, XACT `.xwb` wave banks and OGG Vorbis `.ogg` files.
+MonoSound has built-in support for streaming sounds from `.wav` files, compiled `.xnb` files, XACT `.xwb` wave banks, OGG Vorbis `.ogg` files and MPEG Audio Layer III `.mp3` files.
 
 In order to register a streamed sound, either `MonoSoundManager.GetStreamedSound(string, bool)` or `MonoSoundManager.GetStreamedXACTSound(string, string, string, bool)` has to be called.  
 To stop the streamed sound and its streaming, call `MonoSoundManager.FreeStreamedSound(ref SoundEffectInstance)`.
@@ -151,7 +161,7 @@ To stop the streamed sound and its streaming, call `MonoSoundManager.FreeStreame
 Do note that once a streamed sound has been registered from an XACT wave bank, that bank will **no longer be able** to be used for non-streaming purposes.  
 Furthermore, streamed sounds **cannot** have filters applied to them.
 
-#### WAV/XNB/OGG Example
+#### WAV/XNB/OGG/MP3 Example
 ```cs
 SoundEffectInstance streamedSound = MonoSoundManager.GetStreamedSound("Content/cool_sound.xnb", looping: false);
 streamedSound.Play();

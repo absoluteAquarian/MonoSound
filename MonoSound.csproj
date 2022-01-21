@@ -1,80 +1,38 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{304B1530-AE13-4349-A168-6CAC65A77D14}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>MonoSound</RootNamespace>
-    <AssemblyName>MonoSound</AssemblyName>
-    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
-    <FileAlignment>512</FileAlignment>
-    <Deterministic>true</Deterministic>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <TieredCompilation>false</TieredCompilation>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	<Version>1.4.0.0</Version>
+	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	<Authors>John Baglio</Authors>
+	<Description>A library built for use with MonoGame DesktopGL projects.
+This project allows for easy loading of SoundEffect instances without the content pipeline, along with XACT wavebank sounds.
+Additional features include streaming audio from files and applying SoLoud sound filters to sounds.
+The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGame</Description>
+	<Copyright>Copyright © John Baglio 2022</Copyright>
+	<PackageProjectUrl></PackageProjectUrl>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<RepositoryUrl>https://github.com/absoluteAquarian/MonoSound</RepositoryUrl>
+	<PackageTags>monogame;sound;sound-filters;filters;xact;audio</PackageTags>
+	<PackageReleaseNotes>Added support for MPEG Audio Layer III (.mp3) files and loading SoundEffects without sound filters.</PackageReleaseNotes>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>bin\Release\MonoSound.xml</DocumentationFile>
-  </PropertyGroup>
-  <PropertyGroup>
-    <StartupObject />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;CA2211;CA1069;CS8618</NoWarn>
+    <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="MonoGame.Framework, Version=3.6.0.1625, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\..\..\..\Program Files (x86)\MonoGame\v3.0\Assemblies\DesktopGL\MonoGame.Framework.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="Microsoft.CSharp" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.0.1641" />
+    <PackageReference Include="MP3Sharp" Version="1.0.5" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Audio\FormatWav.cs" />
-    <Compile Include="Audio\PCMData.cs" />
-    <Compile Include="Audio\WavSample.cs" />
-    <Compile Include="Decompressor.cs" />
-    <Compile Include="Filters\FilterPackage.cs" />
-    <Compile Include="Filters\FilterSimulations.cs" />
-    <Compile Include="Filters\Instances\BiquadResonantFilter.cs" />
-    <Compile Include="Filters\Instances\EchoFilter.cs" />
-    <Compile Include="Filters\Instances\Filter.cs" />
-    <Compile Include="Filters\Instances\FreeverbFilter.cs" />
-    <Compile Include="Filters\SoundFilterManager.cs" />
-    <Compile Include="Filters\SoundFilterType.cs" />
-    <Compile Include="Lz4DecoderStream.cs" />
-    <Compile Include="LzxDecoder.cs" />
-    <Compile Include="LzxDecoderStream.cs" />
-    <Compile Include="MonoSoundManager.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReflectionHelpers.cs" />
-    <Compile Include="SoLoudResult.cs" />
-    <Compile Include="Streaming\StreamManager.cs" />
-    <Compile Include="Streaming\StreamPackage.cs" />
-    <Compile Include="Streaming\StreamType.cs" />
-    <Compile Include="XACT\MonoSoundBank.cs" />
-    <Compile Include="XACT\MonoWaveBank.cs" />
-    <Compile Include="XACT\MonoXactSound.cs" />
-    <None Include="LICENSE.txt" />
+    <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="CHANGELOG.txt" />
-    <Content Include="TODO.txt" />
+	<Compile Remove="MonoSound.Tests/**" />
+	<Content Remove="MonoSound.Tests/**" />
   </ItemGroup>
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

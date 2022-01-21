@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30309.148
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31717.71
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoSound", "MonoSound.csproj", "{304B1530-AE13-4349-A168-6CAC65A77D14}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MonoSound.Tests", "MonoSound.Tests\MonoSound.Tests.csproj", "{90306C7E-78D4-4A80-A708-03AC45691AAA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{304B1530-AE13-4349-A168-6CAC65A77D14}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{304B1530-AE13-4349-A168-6CAC65A77D14}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{304B1530-AE13-4349-A168-6CAC65A77D14}.Release|Any CPU.Build.0 = Release|Any CPU
+		{90306C7E-78D4-4A80-A708-03AC45691AAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{90306C7E-78D4-4A80-A708-03AC45691AAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{90306C7E-78D4-4A80-A708-03AC45691AAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{90306C7E-78D4-4A80-A708-03AC45691AAA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

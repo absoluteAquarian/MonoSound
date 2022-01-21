@@ -3,6 +3,7 @@
 		XNB,
 		XWB,
 		WAV,
-		OGG
+		OGG,
+		MP3
 	}
 }

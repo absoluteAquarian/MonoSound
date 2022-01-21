@@ -1,4 +1,9 @@
-﻿v1.3.0.0
+﻿v1.4.0.0
+- Added support for streaming from MPEG Audio Layer III (.mp3) files
+- Added support for creating SoundEffect instances directly from the supported audio file
+   types (.xnb, .wav, .ogg and .mp3)
+
+v1.3.0.0
 - Added support for streaming from OGG Vorbis (.ogg) sound files
 
 v1.2.0.0

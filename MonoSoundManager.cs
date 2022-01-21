@@ -43,6 +43,11 @@ namespace MonoSound{
 		private static bool initialized = false;
 
 		/// <summary>
+		/// The version for MonoSound
+		/// </summary>
+		public static readonly string Version = "1.4.0.0";
+
+		/// <summary>
 		/// Initializes MonoSound
 		/// </summary>
 		public static void Init(){
@@ -102,6 +107,15 @@ namespace MonoSound{
 		private static void ThrowIfNotInitialized(){
 			if(!initialized)
 				throw new InvalidOperationException("MonoSound has not initialized yet!");
+		}
+
+		/// <summary>
+		/// Retrieves a <seealso cref="SoundEffect"/> from a compiled .xnb file, a .wav file, an .ogg file or an .mp3 file
+		/// </summary>
+		/// <param name="file">The file to get the sound from</param>
+		public static SoundEffect GetEffect(string file){
+			SoundFilterManager.GetWavAndMetadata(file, out var wav, out _);
+			return new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
 		}
 
 		/// <summary>
@@ -210,12 +224,10 @@ namespace MonoSound{
 		/// <summary>
 		/// Gets a streamed sound effect
 		/// </summary>
-		/// <param name="filePath">The path to the sound file. Must refer to a compiled .xnb file, a .wav file or an .ogg file.</param>
+		/// <param name="filePath">The path to the sound file. Must refer to a compiled .xnb file, a .wav file, an .ogg file or an .mp3 file.</param>
 		/// <param name="looping">Whether the sound should loop or not</param>
 		public static SoundEffectInstance GetStreamedSound(string filePath, bool looping){
 			string extension = Path.GetExtension(filePath);
-			if(extension != ".xnb" && extension != ".wav" && extension != ".ogg")
-				throw new ArgumentException($"Input file must be a compiled XNB file, a WAV file or an OGG Vorbis file: \"{filePath}\"");
 
 			switch(extension){
 				case ".xnb":
@@ -224,8 +236,10 @@ namespace MonoSound{
 					return StreamManager.InitializeWAVStream(filePath, looping);
 				case ".ogg":
 					return StreamManager.InitializeOGGStream(filePath, looping);
+				case ".mp3":
+					return StreamManager.InitializeMP3Stream(filePath, looping);;
 				default:
-					throw new Exception(); //Impossible to get here, but required to compile
+					throw new ArgumentException($"Input file must be a compiled XNB file, a WAV file, an OGG Vorbis file or an MP3 file: \"{filePath}\"");
 			}
 		}
 
