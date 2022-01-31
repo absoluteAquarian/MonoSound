@@ -1,7 +1,7 @@
 # MonoSound
 [![NuGet download count](https://img.shields.io/nuget/dt/MonoSound)](https://www.nuget.org/packages/MonoSound)
 
-A library for MonoGame projects which allows easy creation of filtered sound via SoLoud's sound filters.  
+A library for MonoGame projects which provides an alternative to SoundEffect instance creation, among other useful features.  
 Supported MonoGame builds: DesktopGL
 
 The sound filter code was ported directly from the C++ sound filter library, SoLoud.
@@ -20,11 +20,12 @@ The `LzxDecoder.cs` file also contains certain licenses.
 
 Table of Contents |
 --- |
-[How it Works](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#how-it-works) |
-[Implemented Sound Filters](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#implemented-sound-filters) |
-[XACT Sound Playing](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#xact-sound-playing) |
-[SoundEffect Loading](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#soundeffect-loading) |
-[Sound Streaming](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#sound-streaming) |
+[How it Works](#how-it-works) |
+[Implemented Sound Filters](#implemented-sound-filters) |
+[XACT Sound Playing](#xact-sound-playing) |
+[SoundEffect Loading](#soundeffect-loading) |
+[Sound Streaming](#sound-streaming) |
+[Other Information](#other-information) |
 
 ### How it Works
 
@@ -184,3 +185,7 @@ streamedXACTSound.Play();
 //Stop the sound and its streaming.  This method automatically calls Stop() and Dispose() on the instance.
 MonoSoundManager.FreeStreamedSound(ref streamedXACTSound);
 ```
+
+### Other Information
+MonoSound also supports all of its features on `System.IO.Stream` instances.  
+All of the aforementioned methods that involve creating/loading `SoundEffect` instances and applying sound filters to sound files have overloads for supporting `System.IO.Stream` instances.

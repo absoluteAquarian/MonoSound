@@ -1,4 +1,8 @@
-﻿v1.4.0.0
+﻿v1.5.0.0
+- Added support for loading SoundEffect instances from System.IO.Stream instances
+- Added support for applying sound filters to System.IO.Stream instances
+
+v1.4.0.0
 - Added support for streaming from MPEG Audio Layer III (.mp3) files
 - Added support for creating SoundEffect instances directly from the supported audio file
    types (.xnb, .wav, .ogg and .mp3)

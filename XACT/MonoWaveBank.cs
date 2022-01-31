@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Audio;
 using MonoSound.Audio;
 using System;
 using System.IO;
@@ -64,14 +63,18 @@ namespace MonoSound.XACT{
 		private MonoWaveBank(){ }
 
 		public static MonoWaveBank FromXNA(string file, bool streaming = false){
-			//Any of the metadata the wavebank would use is irrelevant; we only want the sound effect data
-			MonoWaveBank ret = new MonoWaveBank();
-
 			if(string.IsNullOrWhiteSpace(file))
 				throw new ArgumentNullException("file");
 
-			ret._waveBankFileName = file;
-			ret._streaming = streaming;
+			return FromXNA(TitleContainer.OpenStream(file), file, streaming);
+		}
+		
+		public static MonoWaveBank FromXNA(Stream stream, string fileName, bool streaming = false){
+			//Any of the metadata the wavebank would use is irrelevant; we only want the sound effect data
+			MonoWaveBank ret = new MonoWaveBank(){
+				_waveBankFileName = fileName,
+				_streaming = streaming
+			};
 
 			//Streaming banks aren't allowed, since we want to grab the data in one go
 			WaveBankHeader wavebankheader;
@@ -84,7 +87,7 @@ namespace MonoSound.XACT{
 
 			int wavebank_offset = 0;
 
-			BinaryReader reader = new BinaryReader(TitleContainer.OpenStream(file));
+			BinaryReader reader = new BinaryReader(stream);
 
 			reader.ReadBytes(4);
 

@@ -9,10 +9,19 @@ namespace MonoSound.Streaming{
 		private static Dictionary<string, StreamPackage> streams = new Dictionary<string, StreamPackage>();
 		private static readonly object modifyLock = new object();
 
-		public static SoundEffectInstance InitializeXNBStream(string path, bool loopedSound){
-			StreamPackage package = new StreamPackage(path, StreamType.XNB){
-				looping = loopedSound
+		private static int StreamSourceCreationIndex;
+
+		public static SoundEffectInstance InitializeStream(string path, bool loopedSound, AudioType type){
+			StreamPackage package = type switch{
+				AudioType.XNB => new XnbStream(path),
+				AudioType.XWB => throw new ArgumentException("XWB streams should be initialized via StreamManager.InitializeXWBStream()"),
+				AudioType.WAV => new WavStream(path),
+				AudioType.OGG => new OggStream(path),
+				AudioType.MP3 => new Mp3Stream(path),
+				_ => throw new ArgumentException("Unknown stream type requested")
 			};
+
+			package.looping = loopedSound;
 
 			string name = GetSafeName(path);
 			lock(modifyLock){
@@ -24,12 +33,19 @@ namespace MonoSound.Streaming{
 			return streams[name].sfx;
 		}
 
-		public static SoundEffectInstance InitializeWAVStream(string path, bool loopedSound){
-			StreamPackage package = new StreamPackage(path, StreamType.WAV){
-				looping = loopedSound
+		public static SoundEffectInstance InitializeStream(Stream sampleSource, bool loopedSound, AudioType type){
+			StreamPackage package = type switch{
+				AudioType.XNB => new XnbStream(sampleSource),
+				AudioType.XWB => throw new ArgumentException("XWB streams should be initialized via StreamManager.InitializeXWBStream()"),
+				AudioType.WAV => new WavStream(sampleSource),
+				AudioType.OGG => new OggStream(sampleSource),
+				AudioType.MP3 => new Mp3Stream(sampleSource),
+				_ => throw new ArgumentException("Unknown stream type requested")
 			};
 
-			string name = GetSafeName(path);
+			package.looping = loopedSound;
+
+			string name = sampleSource is FileStream fs ? GetSafeName(fs.Name) : "$streamed_" + StreamSourceCreationIndex++;
 			lock(modifyLock){
 				streams.Add(name, package);
 
@@ -40,7 +56,7 @@ namespace MonoSound.Streaming{
 		}
 
 		public static SoundEffectInstance InitializeXWBStream(string soundBankPath, string waveBankPath, string cueName, bool loopedSound){
-			StreamPackage package = new StreamPackage(soundBankPath, waveBankPath, cueName){
+			StreamPackage package = new WavebankStream(soundBankPath, waveBankPath, cueName){
 				looping = loopedSound
 			};
 
@@ -54,27 +70,12 @@ namespace MonoSound.Streaming{
 			return streams[name].sfx;
 		}
 
-		public static SoundEffectInstance InitializeOGGStream(string path, bool loopedSound){
-			StreamPackage package = new StreamPackage(path, StreamType.OGG){
+		public static SoundEffectInstance InitializeXWBStream(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, bool loopedSound){
+			StreamPackage package = new WavebankStream(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, cueName){
 				looping = loopedSound
 			};
 
-			string name = GetSafeName(path);
-			lock(modifyLock){
-				streams.Add(name, package);
-
-				updateKeys = true;
-			}
-
-			return streams[name].sfx;
-		}
-
-		public static SoundEffectInstance InitializeMP3Stream(string path, bool loopedSound){
-			StreamPackage package = new StreamPackage(path, StreamType.MP3){
-				looping = loopedSound
-			};
-
-			string name = GetSafeName(path);
+			string name = GetSafeName(cueName);
 			lock(modifyLock){
 				streams.Add(name, package);
 
@@ -125,7 +126,7 @@ namespace MonoSound.Streaming{
 		private static string[] keys;
 
 #pragma warning disable IDE0060
-		public static void HandleStreaming(object state){
+		internal static void HandleStreaming(object state){
 #pragma warning restore IDE0060
 			Stopwatch watch = new Stopwatch();
 			watch.Start();

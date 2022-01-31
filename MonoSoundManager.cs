@@ -7,7 +7,6 @@ using MonoSound.XACT;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Threading;
 
 namespace MonoSound{
@@ -45,12 +44,15 @@ namespace MonoSound{
 		/// <summary>
 		/// The version for MonoSound
 		/// </summary>
-		public static readonly string Version = "1.4.0.0";
+		public static readonly string Version = "1.5.0.0";
 
 		/// <summary>
 		/// Initializes MonoSound
 		/// </summary>
 		public static void Init(){
+			if(initialized)
+				throw new InvalidOperationException("MonoSound has already been initialized");
+
 			SoundFilterManager.Init();
 
 			customFilters = new Dictionary<int, Filter>();
@@ -71,6 +73,9 @@ namespace MonoSound{
 		/// Deinitializes MonoSound
 		/// </summary>
 		public static void DeInit(){
+			if(!initialized)
+				throw new InvalidOperationException("MonoSound has already been de-initialized");
+
 			SoundFilterManager.DeInit();
 			StreamManager.SignalStop();
 
@@ -91,6 +96,8 @@ namespace MonoSound{
 		/// Sets how many filters can be loaded at once
 		/// </summary>
 		public static void SetMaxFilterCount(int count){
+			ThrowIfNotInitialized();
+
 			if(count < 50)
 				throw new ArgumentException("Value was too small.", "count");
 			if(count > 1000)
@@ -102,7 +109,11 @@ namespace MonoSound{
 		/// <summary>
 		/// Clears any stored filters
 		/// </summary>
-		public static void ClearFilters() => SoundFilterManager.Clear();
+		public static void ClearFilters(){
+			ThrowIfNotInitialized();
+
+			SoundFilterManager.Clear();
+		}
 
 		private static void ThrowIfNotInitialized(){
 			if(!initialized)
@@ -114,12 +125,14 @@ namespace MonoSound{
 		/// </summary>
 		/// <param name="file">The file to get the sound from</param>
 		public static SoundEffect GetEffect(string file){
+			ThrowIfNotInitialized();
+
 			SoundFilterManager.GetWavAndMetadata(file, out var wav, out _);
 			return new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
 		}
 
 		/// <summary>
-		/// Applies the wanted filter to the sound file.
+		/// Applies the wanted filter to the sound file
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
 		/// <param name="filterID">The ID of the filter to use.</param>
@@ -133,7 +146,7 @@ namespace MonoSound{
 		}
 
 		/// <summary>
-		/// Applies the wanted filters to the sound file in the order requested.
+		/// Applies the wanted filters to the sound file in the order requested
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
 		/// <param name="filterIDs">The list of filter IDs to use.</param>
@@ -146,7 +159,53 @@ namespace MonoSound{
 			return SoundFilterManager.CreateFilteredSFX(file, GetFiltersFromIDs(filterIDs));
 		}
 
-		internal static void VerifyThatBanksExist(string soundBankFile, string waveBankFile, out string soundBank, out string waveBank, bool setStreaming = false){
+		/// <summary>
+		/// Retrieves a <seealso cref="SoundEffect"/> from a stream of data
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the effect from</param>
+		/// <param name="fileType">The type of audio file the stream is supposed to represent</param>
+		public static SoundEffect GetEffect(Stream stream, AudioType fileType){
+			ThrowIfNotInitialized();
+
+			SoundFilterManager.GetWavAndMetadata(stream, fileType, out var wav, out _);
+			return new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
+		}
+
+		/// <summary>
+		/// Applies the wanted filter to the sound stream
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="type">The type of audio file the stream is supposed to represent</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filterID">The ID of the filter to use.</param>
+		public static SoundEffect GetFilteredEffect(Stream stream, AudioType type, string nameIndicator, int filterID){
+			ThrowIfNotInitialized();
+
+			if(!customFilters.ContainsKey(filterID))
+				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", "filterID");
+
+			SoundFilterManager.GetWavAndMetadata(stream, type, out var wav, out _);
+			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, customFilters[filterID]);
+		}
+
+		/// <summary>
+		/// Applies the wanted filters to the sound stream in the order requested
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="type">The type of audio file the stream is supposed to represent</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		public static SoundEffect GetMultiFilteredEffect(Stream stream, AudioType type, string nameIndicator, params int[] filterIDs){
+			ThrowIfNotInitialized();
+
+			if(!AllFiltersIDsExist(filterIDs))
+				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", "filterIDs");
+
+			SoundFilterManager.GetWavAndMetadata(stream, type, out var wav, out _);
+			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, GetFiltersFromIDs(filterIDs));
+		}
+
+		internal static void VerifyThatBanksExistInDictionary(string soundBankFile, string waveBankFile, out string soundBank, out string waveBank, bool setStreaming = false){
 			if(Path.GetExtension(soundBankFile) != ".xsb")
 				throw new ArgumentException($"Path provided was invalid: {soundBankFile}", "soundBankFile");
 			if(Path.GetExtension(waveBankFile) != ".xwb")
@@ -156,12 +215,30 @@ namespace MonoSound{
 			soundBank = Path.ChangeExtension(Path.GetFileName(soundBankFile), null);
 			waveBank = Path.ChangeExtension(Path.GetFileName(waveBankFile), null);
 
-			if(!soundBanks.ContainsKey(soundBank))
-				soundBanks[soundBank] = MonoSoundBank.FromXNA(soundBankFile);
+			if(!soundBanks.ContainsKey(soundBankFile))
+				soundBanks[soundBankFile] = MonoSoundBank.FromXNA(soundBankFile);
 			
 			//Wave bank needs to be loaded so that the sound bank can use it
-			if(!waveBanks.ContainsKey(waveBank))
-				waveBanks[waveBank] = MonoWaveBank.FromXNA(waveBankFile, setStreaming);
+			if(!waveBanks.ContainsKey(waveBankFile))
+				waveBanks[waveBankFile] = MonoWaveBank.FromXNA(waveBankFile, setStreaming);
+		}
+
+		internal static void VerifyThatBanksExistInDictionary(Stream soundBank, string soundBankIdentifier, Stream waveBank, string waveBankIdentifier, out string soundBankName, out string waveBankName, bool setStreaming = false){
+			if(Path.GetExtension(soundBankIdentifier) != ".xsb")
+				throw new ArgumentException($"Path provided was invalid: {soundBankIdentifier}", "soundBankIdentifier");
+			if(Path.GetExtension(waveBankIdentifier) != ".xwb")
+				throw new ArgumentException($"Path provided was invalid: {waveBankIdentifier}", "waveBankIdentifier");
+
+			//Get the file names without the extensions
+			soundBankName = Path.ChangeExtension(Path.GetFileName(soundBankIdentifier), null);
+			waveBankName = Path.ChangeExtension(Path.GetFileName(waveBankIdentifier), null);
+
+			if(!soundBanks.ContainsKey(soundBankIdentifier))
+				soundBanks[soundBankIdentifier] = MonoSoundBank.FromXNA(soundBank);
+			
+			//Wave bank needs to be loaded so that the sound bank can use it
+			if(!waveBanks.ContainsKey(waveBankIdentifier))
+				waveBanks[waveBankIdentifier] = MonoWaveBank.FromXNA(waveBank, waveBankIdentifier, setStreaming);
 		}
 
 		/// <summary>
@@ -171,7 +248,9 @@ namespace MonoSound{
 		/// <param name="waveBankFile">The path to the wave bank. Use the same path you would use in <seealso cref="WaveBank"/>'s constructor.</param>
 		/// <param name="cueName">The name of the sound ("cue") to get. Use the same name you would use in <seealso cref="SoundBank.GetCue(string)"/>.</param>
 		public static SoundEffect GetEffectFromBank(string soundBankFile, string waveBankFile, string cueName){
-			VerifyThatBanksExist(soundBankFile, waveBankFile, out string soundBank, out _);
+			ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
 
 			FormatWav wav = soundBanks[soundBank].GetAudio(cueName);
 			return new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
@@ -185,9 +264,11 @@ namespace MonoSound{
 		/// <param name="cueName">The name of the cue. Use the same name you would use in <seealso cref="SoundBank.GetCue(string)"/>.</param>
 		/// <param name="filterID">The ID of the filter to use.</param>
 		public static SoundEffect GetBankFilteredEffect(string soundBankFile, string waveBankFile, string cueName, int filterID){
-			VerifyThatBanksExist(soundBankFile, waveBankFile, out string soundBank, out _);
+			ThrowIfNotInitialized();
 
-			return SoundFilterManager.CreateBankFilteredSFX(soundBanks[soundBank].GetAudio(cueName), cueName, customFilters[filterID]);
+			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
+
+			return SoundFilterManager.CreateFilteredSFX(soundBanks[soundBank].GetAudio(cueName), cueName, customFilters[filterID]);
 		}
 
 		/// <summary>
@@ -198,9 +279,45 @@ namespace MonoSound{
 		/// <param name="cueName">The name of the cue. Use the same name you would use in <seealso cref="SoundBank.GetCue(string)"/>.</param>
 		/// <param name="filterIDs">The list of filter IDs to use.</param>
 		public static SoundEffect GetBankMultiFilteredEffect(string soundBankFile, string waveBankFile, string cueName, params int[] filterIDs){
-			VerifyThatBanksExist(soundBankFile, waveBankFile, out string soundBank, out _);
+			ThrowIfNotInitialized();
 
-			return SoundFilterManager.CreateBankFilteredSFX(soundBanks[soundBank].GetAudio(cueName), cueName, GetFiltersFromIDs(filterIDs));
+			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
+
+			return SoundFilterManager.CreateFilteredSFX(soundBanks[soundBank].GetAudio(cueName), cueName, GetFiltersFromIDs(filterIDs));
+		}
+
+		/// <summary>
+		/// Retrieves a given sound using the requested sound bank and wave bank, then applies the wanted filter to it.
+		/// </summary>
+		/// <param name="soundBankSource">A stream representing the sound bank's data</param>
+		/// <param name="soundBankIdentifier">A string used to identify the sound bank</param>
+		/// <param name="waveBankSource">A stream representing the wave bank's data</param>
+		/// <param name="waveBankIdentifier">A string used to identify the wave bank</param>
+		/// <param name="cueName">The name of the cue. Use the same name you would use in <seealso cref="SoundBank.GetCue(string)"/>.</param>
+		/// <param name="filterID">The ID of the filter to use.</param>
+		public static SoundEffect GetBankFilteredEffect(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, int filterID){
+			ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
+
+			return SoundFilterManager.CreateFilteredSFX(soundBanks[soundBank].GetAudio(cueName), cueName, customFilters[filterID]);
+		}
+
+		/// <summary>
+		/// Retrieves a given sound using the requested sound bank and wave bank, then applies the wanted filter to it.
+		/// </summary>
+		/// <param name="soundBankSource">A stream representing the sound bank's data</param>
+		/// <param name="soundBankIdentifier">A string used to identify the sound bank</param>
+		/// <param name="waveBankSource">A stream representing the wave bank's data</param>
+		/// <param name="waveBankIdentifier">A string used to identify the wave bank</param>
+		/// <param name="cueName">The name of the cue. Use the same name you would use in <seealso cref="SoundBank.GetCue(string)"/>.</param>
+		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		public static SoundEffect GetBankMultiFilteredEffect(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, params int[] filterIDs){
+			ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
+
+			return SoundFilterManager.CreateFilteredSFX(soundBanks[soundBank].GetAudio(cueName), cueName, GetFiltersFromIDs(filterIDs));
 		}
 
 		private static Filter[] GetFiltersFromIDs(int[] ids){
@@ -212,35 +329,45 @@ namespace MonoSound{
 		}
 
 		private static bool AllFiltersIDsExist(int[] ids){
-			bool success = true;
-
-			for(int i = 0; i < ids.Length; i++)
+			for(int i = 0; i < ids.Length; i++){
 				if(!customFilters.ContainsKey(ids[i]))
-					success = false;
+					return false;
+			}
 
-			return success;
+			return true;
 		}
 
 		/// <summary>
 		/// Gets a streamed sound effect
 		/// </summary>
 		/// <param name="filePath">The path to the sound file. Must refer to a compiled .xnb file, a .wav file, an .ogg file or an .mp3 file.</param>
-		/// <param name="looping">Whether the sound should loop or not</param>
+		/// <param name="looping">Whether the sound should loop</param>
 		public static SoundEffectInstance GetStreamedSound(string filePath, bool looping){
+			ThrowIfNotInitialized();
+
 			string extension = Path.GetExtension(filePath);
 
-			switch(extension){
-				case ".xnb":
-					return StreamManager.InitializeXNBStream(filePath, looping);
-				case ".wav":
-					return StreamManager.InitializeWAVStream(filePath, looping);
-				case ".ogg":
-					return StreamManager.InitializeOGGStream(filePath, looping);
-				case ".mp3":
-					return StreamManager.InitializeMP3Stream(filePath, looping);;
-				default:
-					throw new ArgumentException($"Input file must be a compiled XNB file, a WAV file, an OGG Vorbis file or an MP3 file: \"{filePath}\"");
-			}
+			return extension switch{
+				".xnb" => StreamManager.InitializeStream(filePath, looping, AudioType.XNB),
+				".wav" => StreamManager.InitializeStream(filePath, looping, AudioType.WAV),
+				".ogg" => StreamManager.InitializeStream(filePath, looping, AudioType.OGG),
+				".mp3" => StreamManager.InitializeStream(filePath, looping, AudioType.MP3),
+				_ => throw new ArgumentException($"Input file must be a compiled XNB file, a WAVE file, an OGG Vorbis file or an MPEG Audio Layer III file: \"{filePath}\""),
+			};
+		}
+
+		/// <summary>
+		/// Gets a streamed sound effect
+		/// </summary>
+		/// <param name="sampleSource">The stream where the samples will be read from. It is expected to contain a full audio file's data</param>
+		/// <param name="fileIdentifier">An enumeration value indicating what type of audio <paramref name="sampleSource"/> contains.  Cannot be <seealso cref="AudioType.XWB"/></param>
+		/// <param name="looping">Whether the sound should loop</param>
+		public static SoundEffectInstance GetStreamedSound(Stream sampleSource, AudioType fileIdentifier, bool looping){
+			ThrowIfNotInitialized();
+
+			return fileIdentifier != AudioType.XWB
+				? StreamManager.InitializeStream(sampleSource, looping, fileIdentifier)
+				: throw new ArgumentException("XWB streams must be created via MonoSoundManager.GetStreamedXACTSound()");
 		}
 
 		/// <summary>
@@ -249,15 +376,35 @@ namespace MonoSound{
 		/// <param name="soundBankPath">The path to the sound bank</param>
 		/// <param name="waveBankPath">The path to the wave bank</param>
 		/// <param name="cueName">The name of the sound cue to stream</param>
-		/// <param name="looping">Whether the sound should loop or not</param>
-		public static SoundEffectInstance GetStreamedXACTSound(string soundBankPath, string waveBankPath, string cueName, bool looping)
-			=> StreamManager.InitializeXWBStream(soundBankPath, waveBankPath, cueName, looping);
+		/// <param name="looping">Whether the sound should loop</param>
+		public static SoundEffectInstance GetStreamedXACTSound(string soundBankPath, string waveBankPath, string cueName, bool looping){
+			ThrowIfNotInitialized();
+
+			return StreamManager.InitializeXWBStream(soundBankPath, waveBankPath, cueName, looping);
+		}
+
+		/// <summary>
+		/// Gets a streamed sound effect from an XACT wave bank
+		/// </summary>
+		/// <param name="soundBankSource">A stream representing the sound bank's data</param>
+		/// <param name="soundBankIdentifier">A string used to identify the sound bank</param>
+		/// <param name="waveBankSource">A stream representing the wave bank's data</param>
+		/// <param name="waveBankIdentifier">A string used to identify the wave bank</param>
+		/// <param name="cueName">The name of the sound cue to stream</param>
+		/// <param name="looping">Whether the sound should loop</param>
+		public static SoundEffectInstance GetStreamedXACTSound(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, bool looping){
+			ThrowIfNotInitialized();
+
+			return StreamManager.InitializeXWBStream(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, cueName, looping);
+		}
 
 		/// <summary>
 		/// Stops streaming for a certain sound effect, stops playing it and then disposes it
 		/// </summary>
 		/// <param name="instance">The sound effect instance</param>
 		public static void FreeStreamedSound(ref SoundEffectInstance instance){
+			ThrowIfNotInitialized();
+
 			StreamManager.StopStreamingSound(ref instance);
 		}
 
@@ -272,21 +419,13 @@ namespace MonoSound{
 		public static int RegisterBiquadResonantFilter(SoundFilterType type, float strength, float frequencyCap, float resonance){
 			ThrowIfNotInitialized();
 
-			int filterType;
-			switch(type){
-				case SoundFilterType.LowPass:
-					filterType = BiquadResonantFilter.LOWPASS;
-					break;
-				case SoundFilterType.BandPass:
-					filterType = BiquadResonantFilter.BANDPASS;
-					break;
-				case SoundFilterType.HighPass:
-					filterType = BiquadResonantFilter.HIGHPASS;
-					break;
-				default:
-					throw new ArgumentException("Given type wasn't a valid Biquad Resonant Filter type.", "type");
-			}
-
+			var filterType = type switch{
+				SoundFilterType.LowPass => BiquadResonantFilter.LOWPASS,
+				SoundFilterType.BandPass => BiquadResonantFilter.BANDPASS,
+				SoundFilterType.HighPass => BiquadResonantFilter.HIGHPASS,
+				_ => throw new ArgumentException("Given type wasn't a valid Biquad Resonant Filter type.", "type")
+			};
+			
 			BiquadResonantFilter bqf = new BiquadResonantFilter();
 			bqf.setParams(filterType, frequencyCap, resonance);
 			bqf.SetStrength(strength);

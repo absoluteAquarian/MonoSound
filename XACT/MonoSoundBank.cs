@@ -21,9 +21,12 @@ namespace MonoSound.XACT{
 			if(string.IsNullOrWhiteSpace(file))
 				throw new ArgumentNullException("file");
 
+			return FromXNA(TitleContainer.OpenStream(file));
+		}
+		
+		public static MonoSoundBank FromXNA(Stream stream){
 			MonoSoundBank bank = new MonoSoundBank();
 
-			using(var stream = TitleContainer.OpenStream(file))
 			using(BinaryReader reader = new BinaryReader(stream)){
 				//Just read stuff until we have enough to satisfy grabbing the sounds
 				uint magic = reader.ReadUInt32();
@@ -44,11 +47,11 @@ namespace MonoSound.XACT{
 
 				uint numSimpleCues = reader.ReadUInt16();
 				if(numSimpleCues == 0)
-					throw new Exception($"No simple sounds were found in the Sound Bank from \"{file}\"");
+					throw new Exception($"No simple sounds were found in the Sound Bank");
 
 				uint numComplexCues = reader.ReadUInt16();
 				if(numComplexCues > 0)
-					throw new Exception($"MonoSound does not support complex Sound Bank sounds.  Problem file: \"{file}\"");
+					throw new Exception($"MonoSound does not support complex Sound Bank sounds");
 
 				reader.ReadUInt16(); //unkn
 				reader.ReadUInt16(); // numTotalCues
@@ -58,7 +61,7 @@ namespace MonoSound.XACT{
 				reader.ReadUInt16(); //unkn
 
 				uint simpleCuesOffset = reader.ReadUInt32();
-				uint complexCuesOffset = reader.ReadUInt32(); //unkn
+				reader.ReadUInt32(); //unkn
 				uint cueNamesOffset = reader.ReadUInt32();
 				reader.ReadUInt32(); //unkn
 				reader.ReadUInt32(); // variationTablesOffset

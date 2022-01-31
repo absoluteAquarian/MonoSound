@@ -3,7 +3,6 @@ using MonoSound.Audio;
 using MonoSound.Filters.Instances;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -25,11 +24,11 @@ namespace MonoSound.Filters{
 
 		public static void Clear() => filters?.Clear();
 
-		private static bool HasFilteredSFX(string path, out FilterPackage package, params Filter[] filtersToCheck){
+		private static bool HasFilteredSFX(string asset, out FilterPackage package, params Filter[] filtersToCheck){
 			foreach(FilterPackage p in filters){
 				bool allMatch = true;
 
-				if(p.asset != path)
+				if(p.asset != asset)
 					continue;
 
 				foreach(Filter f in filtersToCheck){
@@ -98,6 +97,42 @@ namespace MonoSound.Filters{
 			}
 		}
 
+		internal static void GetWavAndMetadata(Stream stream, AudioType type, out FormatWav wav, out PCMData metaData){
+			wav = null;
+			metaData = default;
+
+			switch(type){
+				case AudioType.XNB:
+					byte[] data = Decompressor.DecompressSoundEffectXNB(stream, out metaData, out byte[] header);
+
+					wav = FormatWav.FromDecompressorData(data, header);
+					break;
+				case AudioType.WAV:
+					//Could've jumped here from the OGG or MP3 cases.  Don't try and set the 'wav' variable if it was already set
+					if(wav is null)
+						wav = FormatWav.FromFileWAV(stream);
+
+					float duration = (int)((float)wav.DataLength / wav.ByteRate);
+
+					//Ignore the loop fields because they probably aren't that important
+					metaData = new PCMData(){
+						bitsPerSample = wav.BitsPerSample,
+						channels = (AudioChannels)wav.ChannelCount,
+						duration = (int)(duration * 1000),
+						sampleRate = wav.SampleRate
+					};
+					break;
+				case AudioType.OGG:
+					wav = FormatWav.FromFileOGG(stream);
+					goto case AudioType.WAV;
+				case AudioType.MP3:
+					wav = FormatWav.FromFileMP3(stream);
+					goto case AudioType.WAV;
+				default:
+					throw new InvalidOperationException("Path contained an invalid extension");
+			}
+		}
+
 		public static SoundEffect CreateFilteredSFX(string path, params Filter[] filtersToApply){
 			if(filtersToApply.Length == 0)
 				throw new ArgumentException("Filters list was empty.", "filtersToApply");
@@ -110,7 +145,13 @@ namespace MonoSound.Filters{
 			return ApplyFilters(wav, path, metaData, filtersToApply);
 		}
 
-		public static SoundEffect CreateBankFilteredSFX(FormatWav wav, string name, params Filter[] filtersToApply){
+		public static SoundEffect CreateFilteredSFX(FormatWav wav, string name, params Filter[] filtersToApply){
+			if(filtersToApply.Length == 0)
+				throw new ArgumentException("Filters list was empty.", "filtersToApply");
+
+			if(HasFilteredSFX(name, out FilterPackage package, filtersToApply))
+				return package.effect;
+
 			float duration = (int)((float)wav.DataLength / wav.ByteRate);
 			PCMData data = new PCMData(){
 				bitsPerSample = wav.BitsPerSample,
@@ -192,7 +233,7 @@ namespace MonoSound.Filters{
 			string ret = " - ";
 			for(int i = 0; i < types.Length; i++)
 				ret += $"{types[i]}|";
-			ret = ret.Substring(0, ret.Length - 1);
+			ret = ret[0..^1];
 			return ret;
 		}
 	}

@@ -78,8 +78,31 @@ namespace MonoSound{
 
 			using(BinaryReader reader = new BinaryReader(stream)){
 				Stream decompressedStream = Pre_ReadAsset(reader, stream);
-				using(BinaryReader decompressedReader = new BinaryReader(decompressedStream))
-					data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out header);
+				
+				using BinaryReader decompressedReader = new BinaryReader(decompressedStream);
+				
+				data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out header);
+			}
+
+			return data;
+		}
+
+		/// <summary>
+		/// Converts the SoundEffect .xnb file into its uncompressed audio data
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the audio data from</param>
+		/// <param name="pcmData">The PCM data from the extracted sound, including things like channel count and sample rate</param>
+		/// <param name="header">The extracted header data from the XNB file</param>
+		/// <returns></returns>
+		public static byte[] DecompressSoundEffectXNB(Stream stream, out PCMData pcmData, out byte[] header){
+			byte[] data;
+
+			using(BinaryReader reader = new BinaryReader(stream)){
+				Stream decompressedStream = Pre_ReadAsset(reader, stream);
+				
+				using BinaryReader decompressedReader = new BinaryReader(decompressedStream);
+				
+				data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out header);
 			}
 
 			return data;
