@@ -44,7 +44,7 @@ namespace MonoSound{
 		/// <summary>
 		/// The version for MonoSound
 		/// </summary>
-		public static readonly string Version = "1.5.0.0";
+		public static readonly string Version = "1.5.1.0";
 
 		/// <summary>
 		/// Initializes MonoSound
@@ -284,6 +284,23 @@ namespace MonoSound{
 			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
 
 			return SoundFilterManager.CreateFilteredSFX(soundBanks[soundBank].GetAudio(cueName), cueName, GetFiltersFromIDs(filterIDs));
+		}
+
+		/// <summary>
+		/// Retrieves a given sound using the requested sound bank and wave bank, then applies the wanted filter to it.
+		/// </summary>
+		/// <param name="soundBankSource">A stream representing the sound bank's data</param>
+		/// <param name="soundBankIdentifier">A string used to identify the sound bank</param>
+		/// <param name="waveBankSource">A stream representing the wave bank's data</param>
+		/// <param name="waveBankIdentifier">A string used to identify the wave bank</param>
+		/// <param name="cueName">The name of the cue. Use the same name you would use in <seealso cref="SoundBank.GetCue(string)"/>.</param>
+		public static SoundEffect GetBankEffect(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName){
+			ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
+
+			FormatWav wav = soundBanks[soundBank].GetAudio(cueName);
+			return new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
 		}
 
 		/// <summary>

@@ -1,4 +1,7 @@
-﻿v1.5.0.0
+﻿v1.5.1.0
+- Added support for loading SoundEffect instances from XACT wavebank streams (overload was missing)
+
+v1.5.0.0
 - Added support for loading SoundEffect instances from System.IO.Stream instances
 - Added support for applying sound filters to System.IO.Stream instances
 
