@@ -8,7 +8,10 @@ using System.IO;
 using System.Text;
 
 namespace MonoSound.Audio{
-	internal sealed class FormatWav : IDisposable{
+	/// <summary>
+	/// A class representing the data in WAVE-formatted audio
+	/// </summary>
+	public sealed class FormatWav : IDisposable{
 		//WAVE data format found here:
 		// http://soundfile.sapp.org/doc/WaveFormat/
 		// https://medium.com/swlh/reversing-a-wav-file-in-c-482fc3dfe3c4
@@ -95,6 +98,10 @@ namespace MonoSound.Audio{
 			return samples.ToArray();
 		}
 
+		/// <summary>
+		/// Retrieves a copy of the sample data
+		/// </summary>
+		/// <returns></returns>
 		public byte[] GetSoundBytes(){
 			byte[] audioData = new byte[DataLength];
 			Buffer.BlockCopy(data, 44, audioData, 0, audioData.Length);
@@ -103,6 +110,10 @@ namespace MonoSound.Audio{
 
 		private FormatWav(){ }
 
+		/// <summary>
+		/// Loads a <see cref="FormatWav"/> from a .wav file
+		/// </summary>
+		/// <exception cref="ArgumentException"/>
 		public static FormatWav FromFileWAV(string file){
 			if(Path.GetExtension(file) != ".wav")
 				throw new ArgumentException("File must be a .wav file", "file");
@@ -110,6 +121,9 @@ namespace MonoSound.Audio{
 			return FromFileWAV(File.OpenRead(file));
 		}
 
+		/// <summary>
+		/// Loads a <see cref="FormatWav"/> from a .wav stream
+		/// </summary>
 		public static FormatWav FromFileWAV(Stream readStream){
 			using BinaryReader reader = new BinaryReader(readStream);
 			using MemoryStream stream = new MemoryStream();
@@ -117,6 +131,10 @@ namespace MonoSound.Audio{
 			return FromBytes(stream.GetBuffer());
 		}
 
+		/// <summary>
+		/// Loads a <see cref="FormatWav"/> from an .ogg file
+		/// </summary>
+		/// <exception cref="ArgumentException"/>
 		public static FormatWav FromFileOGG(string file){
 			if(Path.GetExtension(file) != ".ogg")
 				throw new ArgumentException("File must be an .ogg file", "file");
@@ -124,6 +142,9 @@ namespace MonoSound.Audio{
 			return FromFileOGG(File.OpenRead(file));
 		}
 
+		/// <summary>
+		/// Loads a <see cref="FormatWav"/> from an .ogg stream
+		/// </summary>
 		public static FormatWav FromFileOGG(Stream readStream){
 			//OGG Vorbis specifications defined here: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-230001.3.2
 			//Example use found here: https://csharp.hotexamples.com/examples/-/NVorbis.VorbisReader/-/php-nvorbis.vorbisreader-class-examples.html
@@ -224,7 +245,7 @@ namespace MonoSound.Audio{
 			return FromDecompressorData(samples.ToArray(), header);
 		}
 
-		public static FormatWav FromDecompressorData(byte[] sampleData, byte[] header){
+		internal static FormatWav FromDecompressorData(byte[] sampleData, byte[] header){
 			byte[] addon = new byte[44];
 			addon[0] = (byte)'R';
 			addon[1] = (byte)'I';
@@ -275,6 +296,10 @@ namespace MonoSound.Audio{
 			return FromBytes(actualStream);
 		}
 
+		/// <summary>
+		/// Loads a <see cref="FormatWav"/> from an .mp3 file
+		/// </summary>
+		/// <exception cref="ArgumentException"/>
 		public static FormatWav FromFileMP3(string file){
 			if(Path.GetExtension(file) != ".mp3")
 				throw new ArgumentException("File must be an .mp3 file", "file");
@@ -282,6 +307,9 @@ namespace MonoSound.Audio{
 			return FromFileMP3(File.OpenRead(file));
 		}
 		
+		/// <summary>
+		/// Loads a <see cref="FormatWav"/> from an .mp3 stream
+		/// </summary>
 		public static FormatWav FromFileMP3(Stream readStream){
 			using MP3Stream stream = new MP3Stream(readStream);
 
@@ -334,6 +362,9 @@ namespace MonoSound.Audio{
 			return FromDecompressorData(samples.ToArray(), header);
 		}
 
+		/// <summary>
+		/// Loads a <see cref="FormatWav"/> from a .wav byte stream
+		/// </summary>
 		public static FormatWav FromBytes(byte[] data){
 			if(data.Length < 44)
 				throw new ArgumentException("Data was too short to contain a header.", "data");
@@ -344,11 +375,45 @@ namespace MonoSound.Audio{
 
 			//Verify that the input data was correct
 			try{
+				HeaderCheckStart:
+				
 				string eHeader = wav.EndianHeader;
-				if((eHeader != "RIFF" && eHeader != "RIFX") || wav.FileTypeHeader != "WAVE" || wav.FormatChunkMarker != "fmt " || wav.DataChunkMarker != "data")
-					throw new Exception("A header string was invalid.");
+				if(eHeader != "RIFF" && eHeader != "RIFX")
+					throw new Exception("Endian header string was not \"RIFF\" nor \"RIFX\".");
 
-				if(data.Length != wav.Size)
+				if (wav.FileTypeHeader != "WAVE")
+					throw new Exception("File type header string was not \"WAVE\".");
+
+				if (wav.FormatChunkMarker != "fmt ")
+					throw new Exception("Format chunk header string was not \"fmt \".");
+				
+				if (wav.DataChunkMarker != "data") {
+					//If the data chunk marker was instead "LIST", then there's metadata in the WAV file
+					//That metadata is completely irrelevant for MonoSound, so the data array needs to be rebuilt with the "LIST" chunk missing
+					if (wav.DataChunkMarker == "LIST") {
+						int infoLength = wav.DataLength;
+
+						byte[] overwrite = new byte[data.Length - infoLength];
+						Buffer.BlockCopy(data, 0, overwrite, 0, 36);
+
+						int afterInfo = 44 + infoLength;
+						Buffer.BlockCopy(data, afterInfo, overwrite, 36, data.Length - afterInfo);
+
+						byte[] bytes = BitConverter.GetBytes(overwrite.Length);
+						overwrite[4] = bytes[0];
+						overwrite[5] = bytes[1];
+						overwrite[6] = bytes[2];
+						overwrite[7] = bytes[3];
+
+						wav.data = overwrite;
+
+						goto HeaderCheckStart;
+					}
+					
+					throw new Exception("Data chunk header string was not \"data\".");
+				}
+
+				if(wav.data.Length != wav.Size)
 					throw new Exception("File size did not match stored size.");
 
 				int sampleRate = wav.SampleRate;
@@ -362,7 +427,7 @@ namespace MonoSound.Audio{
 		}
 
 #pragma warning disable IDE0060
-		public static FormatWav FromSoundEffectConstructor(MiniFormatTag codec, byte[] buffer, int channels, int sampleRate, int blockAlignment, int loopStart, int loopLength){
+		internal static FormatWav FromSoundEffectConstructor(MiniFormatTag codec, byte[] buffer, int channels, int sampleRate, int blockAlignment, int loopStart, int loopLength){
 #pragma warning restore IDE0060
 			//WaveBank sounds always have 16 bits/sample for some reason
 			const int bitsPerSample = 16;
@@ -404,7 +469,7 @@ namespace MonoSound.Audio{
 			writer.Write(data);
 		}
 
-		public void DeconstructToFloatSamples(out float[] allSamples){
+		internal void DeconstructToFloatSamples(out float[] allSamples){
 			int length = DataLength / 2;
 			
 			WavSample[] samples = GetSamples();
@@ -415,8 +480,8 @@ namespace MonoSound.Audio{
 			for(int i = 0; i < samples.Length; i++)
 				allSamples[i] = samples[i].ToFloatSample();
 		}
-
-		public void ReconstructFromFloatSamples(float[] allSamples){
+		
+		internal void ReconstructFromFloatSamples(float[] allSamples){
 			if(BitsPerSample == 16){
 				byte[] newData = new byte[allSamples.Length * 2];
 

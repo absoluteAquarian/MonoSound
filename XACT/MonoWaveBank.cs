@@ -4,7 +4,7 @@ using System;
 using System.IO;
 
 namespace MonoSound.XACT{
-	internal enum MiniFormatTag{
+	public enum MiniFormatTag{
 		Pcm = 0x0,
 		Xma = 0x1,
 		Adpcm = 0x2,

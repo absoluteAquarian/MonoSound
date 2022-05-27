@@ -2,6 +2,11 @@
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MonoSound.Audio;
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Reflection;
 
 namespace MonoSound.Tests
 {
@@ -29,6 +34,8 @@ namespace MonoSound.Tests
 			_spriteBatch = new SpriteBatch(GraphicsDevice);
 
 			// TODO: use this.Content to load your game content here
+
+			MonoSoundManager.Init();
 		}
 
 		KeyboardState kb, oldKb;
@@ -43,7 +50,7 @@ namespace MonoSound.Tests
 
 			if(kb.IsKeyDown(Keys.P) && !oldKb.IsKeyDown(Keys.P)){
 				if(sfx is null)
-					sfx = MonoSoundManager.GetEffect("Content/spooky.mp3");
+					sfx = MonoSoundManager.GetEffect("Content/MunchMunch-resaved2.wav");
 
 				sfx.Play();
 			}

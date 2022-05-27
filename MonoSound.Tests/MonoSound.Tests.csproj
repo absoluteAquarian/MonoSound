@@ -34,10 +34,16 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoSound">
-      <HintPath>..\bin\Release\netcoreapp3.1\MonoSound.dll</HintPath>
+      <HintPath>..\bin\Debug\netcoreapp3.1\MonoSound.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <None Update="Content\MunchMunch-resaved.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\MunchMunch-resaved2.wav">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Content\spooky.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
