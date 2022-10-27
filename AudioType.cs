@@ -22,8 +22,12 @@ namespace MonoSound{
 		/// </summary>
 		OGG,
 		/// <summary>
-		/// MPEG Audio Layer III files (.mp3)
+		/// MPEG Audio Layer 3 files (.mp3)
 		/// </summary>
-		MP3
+		MP3,
+		/// <summary>
+		/// User-defined audio types.  Care needs to be taken when using this since MonoSound will not check the validity of the file.
+		/// </summary>
+		Custom
 	}
 }

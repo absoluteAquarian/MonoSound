@@ -3,8 +3,8 @@ using MonoSound.Audio;
 using System;
 using System.IO;
 
-namespace MonoSound.XACT{
-	public enum MiniFormatTag{
+namespace MonoSound.XACT {
+	public enum MiniFormatTag {
 		Pcm = 0x0,
 		Xma = 0x1,
 		Adpcm = 0x2,
@@ -14,7 +14,7 @@ namespace MonoSound.XACT{
 		PlatformSpecific = Xma,
 	}
 
-	internal class MonoWaveBank{
+	internal class MonoWaveBank {
 		//Almost an identical copy to Microsoft.Xna.Framework.Audio.WaveBank
 		//Code can be found at https://github.com/MonoGame/MonoGame/blob/master/MonoGame.Framework/Audio/Xact/WaveBank.cs
 
@@ -29,28 +29,33 @@ namespace MonoSound.XACT{
 
 		private bool _streaming;
 
-		struct Segment{
+		/// <summary>
+		/// Whether this bank is streaming its sound data or has the data already loaded
+		/// </summary>
+		public bool IsStreaming => _streaming;
+
+		struct Segment {
 			public int Offset;
 			public int Length;
 		}
 
-		struct WaveBankHeader{
+		struct WaveBankHeader {
 			public int Version;
 			public Segment[] Segments;
 		}
 
-		struct WaveBankData{
-			public int    Flags;                                // Bank flags
-			public int    EntryCount;                           // Number of entries in the bank
-			public string BankName;                             // Bank friendly name
-			public int    EntryMetaDataElementSize;             // Size of each entry meta-data element, in bytes
-			public int    EntryNameElementSize;                 // Size of each entry name element, in bytes
-			public int    Alignment;                            // Entry alignment, in bytes
-			public int    CompactFormat;                        // Format data for compact bank
-			public int    BuildTime;                            // Build timestamp
+		struct WaveBankData {
+			public int Flags;                                // Bank flags
+			public int EntryCount;                           // Number of entries in the bank
+			public string BankName;                          // Bank friendly name
+			public int EntryMetaDataElementSize;             // Size of each entry meta-data element, in bytes
+			public int EntryNameElementSize;                 // Size of each entry name element, in bytes
+			public int Alignment;                            // Entry alignment, in bytes
+			public int CompactFormat;                        // Format data for compact bank
+			public int BuildTime;                            // Build timestamp
 		}
 
-		internal struct StreamInfo{
+		internal struct StreamInfo {
 			public int Format;
 			public int FileOffset;
 			public int FileLength;
@@ -60,18 +65,40 @@ namespace MonoSound.XACT{
 
 		private const int Flag_Compact = 0x00020000; // Bank uses compact format
 
-		private MonoWaveBank(){ }
+		private MonoWaveBank() { }
 
-		public static MonoWaveBank FromXNA(string file, bool streaming = false){
-			if(string.IsNullOrWhiteSpace(file))
-				throw new ArgumentNullException("file");
+		[Obsolete("Use MonoWaveBank.LoadFromXWBFile instead", error: true)]
+		public static MonoWaveBank FromXNA(string file, bool streaming = false) => LoadFromXWBFile(file, streaming);
 
-			return FromXNA(TitleContainer.OpenStream(file), file, streaming);
-		}
-		
-		public static MonoWaveBank FromXNA(Stream stream, string fileName, bool streaming = false){
+		/// <summary>
+		/// Loads a wavebank from an .xwb file or returns the existing instance if it already exists
+		/// </summary>
+		/// <param name="file">The absolute or relative path to the file to read from</param>
+		/// <param name="streaming">Whether the bank should be opened for streaming</param>
+		public static MonoWaveBank LoadFromXWBFile(string file, bool streaming = false) => LoadFromXWBStream(TitleContainer.OpenStream(file), file, streaming);
+
+		[Obsolete("Use MonoWaveBank.LoadFromXWBStream instead", error: true)]
+		public static MonoWaveBank FromXNA(Stream stream, string fileName, bool streaming = false) => LoadFromXWBStream(stream, fileName, streaming);
+
+		/// <summary>
+		/// Loads a wavebank from a data stream or returns the existing instance if it already exists
+		/// </summary>
+		/// <param name="stream">The data stream to read from</param>
+		/// <param name="fileName">The identifier for the wavebank</param>
+		/// <param name="streaming">Whether the bank should be opened for streaming</param>
+		public static MonoWaveBank LoadFromXWBStream(Stream stream, string fileName, bool streaming = false) {
+			if (!streaming && MonoSound.waveBanks.TryGetValue(fileName, out var bank)) {
+				// Wavebank was already loaded
+				return bank;
+			}
+
+			if (streaming && MonoSound.streamedWaveBanks.TryGetValue(fileName, out bank)) {
+				// Wavebank was already loaded
+				return bank;
+			}
+
 			//Any of the metadata the wavebank would use is irrelevant; we only want the sound effect data
-			MonoWaveBank ret = new MonoWaveBank(){
+			MonoWaveBank ret = new MonoWaveBank() {
 				_waveBankFileName = fileName,
 				_streaming = streaming
 			};
@@ -94,14 +121,14 @@ namespace MonoSound.XACT{
 			ret._version = wavebankheader.Version = reader.ReadInt32();
 
 			int last_segment = 4;
-			if(wavebankheader.Version <= 3)
+			if (wavebankheader.Version <= 3)
 				last_segment = 3;
-			if(wavebankheader.Version >= 42)
+			if (wavebankheader.Version >= 42)
 				reader.ReadInt32();    // skip HeaderVersion
 
 			wavebankheader.Segments = new Segment[5];
 
-			for(int i = 0; i <= last_segment; i++){
+			for (int i = 0; i <= last_segment; i++) {
 				wavebankheader.Segments[i].Offset = reader.ReadInt32();
 				wavebankheader.Segments[i].Length = reader.ReadInt32();
 			}
@@ -113,34 +140,34 @@ namespace MonoSound.XACT{
 			wavebankdata.Flags = reader.ReadInt32();
 			wavebankdata.EntryCount = reader.ReadInt32();
 
-			if((wavebankheader.Version == 2) || (wavebankheader.Version == 3))
-				wavebankdata.BankName = System.Text.Encoding.UTF8.GetString(reader.ReadBytes(16),0,16).Replace("\0", "");
+			if ((wavebankheader.Version == 2) || (wavebankheader.Version == 3))
+				wavebankdata.BankName = System.Text.Encoding.UTF8.GetString(reader.ReadBytes(16), 0, 16).Replace("\0", "");
 			else
-				wavebankdata.BankName = System.Text.Encoding.UTF8.GetString(reader.ReadBytes(64),0,64).Replace("\0", "");
+				wavebankdata.BankName = System.Text.Encoding.UTF8.GetString(reader.ReadBytes(64), 0, 64).Replace("\0", "");
 
-			if(wavebankheader.Version == 1){
+			if (wavebankheader.Version == 1) {
 				//wavebank_offset = (int)ftell(fd) - file_offset;
 				wavebankdata.EntryMetaDataElementSize = 20;
-			}else{
+			} else {
 				wavebankdata.EntryMetaDataElementSize = reader.ReadInt32();
 				wavebankdata.EntryNameElementSize = reader.ReadInt32();
 				wavebankdata.Alignment = reader.ReadInt32();
 				wavebank_offset = wavebankheader.Segments[1].Offset; //METADATASEGMENT
 			}
 
-			if((wavebankdata.Flags & Flag_Compact) != 0)
+			if ((wavebankdata.Flags & Flag_Compact) != 0)
 				reader.ReadInt32(); // compact_format
 
 			ret._playRegionOffset = wavebankheader.Segments[last_segment].Offset;
-			if(ret._playRegionOffset == 0){
+			if (ret._playRegionOffset == 0) {
 				ret._playRegionOffset = wavebank_offset + wavebankdata.EntryCount * wavebankdata.EntryMetaDataElementSize;
 			}
-			
+
 			int segidx_entry_name = 2;
-			if(wavebankheader.Version >= 42) segidx_entry_name = 3;
-			
-			if(wavebankheader.Segments[segidx_entry_name].Offset != 0 && wavebankheader.Segments[segidx_entry_name].Length != 0){
-				if(wavebankdata.EntryNameElementSize == -1) wavebankdata.EntryNameElementSize = 0;
+			if (wavebankheader.Version >= 42) segidx_entry_name = 3;
+
+			if (wavebankheader.Segments[segidx_entry_name].Offset != 0 && wavebankheader.Segments[segidx_entry_name].Length != 0) {
+				if (wavebankdata.EntryNameElementSize == -1) wavebankdata.EntryNameElementSize = 0;
 				byte[] entry_name = new byte[wavebankdata.EntryNameElementSize + 1];
 				entry_name[wavebankdata.EntryNameElementSize] = 0;
 			}
@@ -152,18 +179,18 @@ namespace MonoSound.XACT{
 
 			// The compact format requires us to load stuff differently.
 			var isCompactFormat = (wavebankdata.Flags & Flag_Compact) != 0;
-			if(isCompactFormat){
+			if (isCompactFormat) {
 				// Load the sound data offset table from disk.
-				for(var i = 0; i < wavebankdata.EntryCount; i++){
+				for (var i = 0; i < wavebankdata.EntryCount; i++) {
 					var len = reader.ReadInt32();
 					ret._streams[i].Format = wavebankdata.CompactFormat;
-					ret._streams[i].FileOffset = (len & ((1 << 21) - 1))*wavebankdata.Alignment;
+					ret._streams[i].FileOffset = (len & ((1 << 21) - 1)) * wavebankdata.Alignment;
 				}
 
 				// Now figure out the sound data lengths.
-				for(var i = 0; i < wavebankdata.EntryCount; i++){
+				for (var i = 0; i < wavebankdata.EntryCount; i++) {
 					int nextOffset;
-					if(i == (wavebankdata.EntryCount - 1))
+					if (i == (wavebankdata.EntryCount - 1))
 						nextOffset = wavebankheader.Segments[last_segment].Length;
 					else
 						nextOffset = ret._streams[i + 1].FileOffset;
@@ -171,32 +198,32 @@ namespace MonoSound.XACT{
 					// The next and current offsets used to calculate the length.
 					ret._streams[i].FileLength = nextOffset - ret._streams[i].FileOffset;
 				}
-			}else{
-				for(var i = 0; i < wavebankdata.EntryCount; i++){
+			} else {
+				for (var i = 0; i < wavebankdata.EntryCount; i++) {
 					var info = new StreamInfo();
-					if(wavebankheader.Version == 1){
+					if (wavebankheader.Version == 1) {
 						info.Format = reader.ReadInt32();
 						info.FileOffset = reader.ReadInt32();
 						info.FileLength = reader.ReadInt32();
 						info.LoopStart = reader.ReadInt32();
 						info.LoopLength = reader.ReadInt32();
-					}else{
+					} else {
 						reader.ReadInt32(); // Unused
 
-						if(wavebankdata.EntryMetaDataElementSize >= 8)
+						if (wavebankdata.EntryMetaDataElementSize >= 8)
 							info.Format = reader.ReadInt32();
-						if(wavebankdata.EntryMetaDataElementSize >= 12)
+						if (wavebankdata.EntryMetaDataElementSize >= 12)
 							info.FileOffset = reader.ReadInt32();
-						if(wavebankdata.EntryMetaDataElementSize >= 16)
+						if (wavebankdata.EntryMetaDataElementSize >= 16)
 							info.FileLength = reader.ReadInt32();
-						if(wavebankdata.EntryMetaDataElementSize >= 20)
+						if (wavebankdata.EntryMetaDataElementSize >= 20)
 							info.LoopStart = reader.ReadInt32();
-						if(wavebankdata.EntryMetaDataElementSize >= 24)
+						if (wavebankdata.EntryMetaDataElementSize >= 24)
 							info.LoopLength = reader.ReadInt32();
 					}
 
-					if(wavebankdata.EntryMetaDataElementSize < 24){
-						if(info.FileLength != 0)
+					if (wavebankdata.EntryMetaDataElementSize < 24) {
+						if (info.FileLength != 0)
 							info.FileLength = wavebankheader.Segments[last_segment].Length;
 					}
 
@@ -205,10 +232,10 @@ namespace MonoSound.XACT{
 			}
 
 			//If this wavebank should be for streaming ONLY, then don't load the sound data and keep the StreamInfo data intact
-			if(!streaming){
-				for(var i = 0; i < ret._streams.Length; i++){
+			if (!streaming) {
+				for (var i = 0; i < ret._streams.Length; i++) {
 					var info = ret._streams[i];
-					
+
 					// Read the data.
 					reader.BaseStream.Seek(info.FileOffset + ret._playRegionOffset, SeekOrigin.Begin);
 					var audiodata = reader.ReadBytes(info.FileLength);
@@ -219,7 +246,7 @@ namespace MonoSound.XACT{
 					// Call the special constuctor on SoundEffect to sort it out.
 					//MonoSound: hijack the call that would be here and instead read the data into a FormatWav
 					//Also, lucky us, the sound data is right there for the taking!    
-					
+
 					ret._sounds[i] = FormatWav.FromSoundEffectConstructor(codec, audiodata, channels, rate, alignment, info.LoopStart, info.LoopLength);
 				}
 
@@ -230,13 +257,13 @@ namespace MonoSound.XACT{
 			reader.Close();
 			reader.Dispose();
 
-			MonoSoundManager.waveBanks[ret._waveBankFileName] = ret;
+			(!streaming ? MonoSound.waveBanks : MonoSound.streamedWaveBanks)[ret._waveBankFileName] = ret;
 
 			return ret;
 		}
 
-		internal void DecodeFormat(int format, out MiniFormatTag codec, out int channels, out int rate, out int alignment){
-			if(_version == 1){
+		internal void DecodeFormat(int format, out MiniFormatTag codec, out int channels, out int rate, out int alignment) {
+			if (_version == 1) {
 				// I'm not 100% sure if the following is correct
 				// version 1:
 				// 1 00000000 000101011000100010 0 001 0
@@ -273,7 +300,7 @@ namespace MonoSound.XACT{
 					align = (wavebankentry.Format >> (1 + 3 + 18)    ) & ((1 <<  9) - 1);
 					bits  = (wavebankentry.Format >> (1 + 3 + 18 + 9)) & ((1 <<  1) - 1); */
 
-			}else{
+			} else {
 				// 0 00000000 000111110100000000 010 01
 				// | |        |                  |   |
 				// | |        |                  |   wFormatTag
@@ -290,8 +317,8 @@ namespace MonoSound.XACT{
 			}
 		}
 
-		public FormatWav GetAudio(int trackIndex){
-			if(_streaming)
+		public FormatWav GetAudio(int trackIndex) {
+			if (_streaming)
 				throw new InvalidOperationException($"The requested wave bank has been initialized for streaming only: {_waveBankFileName}");
 
 			return _sounds[trackIndex];

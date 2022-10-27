@@ -1,5 +1,5 @@
 ﻿namespace MonoSound{
-	internal enum SoLoudResult{
+	public enum SoLoudResult{
 		SO_NO_ERROR,
 		INVALID_PARAMETER,
 		FILE_NOT_FOUND,

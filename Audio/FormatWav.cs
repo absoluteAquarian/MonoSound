@@ -7,11 +7,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace MonoSound.Audio{
+namespace MonoSound.Audio {
 	/// <summary>
 	/// A class representing the data in WAVE-formatted audio
 	/// </summary>
-	public sealed class FormatWav : IDisposable{
+	public sealed class FormatWav : IDisposable {
 		//WAVE data format found here:
 		// http://soundfile.sapp.org/doc/WaveFormat/
 		// https://medium.com/swlh/reversing-a-wav-file-in-c-482fc3dfe3c4
@@ -83,13 +83,13 @@ namespace MonoSound.Audio{
 		/// </summary>
 		public int DataLength => BitConverter.ToInt32(data, 40);
 
-		public WavSample[] GetSamples(){
+		public WavSample[] GetSamples() {
 			byte[] audioData = GetSoundBytes();
 
 			List<WavSample> samples = new List<WavSample>();
 			int size = BitsPerSample / 8;
-			
-			for(int i = 0; i < audioData.Length; i += size){
+
+			for (int i = 0; i < audioData.Length; i += size) {
 				byte[] pass = new byte[size];
 				Array.Copy(audioData, i, pass, 0, size);
 				samples.Add(new WavSample((short)(BitsPerSample / 8), pass));
@@ -102,20 +102,20 @@ namespace MonoSound.Audio{
 		/// Retrieves a copy of the sample data
 		/// </summary>
 		/// <returns></returns>
-		public byte[] GetSoundBytes(){
+		public byte[] GetSoundBytes() {
 			byte[] audioData = new byte[DataLength];
 			Buffer.BlockCopy(data, 44, audioData, 0, audioData.Length);
 			return audioData;
 		}
 
-		private FormatWav(){ }
+		private FormatWav() { }
 
 		/// <summary>
 		/// Loads a <see cref="FormatWav"/> from a .wav file
 		/// </summary>
 		/// <exception cref="ArgumentException"/>
-		public static FormatWav FromFileWAV(string file){
-			if(Path.GetExtension(file) != ".wav")
+		public static FormatWav FromFileWAV(string file) {
+			if (Path.GetExtension(file) != ".wav")
 				throw new ArgumentException("File must be a .wav file", "file");
 
 			return FromFileWAV(File.OpenRead(file));
@@ -124,7 +124,7 @@ namespace MonoSound.Audio{
 		/// <summary>
 		/// Loads a <see cref="FormatWav"/> from a .wav stream
 		/// </summary>
-		public static FormatWav FromFileWAV(Stream readStream){
+		public static FormatWav FromFileWAV(Stream readStream) {
 			using BinaryReader reader = new BinaryReader(readStream);
 			using MemoryStream stream = new MemoryStream();
 			reader.BaseStream.CopyTo(stream);
@@ -135,8 +135,8 @@ namespace MonoSound.Audio{
 		/// Loads a <see cref="FormatWav"/> from an .ogg file
 		/// </summary>
 		/// <exception cref="ArgumentException"/>
-		public static FormatWav FromFileOGG(string file){
-			if(Path.GetExtension(file) != ".ogg")
+		public static FormatWav FromFileOGG(string file) {
+			if (Path.GetExtension(file) != ".ogg")
 				throw new ArgumentException("File must be an .ogg file", "file");
 
 			return FromFileOGG(File.OpenRead(file));
@@ -145,7 +145,7 @@ namespace MonoSound.Audio{
 		/// <summary>
 		/// Loads a <see cref="FormatWav"/> from an .ogg stream
 		/// </summary>
-		public static FormatWav FromFileOGG(Stream readStream){
+		public static FormatWav FromFileOGG(Stream readStream) {
 			//OGG Vorbis specifications defined here: https://www.xiph.org/vorbis/doc/Vorbis_I_spec.html#x1-230001.3.2
 			//Example use found here: https://csharp.hotexamples.com/examples/-/NVorbis.VorbisReader/-/php-nvorbis.vorbisreader-class-examples.html
 			// TODO: finish this multiline comment
@@ -227,12 +227,12 @@ namespace MonoSound.Audio{
 			byte[] sampleWrite;
 			List<byte> samples = new List<byte>();
 			int count;
-			while((count = reader.ReadSamples(buffer, 0, buffer.Length)) > 0) {
-				for(int i = 0; i < count; i++) {
+			while ((count = reader.ReadSamples(buffer, 0, buffer.Length)) > 0) {
+				for (int i = 0; i < count; i++) {
 					int temp = (int)(short.MaxValue * buffer[i]);
-					if(temp > short.MaxValue)
+					if (temp > short.MaxValue)
 						temp = short.MaxValue;
-					else if(temp < short.MinValue)
+					else if (temp < short.MinValue)
 						temp = short.MinValue;
 
 					sampleWrite = BitConverter.GetBytes((short)temp);
@@ -245,7 +245,7 @@ namespace MonoSound.Audio{
 			return FromDecompressorData(samples.ToArray(), header);
 		}
 
-		internal static FormatWav FromDecompressorData(byte[] sampleData, byte[] header){
+		internal static FormatWav FromDecompressorData(byte[] sampleData, byte[] header) {
 			byte[] addon = new byte[44];
 			addon[0] = (byte)'R';
 			addon[1] = (byte)'I';
@@ -253,12 +253,12 @@ namespace MonoSound.Audio{
 			addon[3] = (byte)'F';
 
 			//Excluded: Total file size
-			
+
 			addon[8] = (byte)'W';
 			addon[9] = (byte)'A';
 			addon[10] = (byte)'V';
 			addon[11] = (byte)'E';
-			
+
 			addon[12] = (byte)'f';
 			addon[13] = (byte)'m';
 			addon[14] = (byte)'t';
@@ -300,17 +300,17 @@ namespace MonoSound.Audio{
 		/// Loads a <see cref="FormatWav"/> from an .mp3 file
 		/// </summary>
 		/// <exception cref="ArgumentException"/>
-		public static FormatWav FromFileMP3(string file){
-			if(Path.GetExtension(file) != ".mp3")
+		public static FormatWav FromFileMP3(string file) {
+			if (Path.GetExtension(file) != ".mp3")
 				throw new ArgumentException("File must be an .mp3 file", "file");
 
 			return FromFileMP3(File.OpenRead(file));
 		}
-		
+
 		/// <summary>
 		/// Loads a <see cref="FormatWav"/> from an .mp3 stream
 		/// </summary>
-		public static FormatWav FromFileMP3(Stream readStream){
+		public static FormatWav FromFileMP3(Stream readStream) {
 			using MP3Stream stream = new MP3Stream(readStream);
 
 			byte[] header = new byte[16];
@@ -352,7 +352,7 @@ namespace MonoSound.Audio{
 			List<byte> samples = new List<byte>();
 			int count;
 
-			while((count = stream.Read(sampleWrite, 0, 1024)) > 0) {
+			while ((count = stream.Read(sampleWrite, 0, 1024)) > 0) {
 				byte[] read = new byte[count];
 				Buffer.BlockCopy(sampleWrite, 0, read, 0, count);
 
@@ -365,20 +365,20 @@ namespace MonoSound.Audio{
 		/// <summary>
 		/// Loads a <see cref="FormatWav"/> from a .wav byte stream
 		/// </summary>
-		public static FormatWav FromBytes(byte[] data){
-			if(data.Length < 44)
+		public static FormatWav FromBytes(byte[] data) {
+			if (data.Length < 44)
 				throw new ArgumentException("Data was too short to contain a header.", "data");
 
-			FormatWav wav = new FormatWav(){
+			FormatWav wav = new FormatWav() {
 				data = data
 			};
 
 			//Verify that the input data was correct
-			try{
-				HeaderCheckStart:
-				
+			try {
+HeaderCheckStart:
+
 				string eHeader = wav.EndianHeader;
-				if(eHeader != "RIFF" && eHeader != "RIFX")
+				if (eHeader != "RIFF" && eHeader != "RIFX")
 					throw new Exception("Endian header string was not \"RIFF\" nor \"RIFX\".");
 
 				if (wav.FileTypeHeader != "WAVE")
@@ -386,7 +386,7 @@ namespace MonoSound.Audio{
 
 				if (wav.FormatChunkMarker != "fmt ")
 					throw new Exception("Format chunk header string was not \"fmt \".");
-				
+
 				if (wav.DataChunkMarker != "data") {
 					//If the data chunk marker was instead "LIST", then there's metadata in the WAV file
 					//That metadata is completely irrelevant for MonoSound, so the data array needs to be rebuilt with the "LIST" chunk missing
@@ -409,17 +409,17 @@ namespace MonoSound.Audio{
 
 						goto HeaderCheckStart;
 					}
-					
+
 					throw new Exception("Data chunk header string was not \"data\".");
 				}
 
-				if(wav.data.Length != wav.Size)
+				if (wav.data.Length != wav.Size)
 					throw new Exception("File size did not match stored size.");
 
 				int sampleRate = wav.SampleRate;
-				if(sampleRate < 8000 || sampleRate > 48000)
+				if (sampleRate < 8000 || sampleRate > 48000)
 					throw new Exception("Sample rate was outside the range of valid values.");
-			}catch(Exception ex){
+			} catch (Exception ex) {
 				throw new ArgumentException("Data was invalid for the WAV format.", "data", ex);
 			}
 
@@ -427,13 +427,13 @@ namespace MonoSound.Audio{
 		}
 
 #pragma warning disable IDE0060
-		internal static FormatWav FromSoundEffectConstructor(MiniFormatTag codec, byte[] buffer, int channels, int sampleRate, int blockAlignment, int loopStart, int loopLength){
+		internal static FormatWav FromSoundEffectConstructor(MiniFormatTag codec, byte[] buffer, int channels, int sampleRate, int blockAlignment, int loopStart, int loopLength) {
 #pragma warning restore IDE0060
 			//WaveBank sounds always have 16 bits/sample for some reason
 			const int bitsPerSample = 16;
 
 			byte[] header = new byte[16];
-			var bytes = BitConverter.GetBytes((short)1);	//Force the PCM encoding... Others aren't allowed
+			var bytes = BitConverter.GetBytes((short)1);    //Force the PCM encoding... Others aren't allowed
 			header[0] = bytes[0];
 			header[1] = bytes[1];
 			bytes = BitConverter.GetBytes((short)channels);
@@ -459,8 +459,8 @@ namespace MonoSound.Audio{
 			return FromDecompressorData(buffer, header);
 		}
 
-		public void SaveToFile(string file){
-			if(Path.GetExtension(file) != ".wav")
+		public void SaveToFile(string file) {
+			if (Path.GetExtension(file) != ".wav")
 				throw new ArgumentException("Destination file must be a .wav file", "file");
 
 			Directory.CreateDirectory(Path.GetDirectoryName(file));
@@ -469,23 +469,25 @@ namespace MonoSound.Audio{
 			writer.Write(data);
 		}
 
-		internal void DeconstructToFloatSamples(out float[] allSamples){
+		internal void DeconstructToFloatSamples(out float[] allSamples) {
 			int length = DataLength / 2;
-			
+
 			WavSample[] samples = GetSamples();
 
 			//All of the data goes to one "channel" since it's processed in pairs anyway
 			allSamples = new float[length];
 
-			for(int i = 0; i < samples.Length; i++)
+			for (int i = 0; i < samples.Length; i++) {
 				allSamples[i] = samples[i].ToFloatSample();
+				ClampSample(ref allSamples[i]);
+			}
 		}
-		
-		internal void ReconstructFromFloatSamples(float[] allSamples){
-			if(BitsPerSample == 16){
+
+		internal void ReconstructFromFloatSamples(float[] allSamples) {
+			if (BitsPerSample == 16) {
 				byte[] newData = new byte[allSamples.Length * 2];
 
-				for(int i = 0; i < allSamples.Length; i++){
+				for (int i = 0; i < allSamples.Length; i++) {
 					ClampSample(ref allSamples[i]);
 
 					short convert = (short)(allSamples[i] * short.MaxValue);
@@ -495,24 +497,24 @@ namespace MonoSound.Audio{
 				}
 
 				//Echo filter can cause extra data to be given
-				if(newData.Length + 44 > data.Length)
+				if (newData.Length + 44 > data.Length)
 					Array.Resize(ref data, newData.Length + 44);
 
 				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
-			}else if(BitsPerSample == 24){
+			} else if (BitsPerSample == 24) {
 				byte[] newData = new byte[allSamples.Length * 3];
 
-				for(int i = 0; i < allSamples.Length; i++){
+				for (int i = 0; i < allSamples.Length; i++) {
 					ClampSample(ref allSamples[i]);
 
 					int convert = (int)(allSamples[i] * WavSample.MaxValue_24BitPCM);
 					byte[] temp = BitConverter.GetBytes(convert);
 
-					if(BitConverter.IsLittleEndian){
+					if (BitConverter.IsLittleEndian) {
 						newData[3 * i] = temp[1];
 						newData[3 * i + 1] = temp[2];
 						newData[3 * i + 2] = temp[3];
-					}else{
+					} else {
 						newData[3 * i] = temp[3];
 						newData[3 * i + 1] = temp[2];
 						newData[3 * i + 2] = temp[1];
@@ -520,38 +522,38 @@ namespace MonoSound.Audio{
 				}
 
 				//Echo filter can cause extra data to be given
-				if(newData.Length + 44 > data.Length)
+				if (newData.Length + 44 > data.Length)
 					Array.Resize(ref data, newData.Length + 44);
-					
+
 				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
-			}else
+			} else
 				throw new InvalidOperationException("Attempted to process data for a bit depth that's not supported.  WAV files must use 16-bit or 24-bit PCM data");
 		}
 
 		/// <summary>
 		/// Forces the sample to be within (-1, 1)
 		/// </summary>
-		private void ClampSample(ref float sample){
-			if(sample < -1)
+		public static void ClampSample(ref float sample) {
+			if (sample < -1)
 				sample = -1 + 4e-5f;
-			if(sample > 1)
+			if (sample > 1)
 				sample = 1 - 4e-5f;
 		}
 
 		private bool disposed;
 
-		~FormatWav(){
+		~FormatWav() {
 			Dispose(false);
 			GC.SuppressFinalize(this);
 		}
 
-		public void Dispose(){
+		public void Dispose() {
 			Dispose(true);
 		}
 
-		public void Dispose(bool disposing){
-			if(!disposed){
-				if(disposing){
+		public void Dispose(bool disposing) {
+			if (!disposed) {
+				if (disposing) {
 					data = null;
 				}
 

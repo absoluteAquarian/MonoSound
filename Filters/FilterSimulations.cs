@@ -2,19 +2,19 @@
 using MonoSound.Filters.Instances;
 using System;
 
-namespace MonoSound.Filters{
-	internal static unsafe class FilterSimulations{
-		public static BiquadResonantFilter bqrFilter;
-		public static EchoFilter echFilter;
-		public static FreeverbFilter revFilter;
+namespace MonoSound.Filters {
+	internal static unsafe class FilterSimulations {
+		public static Filter bqrFilter;
+		public static Filter echFilter;
+		public static Filter revFilter;
 
-		public static bool SimulateFilter(FormatWav wav, Filter filter){
-			if(wav.ChannelCount != 1)
+		public static bool SimulateFilter(FormatWav wav, Filter filter) {
+			if (wav.ChannelCount != 1)
 				throw new InvalidOperationException("Source WAV data contained invalid data. (Channels)");
 
 			wav.DeconstructToFloatSamples(out float[] samples);
 
-			switch(filter.type){
+			switch (filter.type) {
 				case SoundFilterType.LowPass:
 				case SoundFilterType.BandPass:
 				case SoundFilterType.HighPass:
@@ -42,7 +42,7 @@ namespace MonoSound.Filters{
 			return true;
 		}
 
-		private static double EchoTimeStretchFactor(FormatWav wav, float targetVolume, Filter filter){
+		private static double EchoTimeStretchFactor(FormatWav wav, float targetVolume, Filter filter) {
 			//Calculate how many iterations it will take to get to the final volume
 			//(decay)^x = (target)     x = log(decay, target)
 			double decayIterations = Math.Log(targetVolume, filter.mParam[EchoFilter.DECAY]);
@@ -50,22 +50,39 @@ namespace MonoSound.Filters{
 			//Then calculate the time it would take based on the above and the (delay) factor
 			double time = decayIterations * filter.mParam[EchoFilter.DELAY];
 
-			if(!MonoSoundManager.AllowEchoOversampling && time > 30d)
+			if (!Controls.AllowEchoOversampling && time > 30d)
 				throw new Exception("Echo filter contained parameters which would cause MonoSound to generate over 30 seconds' worth of samples." +
-					$"\nDelay: {filter.mParam[EchoFilter.DELAY] :N3}s, Decay: {filter.mParam[EchoFilter.DECAY] :N3}x");
+					$"\nDelay: {filter.mParam[EchoFilter.DELAY]:N3}s, Decay: {filter.mParam[EchoFilter.DECAY]:N3}x");
 
 			return time;
 		}
 
-		private static void HandleFilter<T>(ref T filter, Filter newInstance, float[] samples, FormatWav wav) where T : Filter{
+		public static void ApplyFilterTo(ref Filter existingFilterObject, int id, float[] samples, int sampleRate) {
+			Filter filter = MonoSound.customFilters[id];
+
+			if (filter is EchoFilter || filter is FreeverbFilter)
+				throw new NotSupportedException("Echo and Reverb filters are not supported by this method call");
+			
+			if (existingFilterObject?.ID != filter.ID || existingFilterObject.type != filter.type) {
+				existingFilterObject?.Free();
+				existingFilterObject = filter;
+			} else
+				existingFilterObject.Reset();
+
+			fixed (float* buffer = samples) {
+				filter.filter(buffer, (uint)samples.Length, 1, sampleRate, 0);
+			}
+		}
+
+		private static void HandleFilter(ref Filter filter, Filter newInstance, float[] samples, FormatWav wav) {
 			//Need to make sure that any old handles don't stick around
-			if(filter?.ID != newInstance.ID || filter.type != newInstance.type){
+			if (filter?.ID != newInstance.ID || filter.type != newInstance.type) {
 				filter?.Free();
-				filter = newInstance as T;
-			}else
+				filter = newInstance;
+			} else
 				filter.Reset();
 
-			fixed(float* buffer = samples){
+			fixed (float* buffer = samples) {
 				filter.filter(buffer, (uint)samples.Length, 1, wav.SampleRate, 0);
 			}
 		}

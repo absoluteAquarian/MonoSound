@@ -34,7 +34,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoSound">
-      <HintPath>..\bin\Debug\netcoreapp3.1\MonoSound.dll</HintPath>
+      <HintPath>..\bin\Release\netcoreapp3.1\MonoSound.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

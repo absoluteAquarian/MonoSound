@@ -1,8 +1,8 @@
-﻿namespace MonoSound.Filters{
+﻿namespace MonoSound.Filters {
 	/// <summary>
 	/// An enumeration of all implemented sound filter types
 	/// </summary>
-	public enum SoundFilterType{
+	public enum SoundFilterType {
 		/// <summary>
 		/// No filtering.
 		/// </summary>
