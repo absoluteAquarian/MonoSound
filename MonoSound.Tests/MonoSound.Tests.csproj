@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -30,19 +30,26 @@
     <TrimmerRootAssembly Include="Microsoft.Xna.Framework.Content.ContentTypeReader" Visible="false" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="FontStashSharp.MonoGame" Version="1.2.7" />
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.0.1641" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="MonoSound">
-      <HintPath>..\bin\Release\netcoreapp3.1\MonoSound.dll</HintPath>
+      <HintPath>..\bin\Debug\netcoreapp3.1\MonoSound.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <None Update="Content\chill-mono.ogg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Content\chill.ogg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Content\MunchMunch-resaved.wav">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Content\MunchMunch-resaved2.wav">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Content\spooky.mp3">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

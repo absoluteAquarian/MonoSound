@@ -3,7 +3,10 @@ using MonoSound.Audio;
 using MonoSound.Filters;
 using MonoSound.Filters.Instances;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 
 namespace MonoSound.Streaming {
 	/// <summary>
@@ -42,21 +45,22 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		public bool IsLooping { get; internal set; }
 
+		private readonly object _filterLock = new object();
 		private int[] filterIDs;
 		private Filter[] filterObjects;  // Used to speed up filter applications
+
+		private readonly ConcurrentQueue<byte[]> _queuedReads = new ConcurrentQueue<byte[]>();
+		private bool blockQueueClearing;
 
 		protected StreamPackage(AudioType type) {
 			//This constructor is mainly for the OGG streams, which would need to set "underlyingStream" to null anyway
 			this.type = type;
-
-			InitSound();
 		}
 
 		protected StreamPackage(Stream stream, AudioType type) {
 			underlyingStream = stream;
 			this.type = type;
 
-			InitSound();
 			Initialize();
 		}
 
@@ -77,14 +81,32 @@ namespace MonoSound.Streaming {
 
 			if (underlyingStream != null)
 				underlyingStream.Position = sampleReadStart;
+
+			if (blockQueueClearing)
+				_queuedReads.Clear();
 		}
 
 		/// <summary>
 		/// Initialize information about the stream here.  <see cref="underlyingStream"/> has been initialized by the time this method is invoked.
 		/// </summary>
-		protected virtual void Initialize() { }
+		protected virtual void Initialize() {
+			InitSound();
+		}
 
-		private void QueueBuffers(object sender, EventArgs e) => Read(Controls.StreamBufferLengthInSeconds);
+		private void QueueBuffers(object sender, EventArgs e) {
+			FillQueue(2);  // Must be at least 2 for the buffering to work properly, for whatever reason
+
+			while (_queuedReads.TryDequeue(out byte[] read))
+				(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
+		}
+
+		internal void FillQueue(int max) {
+			if (PlayingSound.State != SoundState.Playing)
+				return;  // Don't fill the queues
+
+			if (_queuedReads.Count < max)
+				Read(Controls.StreamBufferLengthInSeconds, max);
+		}
 
 		/// <summary>
 		/// Read samples of data here.
@@ -95,24 +117,28 @@ namespace MonoSound.Streaming {
 		/// <param name="endOfStream">Whether the end of the stream has been reached.</param>
 		public abstract void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool endOfStream);
 
-		private void Read(double seconds) {
+		private void Read(double seconds, int max) {
 			//The sound has finished playing.  No need to keep trying to stream more data
-			if (FinishedStreaming)
+			if (FinishedStreaming || max < 1)
 				return;
 
-			//Read "seconds" amount of data from the stream, then send it to "sfx"
-			ReadSamples(seconds, out byte[] read, out int bytesRead, out bool endOfStream);
+			while (_queuedReads.Count < max) {
+				//Read "seconds" amount of data from the stream, then send it to "sfx"
+				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool endOfStream);
 
-			ProcessFilters(ref read);
+				lock (_filterLock) {
+					ProcessFilters(ref read);
+				}
 
-			ReadBytes += bytesRead;
+				ReadBytes += bytesRead;
 
-			SecondsRead += seconds;
+				SecondsRead += seconds;
 
-			PlayingSound.SubmitBuffer(read);
+				_queuedReads.Enqueue(read);
 
-			if (endOfStream)
-				CheckLooping();
+				if (endOfStream)
+					CheckLooping();
+			}
 		}
 
 		private void ProcessFilters(ref byte[] data) {
@@ -123,7 +149,7 @@ namespace MonoSound.Streaming {
 				throw new InvalidOperationException("Effect data had an invalid BitsPerSample value: " + BitsPerSample);
 			
 			// Convert the byte samples to float samples
-			int size = BitsPerSample / 8;
+			int size = 2;
 			int length = data.Length / size;
 			float[] filterSamples = new float[length];
 
@@ -132,8 +158,8 @@ namespace MonoSound.Streaming {
 				Array.Copy(data, i, pass, 0, size);
 				
 				WavSample sample = new WavSample((short)size, pass);
-				filterSamples[i] = sample.ToFloatSample();
-				FormatWav.ClampSample(ref filterSamples[i]);
+				filterSamples[i / size] = sample.ToFloatSample();
+				FormatWav.ClampSample(ref filterSamples[i / size]);
 			}
 
 			// Apply the filters
@@ -159,7 +185,11 @@ namespace MonoSound.Streaming {
 
 				Dispose();
 			} else {
+				blockQueueClearing = true;
+
 				Reset();
+
+				blockQueueClearing = false;
 
 				// Read data so that the looping doesn't get choppy
 				QueueBuffers(null, null);
@@ -171,19 +201,21 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		/// <param name="ids">The list of filters to use, or <see langword="null"/> if no filters should be used.</param>
 		public void ApplyFilters(params int[] ids) {
-			if (ids is null || ids.Length == 0) {
-				filterIDs = null;
-				filterObjects = null;
-			} else {
-				filterIDs = new int[ids.Length];
-				ids.CopyTo(filterIDs, 0);
+			lock (_filterLock) {
+				if (ids is null || ids.Length == 0) {
+					filterIDs = null;
+					filterObjects = null;
+				} else {
+					filterIDs = new int[ids.Length];
+					ids.CopyTo(filterIDs, 0);
 
-				if (filterObjects != null) {
-					for (int i = 0; i < filterObjects.Length; i++)
-						filterObjects[i]?.Free();
+					if (filterObjects != null) {
+						for (int i = 0; i < filterObjects.Length; i++)
+							filterObjects[i]?.Free();
+					}
+
+					filterObjects = new Filter[ids.Length];
 				}
-
-				filterObjects = new Filter[ids.Length];
 			}
 		}
 

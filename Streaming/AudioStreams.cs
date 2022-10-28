@@ -135,8 +135,8 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		/// <param name="file">The absolute or relative location of the file to read from</param>
 		public OggStream(string file) : base(AudioType.OGG) {
-			//VorbisReader(string) closes the stream on dispose by default
-			vorbisStream = new NVorbis.VorbisReader(file);
+			// Why can't i just use VorbisReader(string) here?
+			vorbisStream = new NVorbis.VorbisReader(File.OpenRead(file), closeStreamOnDispose: true);
 
 			Initialize();
 		}
@@ -158,6 +158,8 @@ namespace MonoSound.Streaming {
 			TotalBytes = -1;
 
 			vorbisReadStart = vorbisStream.DecodedTime;
+
+			base.Initialize();
 		}
 
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool endOfStream) {

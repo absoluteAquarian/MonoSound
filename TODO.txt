@@ -3,3 +3,5 @@
 - Low Pass filters can, for no reason, cause sound samples to be either 0 or +/-max.  Investigate
 - Playing too many filtered sounds at once can cause crashes.  Investigate
 - Implement the rest of SoLoud's sound filters
+- calling StreamPackage.ApplyFilters too often causes crashes?  investigate
+- filtered sounds are filled with blips of noise

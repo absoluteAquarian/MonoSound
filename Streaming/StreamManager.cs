@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 namespace MonoSound.Streaming {
@@ -86,8 +87,6 @@ namespace MonoSound.Streaming {
 
 			lock (modifyLock) {
 				streams.Add(packageName, package);
-
-				updateKeys = true;
 			}
 		}
 
@@ -99,8 +98,6 @@ namespace MonoSound.Streaming {
 			string name = GetSafeName(cueName);
 			lock (modifyLock) {
 				streams.Add(name, package);
-
-				updateKeys = true;
 			}
 
 			return streams[name];
@@ -114,8 +111,6 @@ namespace MonoSound.Streaming {
 			string name = GetSafeName(cueName);
 			lock (modifyLock) {
 				streams.Add(name, package);
-
-				updateKeys = true;
 			}
 
 			return streams[name];
@@ -152,8 +147,6 @@ namespace MonoSound.Streaming {
 					streams[package].Dispose();
 					streams.Remove(package);
 
-					updateKeys = true;
-
 					instance = null;
 				}
 			}
@@ -174,17 +167,12 @@ namespace MonoSound.Streaming {
 					streams[package].Dispose();
 					streams.Remove(package);
 
-					updateKeys = true;
-
 					instance = null;
 				}
 			}
 		}
 
 		private static CancellationToken token;
-
-		private static bool updateKeys = true;
-		private static string[] keys;
 
 		internal static void HandleStreaming(object state) {
 			Stopwatch watch = new Stopwatch();
@@ -194,16 +182,12 @@ namespace MonoSound.Streaming {
 
 			try {
 				while (true) {
-					UpdateKeys();
-
-					if (keys != null) {
-						for (int i = 0; i < keys.Length; i++) {
-							StreamPackage stream = streams[keys[i]];
-
+					lock (modifyLock) {
+						streams.Values.AsParallel().AsUnordered().ForAll(stream => {
 							//If the stream has stopped before the sound has finished streaming, reset the counters and stream
 							if (stream.PlayingSound.State == SoundState.Stopped && stream.SecondsRead > 0 && !stream.IsLooping && !stream.FinishedStreaming)
 								stream.Reset();
-						}
+						});
 					}
 				}
 			} catch when (token.IsCancellationRequested) {
@@ -212,15 +196,6 @@ namespace MonoSound.Streaming {
 					stream.Dispose();
 
 				streams = null;
-			}
-		}
-
-		private static void UpdateKeys() {
-			if (updateKeys) {
-				keys = new string[streams.Keys.Count];
-				streams.Keys.CopyTo(keys, 0);
-
-				updateKeys = false;
 			}
 		}
 	}

@@ -534,9 +534,9 @@ HeaderCheckStart:
 		/// Forces the sample to be within (-1, 1)
 		/// </summary>
 		public static void ClampSample(ref float sample) {
-			if (sample < -1)
+			if (sample <= -1)
 				sample = -1 + 4e-5f;
-			if (sample > 1)
+			if (sample >= 1)
 				sample = 1 - 4e-5f;
 		}
 
