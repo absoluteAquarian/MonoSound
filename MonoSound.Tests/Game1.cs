@@ -45,8 +45,8 @@ namespace MonoSound.Tests {
 		}
 
 		KeyboardState kb, oldKb;
-		SoundEffect sfx, song;
-		SoundEffectInstance songInstance;
+		SoundEffect sfx, song, filteredSfx;
+		SoundEffectInstance songInstance, filteredSfxInstance;
 		StreamPackage streamedSound;
 
 		int lowPass, highPass, bandPass;
@@ -113,6 +113,7 @@ namespace MonoSound.Tests {
 				streamedSound.PlayingSound.Play();
 			}
 
+			// Applying filters to streamed audio testing
 			if (streamedSound != null) {
 				if (IsKeyToggledOn(Keys.Q))
 					streamedSound.ApplyFilters(lowPass);
@@ -120,6 +121,34 @@ namespace MonoSound.Tests {
 					streamedSound.ApplyFilters(highPass);
 				else if (IsKeyToggledOn(Keys.E))
 					streamedSound.ApplyFilters(bandPass);
+			}
+
+			// Audio with filters testing
+			if (IsKeyToggledOn(Keys.F)) {
+				filteredSfx = EffectLoader.GetFilteredEffect("Content/spooky.mp3", lowPass);
+
+				filteredSfxInstance?.Dispose();
+				filteredSfxInstance = filteredSfx.CreateInstance();
+
+				filteredSfxInstance.Play();
+			}
+
+			if (IsKeyToggledOn(Keys.G)) {
+				filteredSfx = EffectLoader.GetFilteredEffect("Content/spooky.mp3", highPass);
+
+				filteredSfxInstance?.Dispose();
+				filteredSfxInstance = filteredSfx.CreateInstance();
+
+				filteredSfxInstance.Play();
+			}
+
+			if (IsKeyToggledOn(Keys.H)) {
+				filteredSfx = EffectLoader.GetFilteredEffect("Content/spooky.mp3", bandPass);
+
+				filteredSfxInstance?.Dispose();
+				filteredSfxInstance = filteredSfx.CreateInstance();
+
+				filteredSfxInstance.Play();
 			}
 
 			timer++;

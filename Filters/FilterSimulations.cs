@@ -9,9 +9,6 @@ namespace MonoSound.Filters {
 		public static Filter revFilter;
 
 		public static bool SimulateFilter(FormatWav wav, Filter filter) {
-			if (wav.ChannelCount != 1)
-				throw new InvalidOperationException("Source WAV data contained invalid data. (Channels)");
-
 			wav.DeconstructToFloatSamples(out float[] samples);
 
 			switch (filter.type) {

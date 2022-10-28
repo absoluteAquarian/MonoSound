@@ -43,6 +43,11 @@ namespace MonoSound.Filters {
 
 				if (allMatch) {
 					package = p;
+
+					// Verify that the package is valid
+					if (p.effect.IsDisposed)
+						throw new ObjectDisposedException("package.effect", "Cached SoundEffect was disposed: " + asset);
+
 					return true;
 				}
 			}

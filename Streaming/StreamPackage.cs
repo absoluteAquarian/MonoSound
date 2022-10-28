@@ -82,7 +82,7 @@ namespace MonoSound.Streaming {
 			if (underlyingStream != null)
 				underlyingStream.Position = sampleReadStart;
 
-			if (blockQueueClearing)
+			if (!blockQueueClearing)
 				_queuedReads.Clear();
 		}
 
