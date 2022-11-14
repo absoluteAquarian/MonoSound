@@ -22,7 +22,7 @@ namespace MonoSound.XACT {
 				if (wBank is null) {
 					string bankName = _soundBank._waveBankNames[index];
 
-					if (!MonoSound.waveBanks.TryGetValue(bankName, out wBank) && !MonoSound.streamedWaveBanks.TryGetValue(bankName, out wBank))
+					if (!MonoSoundLibrary.waveBanks.TryGetValue(bankName, out wBank) && !MonoSoundLibrary.streamedWaveBanks.TryGetValue(bankName, out wBank))
 						throw new Exception("The wave bank '" + bankName + "' was not found!");
 
 					Set(index, wBank);
@@ -141,7 +141,7 @@ namespace MonoSound.XACT {
 			if (bank == null) {
 				var name = _waveBankNames[waveBankIndex];
 
-				if (!MonoSound.waveBanks.TryGetValue(name, out bank) && !MonoSound.streamedWaveBanks.TryGetValue(name, out bank))
+				if (!MonoSoundLibrary.waveBanks.TryGetValue(name, out bank) && !MonoSoundLibrary.streamedWaveBanks.TryGetValue(name, out bank))
 					throw new Exception("The wave bank '" + name + "' was not found!");
 
 				_waveBanks.Set(waveBankIndex, bank);

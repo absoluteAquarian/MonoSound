@@ -14,7 +14,7 @@ namespace MonoSound {
 		/// <param name="filePath">The path to the sound file.</param>
 		/// <param name="looping">Whether the sound should loop</param>
 		public static StreamPackage GetStreamedSound(string filePath, bool looping) {
-			MonoSound.ThrowIfNotInitialized();
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			string extension = Path.GetExtension(filePath);
 
@@ -52,7 +52,7 @@ namespace MonoSound {
 		/// <param name="fileIdentifier">An enumeration value indicating what type of audio <paramref name="sampleSource"/> contains.  Cannot be <seealso cref="AudioType.XWB"/></param>
 		/// <param name="looping">Whether the sound should loop</param>
 		public static StreamPackage GetStreamedSound(Stream sampleSource, AudioType fileIdentifier, bool looping) {
-			MonoSound.ThrowIfNotInitialized();
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			if (fileIdentifier == AudioType.XWB)
 				throw new ArgumentException("XWB streams must be created via StreamLoader.GetStreamedXACTSound()");
@@ -79,7 +79,7 @@ namespace MonoSound {
 		/// <param name="cueName">The name of the sound cue to stream</param>
 		/// <param name="looping">Whether the sound should loop</param>
 		public static StreamPackage GetStreamedXACTSound(string soundBankPath, string waveBankPath, string cueName, bool looping) {
-			MonoSound.ThrowIfNotInitialized();
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			return StreamManager.InitializeXWBStream(soundBankPath, waveBankPath, cueName, looping);
 		}
@@ -94,7 +94,7 @@ namespace MonoSound {
 		/// <param name="cueName">The name of the sound cue to stream</param>
 		/// <param name="looping">Whether the sound should loop</param>
 		public static StreamPackage GetStreamedXACTSound(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, bool looping) {
-			MonoSound.ThrowIfNotInitialized();
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			return StreamManager.InitializeXWBStream(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, cueName, looping);
 		}
@@ -104,7 +104,7 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="instance">The sound effect instance</param>
 		public static void FreeStreamedSound(ref StreamPackage instance) {
-			MonoSound.ThrowIfNotInitialized();
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			StreamManager.StopStreamingSound(ref instance);
 		}
@@ -115,7 +115,7 @@ namespace MonoSound {
 		/// <param name="instance">The sound effect instance</param>
 		[Obsolete("Will be removed in a future update")]
 		public static void FreeStreamedSound(ref SoundEffectInstance instance) {
-			MonoSound.ThrowIfNotInitialized();
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			StreamManager.StopStreamingSound(ref instance);
 		}

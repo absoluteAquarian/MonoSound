@@ -1,7 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using MonoSound.Filters;
-using MonoSound.Filters.Instances;
-using MonoSound.Streaming;
 using System;
 using System.IO;
 
@@ -10,11 +8,11 @@ namespace MonoSound {
 	/// The class where all sound filtering is handled through.
 	/// </summary>
 	public static class MonoSoundManager {
-		/// <inheritdoc cref="MonoSound.NextFilterID"/>
-		[Obsolete("Use MonoSound.NextFilterID instead", error: true)]
+		/// <inheritdoc cref="MonoSoundLibrary.NextFilterID"/>
+		[Obsolete("Use MonoSoundLibrary.NextFilterID instead", error: true)]
 		public static int NextFilterID {
-			get => MonoSound.NextFilterID;
-			private set => MonoSound.NextFilterID = value;
+			get => MonoSoundLibrary.NextFilterID;
+			private set => MonoSoundLibrary.NextFilterID = value;
 		}
 
 		/// <inheritdoc cref="Controls.AllowEchoOversampling"/>
@@ -38,25 +36,25 @@ namespace MonoSound {
 			set => Controls.LogFilters = value;
 		}
 
-		/// <inheritdoc cref="MonoSound.Version"/>
-		[Obsolete("Use MonoSound.Version instead")]
-		public static readonly string Version = MonoSound.Version;
+		/// <inheritdoc cref="MonoSoundLibrary.Version"/>
+		[Obsolete("Use MonoSoundLibrary.Version instead")]
+		public static readonly string Version = MonoSoundLibrary.Version;
 
-		/// <inheritdoc cref="MonoSound.Init"/>
-		[Obsolete("Use MonoSound.Init instead", error: true)]
-		public static void Init() => MonoSound.Init();
+		/// <inheritdoc cref="MonoSoundLibrary.Init"/>
+		[Obsolete("Use MonoSoundLibrary.Init instead", error: true)]
+		public static void Init() => MonoSoundLibrary.Init();
 
-		/// <inheritdoc cref="MonoSound.DeInit"/>
-		[Obsolete("Use MonoSound.DeInit instead", error: true)]
-		public static void DeInit() => MonoSound.DeInit();
+		/// <inheritdoc cref="MonoSoundLibrary.DeInit"/>
+		[Obsolete("Use MonoSoundLibrary.DeInit instead", error: true)]
+		public static void DeInit() => MonoSoundLibrary.DeInit();
 
-		/// <inheritdoc cref="MonoSound.SetMaxFilterCount(int)"/>
-		[Obsolete("Use MonoSound.SetMaxFilterCount instead", error: true)]
-		public static void SetMaxFilterCount(int count) => MonoSound.SetMaxFilterCount(count);
+		/// <inheritdoc cref="MonoSoundLibrary.SetMaxFilterCount(int)"/>
+		[Obsolete("Use MonoSoundLibrary.SetMaxFilterCount instead", error: true)]
+		public static void SetMaxFilterCount(int count) => MonoSoundLibrary.SetMaxFilterCount(count);
 
-		/// <inheritdoc cref="MonoSound.ClearFilters"/>
-		[Obsolete("Use MonoSound.ClearFilters instead", error: true)]
-		public static void ClearFilters() => MonoSound.ClearFilters();
+		/// <inheritdoc cref="MonoSoundLibrary.ClearFilters"/>
+		[Obsolete("Use MonoSoundLibrary.ClearFilters instead", error: true)]
+		public static void ClearFilters() => MonoSoundLibrary.ClearFilters();
 
 		/// <inheritdoc cref="EffectLoader.GetEffect(string)"/>
 		[Obsolete("Use EffectLoader.GetEffect instead", error: true)]

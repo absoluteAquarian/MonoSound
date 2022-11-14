@@ -217,7 +217,7 @@ namespace MonoSound.Streaming {
 			EffectLoader.VerifyThatBanksExistInDictionary(soundBank, waveBank, out string sbName, out _, setStreaming: true);
 
 			//Go to the location where this sound's data is stored
-			var sBank = MonoSound.soundBanks[sbName];
+			var sBank = MonoSoundLibrary.soundBanks[sbName];
 
 			sBank.GetInfo(cueName, out int wbIndex, out int trackIndex);
 
@@ -241,7 +241,7 @@ namespace MonoSound.Streaming {
 			EffectLoader.VerifyThatBanksExistInDictionary(soundBank, soundBankIdentifier, waveBank, waveBankIdentifier, out string sbName, out _, setStreaming: true);
 
 			//Go to the location where this sound's data is stored
-			var sBank = MonoSound.soundBanks[sbName];
+			var sBank = MonoSoundLibrary.soundBanks[sbName];
 
 			sBank.GetInfo(cueName, out int wbIndex, out int trackIndex);
 

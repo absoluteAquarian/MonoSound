@@ -11,7 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 namespace MonoSound {
-	public static class MonoSound {
+	public static class MonoSoundLibrary {
 		internal static Dictionary<int, Filter> customFilters;
 
 		internal static Dictionary<string, CustomFileFormat> registeredFormats;

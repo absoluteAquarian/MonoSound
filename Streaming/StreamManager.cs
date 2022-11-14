@@ -51,7 +51,7 @@ namespace MonoSound.Streaming {
 		public static StreamPackage TryInitializeCustomStream(string path, bool loopedSound) {
 			string extension = Path.GetExtension(path);
 
-			if (MonoSound.registeredFormats.TryGetValue(extension, out var format)) {
+			if (MonoSoundLibrary.registeredFormats.TryGetValue(extension, out var format)) {
 				StreamPackage package = format.readStreamed(TitleContainer.OpenStream(path));
 
 				InitPackage(package, loopedSound, path);
@@ -63,7 +63,7 @@ namespace MonoSound.Streaming {
 		}
 
 		public static StreamPackage TryInitializeCustomStream(Stream stream, bool loopedSound) {
-			foreach (var format in MonoSound.registeredFormats.Values) {
+			foreach (var format in MonoSoundLibrary.registeredFormats.Values) {
 				long pos = stream.Position;
 
 				StreamPackage package = format.readStreamed(stream);
@@ -178,7 +178,7 @@ namespace MonoSound.Streaming {
 			Stopwatch watch = new Stopwatch();
 			watch.Start();
 
-			token = MonoSound.GetCancellationToken();
+			token = MonoSoundLibrary.GetCancellationToken();
 
 			try {
 				while (true) {

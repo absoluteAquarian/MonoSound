@@ -87,12 +87,12 @@ namespace MonoSound.XACT {
 		/// <param name="fileName">The identifier for the wavebank</param>
 		/// <param name="streaming">Whether the bank should be opened for streaming</param>
 		public static MonoWaveBank LoadFromXWBStream(Stream stream, string fileName, bool streaming = false) {
-			if (!streaming && MonoSound.waveBanks.TryGetValue(fileName, out var bank)) {
+			if (!streaming && MonoSoundLibrary.waveBanks.TryGetValue(fileName, out var bank)) {
 				// Wavebank was already loaded
 				return bank;
 			}
 
-			if (streaming && MonoSound.streamedWaveBanks.TryGetValue(fileName, out bank)) {
+			if (streaming && MonoSoundLibrary.streamedWaveBanks.TryGetValue(fileName, out bank)) {
 				// Wavebank was already loaded
 				return bank;
 			}
@@ -257,7 +257,7 @@ namespace MonoSound.XACT {
 			reader.Close();
 			reader.Dispose();
 
-			(!streaming ? MonoSound.waveBanks : MonoSound.streamedWaveBanks)[ret._waveBankFileName] = ret;
+			(!streaming ? MonoSoundLibrary.waveBanks : MonoSoundLibrary.streamedWaveBanks)[ret._waveBankFileName] = ret;
 
 			return ret;
 		}

@@ -101,7 +101,7 @@ namespace MonoSound.Filters {
 					wav = FormatWav.FromFileMP3(path);
 					goto case ".wav";
 				default:
-					wav = MonoSound.registeredFormats.TryGetValue(extension, out var format)
+					wav = MonoSoundLibrary.registeredFormats.TryGetValue(extension, out var format)
 						? format.read(TitleContainer.OpenStream(path))
 						: throw new ArgumentException("File extension was not supported: " + extension);
 
@@ -144,7 +144,7 @@ namespace MonoSound.Filters {
 					wav = FormatWav.FromFileMP3(stream);
 					goto case AudioType.WAV;
 				case AudioType.Custom:
-					foreach (var format in MonoSound.registeredFormats.Values) {
+					foreach (var format in MonoSoundLibrary.registeredFormats.Values) {
 						long pos = stream.Position;
 
 						wav = format.read(stream);
