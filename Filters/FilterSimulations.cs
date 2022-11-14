@@ -61,10 +61,10 @@ namespace MonoSound.Filters {
 				throw new NotSupportedException("Echo and Reverb filters are not supported by this method call");
 			
 			if (existingFilterObject?.ID != filter.ID || existingFilterObject.type != filter.type) {
+				existingFilterObject?.Reset();
 				existingFilterObject?.Free();
 				existingFilterObject = filter;
-			} else
-				existingFilterObject.Reset();
+			}
 
 			fixed (float* buffer = samples) {
 				filter.filter(buffer, (uint)samples.Length, 1, sampleRate, 0);

@@ -1,4 +1,7 @@
-﻿v1.6.0.0
+﻿v1.6.1
+- Fixed an issue where filters on a streamed sound would have noise
+
+v1.6.0.0
 - Modified the API to be more user-friendly and sensible
 - Made the following classes public:  StreamPackage, WavStream, XnbStream, Mp3Stream, OggStream, WavebankStream
 - Fixed an issue that causes sound streaming to not work as intended
