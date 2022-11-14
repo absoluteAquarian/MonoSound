@@ -18,7 +18,7 @@ The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGam
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<RepositoryUrl>https://github.com/absoluteAquarian/MonoSound</RepositoryUrl>
 	<PackageTags>monogame;sound;sound-filters;filters;xact;audio</PackageTags>
-	<PackageReleaseNotes>API overhaul and bug fixes.  See CHANGELOG.txt for more info.</PackageReleaseNotes>
+	<PackageReleaseNotes>Streamed sound filtering bug fixes.  See CHANGELOG.txt for more info.</PackageReleaseNotes>
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
