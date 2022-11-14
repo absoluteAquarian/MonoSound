@@ -2,7 +2,7 @@
 - Modified the API to be more user-friendly and sensible
 - Made the following classes public:  StreamPackage, WavStream, XnbStream, Mp3Stream, OggStream, WavebankStream
 - Fixed an issue that causes sound streaming to not work as intended
-- Added an API for reading sound files in custom formats via EffectLoader.RegisterFormat()
+- Added an API for reading sound files in custom formats via MonoSoundLibrary.RegisterFormat()
 - Improved the logic responsible for caching loaded wavebanks
 - Fixed some bugs in the streaming logic which caused looping XWB sounds to sometimes fail
 - Added logic to allow streamed sounds to have effects applied to them dynamically

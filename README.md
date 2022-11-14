@@ -25,6 +25,7 @@ Table of Contents |
 [XACT Sound Playing](#xact-sound-playing) |
 [SoundEffect Loading](#soundeffect-loading) |
 [Sound Streaming](#sound-streaming) |
+[Custom Formats](#custom-formats) |
 [Other Information](#other-information) |
 
 ### How it Works
@@ -64,9 +65,9 @@ See `Filters/SoundFilterType.cs` for explanations of what each sound filter does
 //     - the frequency at which any frequencies above it are modified
 //   Resonance: 5
 //     - how strong the pass effect is
-int lowPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.LowPass, strength: 1f, frequencyCap: 1000, resonance: 5);
+int lowPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.LowPass, strength: 1f, frequencyCap: 1000, resonance: 5);
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
-SoundEffect lowPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", lowPass);
+SoundEffect lowPassEffect = EffectLoader.GetFilteredEffect("mysound.wav", lowPass);
 lowPassEffect.Play();
 ```
 
@@ -79,9 +80,9 @@ lowPassEffect.Play();
 //     - the frequency at which any frequencies considered "out of range" of it are modified
 //   Resonance: 3
 //     - how strong the pass effect is
-int bandPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.BandPass, strength: 1f, frequencyCap: 2000, resonance: 3);
+int bandPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.BandPass, strength: 1f, frequencyCap: 2000, resonance: 3);
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
-SoundEffect bandPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", bandPass);
+SoundEffect bandPassEffect = EffectLoader.GetFilteredEffect("mysound.wav", bandPass);
 bandPassEffect.Play();
 ```
 
@@ -94,9 +95,9 @@ bandPassEffect.Play();
 //     - the frequency at which any frequencies below it are modified
 //   Resonance: 8
 //     - how strong the pass effect is
-int highPass = MonoSoundManager.RegisterBiquadResonantFilter(SoundFilterType.HighPass, strength: 0.5f, frequencyCap: 1500, resonance: 8);
+int highPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.HighPass, strength: 0.5f, frequencyCap: 1500, resonance: 8);
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
-SoundEffect highPassEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", highPass);
+SoundEffect highPassEffect = EffectLoader.GetFilteredEffect("mysound.wav", highPass);
 highPassEffect.Play();
 ```
 
@@ -112,9 +113,9 @@ highPassEffect.Play();
 //   Old Sample Preference Factor: 0.7x
 //     - how biased the sampler is towards using the data from the original samples
 //       the filtered sample and original sample are mixed regardless
-int echo = MonoSoundManager.RegisterEchoFilter(strength: 0.5f, delay: 0.125f, decayFactor: 0.6f, filterStrength: 0.7f);
+int echo = FilterLoader.RegisterEchoFilter(strength: 0.5f, delay: 0.125f, decayFactor: 0.6f, filterStrength: 0.7f);
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
-SoundEffect echoEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", echo);
+SoundEffect echoEffect = EffectLoader.GetFilteredEffect("mysound.wav", echo);
 echoEffect.Play();
 ```
 
@@ -129,28 +130,28 @@ echoEffect.Play();
 //     - how much the filter affects higher-frequency sounds
 //   Overall Reverb Strength: 1.0x
 //     - how strongly the effect is applied to the original samples
-int reverb = MonoSoundManager.RegisterReverbFilter(strength: 0.5f, lowFrequencyReverbStrength: 0.5f, highFrequencyReverbStrength: 0.5f, reverbStrength: 1f);
+int reverb = FilterLoader.RegisterReverbFilter(strength: 0.5f, lowFrequencyReverbStrength: 0.5f, highFrequencyReverbStrength: 0.5f, reverbStrength: 1f);
 // GetFilteredEffect() can use either a relative path or an absolute path.  The file provided must either be a .wav file, a compiled .xnb file or an .ogg file.
-SoundEffect reverbEffect = MonoSoundManager.GetFilteredEffect("mysound.wav", reverb);
+SoundEffect reverbEffect = EffectLoader.GetFilteredEffect("mysound.wav", reverb);
 reverbEffect.Play();
 ```
 
 ### XACT Sound Playing
 
-MonoSound is able to load specific sounds from XACT wave banks as `SoundEffect`s via `MonoSoundManager.GetEffectFromBank(string, string, string)`.  
+MonoSound is able to load specific sounds from XACT wave banks as `SoundEffect`s via `EffectLoader.GetEffectFromBank(string, string, string)`.  
 DISCLAIMER: the requested wave bank will have all of its sound data loaded into memory if that hasn't happened already.  If this outcome is undesirable, use the [streaming alternative](https://github.com/absoluteAquarian/MonoSound/blob/main/README.md#sound-streaming) instead.  
 Furthermore, MonoSound only supports simple Cues.
 
 #### Example
 ```cs
-SoundEffect xactSound = MonoSoundManager.GetEffectFromBank("Content/Sound Bank.xsb", "Content/Wave Bank.xwb", "mysound");
+SoundEffect xactSound = EffectLoader.GetEffectFromBank("Content/Sound Bank.xsb", "Content/Wave Bank.xwb", "mysound");
 xactSound.Play();
 ```
 
 ### SoundEffect Loading
 The pipeline in MonoGame can be completely avoided by using this library.  Below is an example of loading a `SoundEffect` directly from a file and playing it:
 ```cs
-SoundEffect sound = MonoSoundManager.GetEffect("Content/spooky.mp3");
+SoundEffect sound = EffectLoader.GetEffect("Content/spooky.mp3");
 sound.Play();
 ```
 
@@ -158,33 +159,38 @@ sound.Play();
 
 MonoSound has built-in support for streaming sounds from `.wav` files, compiled `.xnb` files, XACT `.xwb` wave banks, OGG Vorbis `.ogg` files and MPEG Audio Layer III `.mp3` files.
 
-In order to register a streamed sound, either `MonoSoundManager.GetStreamedSound(string, bool)` or `MonoSoundManager.GetStreamedXACTSound(string, string, string, bool)` has to be called.  
-To stop the streamed sound and its streaming, call `MonoSoundManager.FreeStreamedSound(ref SoundEffectInstance)`.
+In order to register a streamed sound, either `StreamLoader.GetStreamedSound(string, bool)` or `StreamLoader.GetStreamedXACTSound(string, string, string, bool)` has to be called.  
+To stop the streamed sound and its streaming, call `StreamLoader.FreeStreamedSound(ref StreamPackage)`.
 
-Do note that once a streamed sound has been registered from an XACT wave bank, that bank will **no longer be able** to be used for non-streaming purposes.  
-Furthermore, streamed sounds **cannot** have filters applied to them.
+While a `StreamPackage` is playing, you can modify its filters on the fly via `StreamPackage.ApplyFilters(params int[])`.  If you want to clear its filters, pass `null` into this function.
 
 #### WAV/XNB/OGG/MP3 Example
 ```cs
-SoundEffectInstance streamedSound = MonoSoundManager.GetStreamedSound("Content/cool_sound.xnb", looping: false);
-streamedSound.Play();
+StreamPackage streamedSound = StreamLoader.GetStreamedSound("Content/cool_sound.xnb", looping: false);
+streamedSound.PlayingSound.Play();
 
 ...
 
 //Stop the sound and its streaming.  This method automatically calls Stop() and Dispose() on the instance.
-MonoSoundManager.FreeStreamedSound(ref streamedSound);
+StreamLoader.FreeStreamedSound(ref streamedSound);
 ```
 
 #### XACT Example
 ```cs
-SoundEffectInstance streamedXACTSound = MonoSoundManager.GetStreamedXACTSound("Content/Sound Bank.xsb", "Content/Wave Bank.xwb", "mysound", looping: true);
-streamedXACTSound.Play();
+StreamPackage streamedXACTSound = StreamLoader.GetStreamedXACTSound("Content/Sound Bank.xsb", "Content/Wave Bank.xwb", "mysound", looping: true);
+streamedXACTSound.PlayingSound.Play();
 
 ...
 
 //Stop the sound and its streaming.  This method automatically calls Stop() and Dispose() on the instance.
-MonoSoundManager.FreeStreamedSound(ref streamedXACTSound);
+StreamLoader.FreeStreamedSound(ref streamedXACTSound);
 ```
+
+### Custom Formats
+Custom sound files can be processed by MonoSound after registering functions which converts a data stream in the custom format to a `FormatWav` or `StreamPackage` via `MonoSoundLibrary.RegisterFormat(string, Func<Stream, FormatWav>, Func<Stream, StreamPackage>)`.
+
+After registering the format, any files and data streams that are retrieved will also check these functions.  
+In the registered functions, return `null` if the data stream is not in the custom format.
 
 ### Other Information
 MonoSound also supports all of its features on `System.IO.Stream` instances.  
