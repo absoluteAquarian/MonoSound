@@ -37,12 +37,12 @@ MonoSound is able to process WAVE data from the following formats:
 - `.ogg`: OGG Vorbis audio
 - `.mp3`: MPEG Audio Layer III audio
 
-First, the library needs to be initialized via `MonoSoundManager.Init();`, preferably in the `Game.LoadContent()` method.  
+First, the library needs to be initialized via `MonoSoundLibrary.Init();`, preferably in the `Game.LoadContent()` method.  
 (Until this method is called, most uses of the library will either result in thrown errors or undefined behaviour.)
 
 Then, custom sound filters can be registered at any time.  See the next section for what sound filters are implemented and examples of using them.
 
-Finally, when the game is closed, `MonoSoundManager.DeInit()` must be called in `Game.UnloadContent()` to free up used resources.
+Finally, when the game is closed, `MonoSoundLibrary.DeInit()` must be called in `Game.UnloadContent()` to free up used resources.
 
 ### Implemented Sound Filters
 
