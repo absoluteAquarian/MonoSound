@@ -1,9 +1,11 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using MonoSound.XACT;
 using MP3Sharp;
+using MP3Sharp.Decoding;
 using NVorbis;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 
@@ -311,55 +313,70 @@ namespace MonoSound.Audio {
 		/// Loads a <see cref="FormatWav"/> from an .mp3 stream
 		/// </summary>
 		public static FormatWav FromFileMP3(Stream readStream) {
-			using MP3Stream stream = new MP3Stream(readStream);
+			int attempts = 0;
 
-			byte[] header = new byte[16];
+			repeat:
 
-			//Type of Format
-			header[0] = 0x01;
+			try {
+				using MP3Stream stream = new MP3Stream(readStream);
 
-			//Number of Channels
-			byte[] arr = BitConverter.GetBytes((short)AudioChannels.Stereo);  //MP3 decoder forces the samples to align to stereo
-			header[2] = arr[0];
-			header[3] = arr[1];
+				byte[] header = new byte[16];
 
-			//Samples per Second
-			arr = BitConverter.GetBytes(stream.Frequency);
-			header[4] = arr[0];
-			header[5] = arr[1];
-			header[6] = arr[2];
-			header[7] = arr[3];
+				//Type of Format
+				header[0] = 0x01;
 
-			//Bytes per Second
-			arr = BitConverter.GetBytes(stream.Frequency * 4);
-			header[8] = arr[0];
-			header[9] = arr[1];
-			header[10] = arr[2];
-			header[11] = arr[3];
+				//Number of Channels
+				byte[] arr = BitConverter.GetBytes((short)AudioChannels.Stereo);  //MP3 decoder forces the samples to align to stereo
+				header[2] = arr[0];
+				header[3] = arr[1];
 
-			//Block Align
-			arr = BitConverter.GetBytes((short)4);
-			header[12] = arr[0];
-			header[13] = arr[1];
+				//Samples per Second
+				arr = BitConverter.GetBytes(stream.Frequency);
+				header[4] = arr[0];
+				header[5] = arr[1];
+				header[6] = arr[2];
+				header[7] = arr[3];
 
-			//Bits per Sample
-			arr = BitConverter.GetBytes((short)16);
-			header[14] = arr[0];
-			header[15] = arr[1];
+				//Bytes per Second
+				arr = BitConverter.GetBytes(stream.Frequency * 4);
+				header[8] = arr[0];
+				header[9] = arr[1];
+				header[10] = arr[2];
+				header[11] = arr[3];
 
-			//Read the samples
-			byte[] sampleWrite = new byte[1024];
-			List<byte> samples = new List<byte>();
-			int count;
+				//Block Align
+				arr = BitConverter.GetBytes((short)4);
+				header[12] = arr[0];
+				header[13] = arr[1];
 
-			while ((count = stream.Read(sampleWrite, 0, 1024)) > 0) {
-				byte[] read = new byte[count];
-				Buffer.BlockCopy(sampleWrite, 0, read, 0, count);
+				//Bits per Sample
+				arr = BitConverter.GetBytes((short)16);
+				header[14] = arr[0];
+				header[15] = arr[1];
 
-				samples.AddRange(read);
+				//Read the samples
+				byte[] sampleWrite = new byte[1024];
+				List<byte> samples = new List<byte>();
+				int count;
+
+				while ((count = stream.Read(sampleWrite, 0, 1024)) > 0) {
+					byte[] read = new byte[count];
+					Buffer.BlockCopy(sampleWrite, 0, read, 0, count);
+
+					samples.AddRange(read);
+				}
+
+				return FromDecompressorData(samples.ToArray(), header);
+			} catch (BitstreamException) {
+				// Try again
+				attempts++;
+
+				if (attempts < 100)
+					goto repeat;
+
+				Debug.WriteLine("Failed to load file after 100 attempts");
+				throw;
 			}
-
-			return FromDecompressorData(samples.ToArray(), header);
 		}
 
 		/// <summary>

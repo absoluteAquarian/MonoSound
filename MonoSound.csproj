@@ -27,7 +27,7 @@ The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGam
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.0.1641" />
-    <PackageReference Include="MP3Sharp" Version="1.0.5" />
+    <PackageReference Include="MP3SharpWithMonoFix" Version="1.0.6" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="" />

@@ -7,6 +7,7 @@ using MonoSound.Filters;
 using MonoSound.Streaming;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
@@ -61,7 +62,7 @@ namespace MonoSound.Tests {
 			highPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.HighPass, 1, 1500, 8);
 			bandPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.BandPass, 1, 2000, 3);
 
-			Controls.StreamBufferLengthInSeconds = 0.05;
+			Controls.StreamBufferLengthInSeconds = 0.01;
 
 			_fontSystem = new FontSystem();
 			_fontSystem.AddFont(File.ReadAllBytes("C:/Windows/Fonts/times.ttf"));
@@ -211,7 +212,14 @@ namespace MonoSound.Tests {
 			filteredSfxInstance.Play();
 		}
 
+		static Process ThisProcess;
+
 		protected override void Draw(GameTime gameTime) {
+			ThisProcess ??= Process.GetCurrentProcess();
+
+			if (timer % 30 == 0)
+				ThisProcess.Refresh();
+
 			GraphicsDevice.Clear(Color.CornflowerBlue);
 
 			_spriteBatch.Begin();
@@ -219,7 +227,8 @@ namespace MonoSound.Tests {
 			SpriteFontBase font = _fontSystem.GetFont(18);
 
 			_spriteBatch.DrawString(font, $"FPS: {1 / (float)gameTime.ElapsedGameTime.TotalSeconds}", new Vector2(5, 5), Color.White);
-			
+			_spriteBatch.DrawString(font, $"MEM: {ByteCountToLargeRepresentation(ThisProcess.WorkingSet64)} / {ByteCountToLargeRepresentation(ThisProcess.PeakWorkingSet64)}", new Vector2(5, 5 + font.LineHeight + 2), Color.White);
+
 			if (songInstance != null)
 				_spriteBatch.DrawString(font, $"chill.ogg / Non-streamed     Pan = {songInstance.Pan}", new Vector2(20, 40), Color.White);
 
@@ -232,6 +241,15 @@ namespace MonoSound.Tests {
 			_spriteBatch.End();
 
 			base.Draw(gameTime);
+		}
+
+		private static string ByteCountToLargeRepresentation(long bytes) {
+			string[] storageSizes = new string[] { "B", "kB", "MB", "GB" };
+			int sizeLog = (int)Math.Log(bytes, 1000);
+			double sizePow = (long)Math.Pow(1000, sizeLog);
+			string size = storageSizes[sizeLog];
+
+			return $"{bytes / sizePow:N3}{size}";
 		}
 	}
 }

@@ -7,6 +7,8 @@
 - Fixed some bugs in the streaming logic which caused looping XWB sounds to sometimes fail
 - Added logic to allow streamed sounds to have effects applied to them dynamically
 - Added a control for specifying the length of the buffers read for streamed sounds.  Defaults to 0.1 seconds.
+- Added proper safeguards to Filter object freeing in order to prevent some nasty CLR crashes
+- Added a safeguard for MP3Sharp audio loading
 
 v1.5.2.0
 - Made the MonoSound.Audio.FormatWav class public

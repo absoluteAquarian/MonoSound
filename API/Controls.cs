@@ -9,7 +9,7 @@
 		public static bool AllowEchoOversampling { get; set; }
 
 		/// <summary>
-		/// If enabled, this folder path will be where filtered sounds are saved to. This property should be set after <seealso cref="Init"/> is called.
+		/// If enabled, this folder path will be where filtered sounds are saved to. This property should be set after <seealso cref="MonoSoundLibrary.Init"/> is called.
 		/// </summary>
 		public static string LogDirectory { get; set; }
 

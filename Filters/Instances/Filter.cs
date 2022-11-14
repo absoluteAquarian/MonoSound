@@ -20,6 +20,7 @@ namespace MonoSound.Filters.Instances {
 		public uint mParamChanged;
 		public float* mParam;
 		//Ignored: *mParamFader
+		private bool isFree = true;  // Checking mParam is likely not good enough...
 
 		public Filter() {
 			mNumParams = 0;
@@ -34,10 +35,11 @@ namespace MonoSound.Filters.Instances {
 		public virtual void Reset() { }
 
 		public virtual void Free() {
-			if (mParam == (float*)IntPtr.Zero)
+			if (isFree)
 				return;
 
 			Marshal.FreeHGlobal((IntPtr)mParam);
+			isFree = true;
 		}
 
 		public virtual SoLoudResult initParams(int aNumParams) {
@@ -47,6 +49,7 @@ namespace MonoSound.Filters.Instances {
 			mNumParams = (uint)aNumParams;
 			mParam = (float*)Marshal.AllocHGlobal(sizeof(float) * aNumParams);
 			//mParamFader = new Fader[mNumParams];
+			isFree = false;
 
 			uint i;
 			for (i = 0; i < mNumParams; i++) {
