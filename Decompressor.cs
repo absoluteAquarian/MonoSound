@@ -2,6 +2,7 @@
 // This file is subject to the terms and conditions defined in
 // file 'LICENSE.txt', which is part of this source code package.
 
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Content;
 using MonoSound.Audio;
@@ -73,7 +74,7 @@ namespace MonoSound{
 			if(Path.GetExtension(path) != ".xnb")
 				throw new ArgumentException("File must be an XNB file.", "path");
 			
-			Stream stream = File.OpenRead(path);
+			Stream stream = TitleContainer.OpenStream(path);
 			byte[] data;
 
 			using(BinaryReader reader = new BinaryReader(stream)){

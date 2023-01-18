@@ -2,7 +2,8 @@
 [![NuGet download count](https://img.shields.io/nuget/dt/MonoSound)](https://www.nuget.org/packages/MonoSound)
 
 A library for MonoGame projects which provides an alternative to SoundEffect instance creation, among other useful features.  
-Supported MonoGame builds: DesktopGL
+Supported MonoGame builds: DesktopGL, Android  
+Other builds may be supported, but are currently *untested*.
 
 The sound filter code was ported directly from the C++ sound filter library, SoLoud.
 

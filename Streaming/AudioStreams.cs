@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework.Audio;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using MonoSound.XACT;
 using System;
 using System.IO;
@@ -12,7 +13,7 @@ namespace MonoSound.Streaming {
 		/// Initializes a new <see cref="WavStream"/> from a .wav file
 		/// </summary>
 		/// <param name="file">The absolute or relative location of the file to read from</param>
-		public WavStream(string file) : base(File.OpenRead(file), AudioType.WAV) { }
+		public WavStream(string file) : base(TitleContainer.OpenStream(file), AudioType.WAV) { }
 
 		/// <summary>
 		/// Initializes a new <see cref="WavStream"/> from a data stream in the .wav format
@@ -25,7 +26,7 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		/// <param name="file">The absolute or relative location of the file to read from</param>
 		/// <param name="typeOverride">Which type of audio stream should be used</param>
-		protected WavStream(string file, AudioType typeOverride) : base(File.OpenRead(file), typeOverride) { }
+		protected WavStream(string file, AudioType typeOverride) : base(TitleContainer.OpenStream(file), typeOverride) { }
 
 		/// <summary>
 		/// A copy of <see cref="WavStream(Stream)"/> for overwriting the type of audio stream
@@ -136,7 +137,7 @@ namespace MonoSound.Streaming {
 		/// <param name="file">The absolute or relative location of the file to read from</param>
 		public OggStream(string file) : base(AudioType.OGG) {
 			// Why can't i just use VorbisReader(string) here?
-			vorbisStream = new NVorbis.VorbisReader(File.OpenRead(file), closeStreamOnDispose: true);
+			vorbisStream = new NVorbis.VorbisReader(TitleContainer.OpenStream(file), closeStreamOnDispose: true);
 
 			Initialize();
 		}

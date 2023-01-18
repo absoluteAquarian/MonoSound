@@ -1,4 +1,7 @@
-﻿v1.6.1
+﻿v1.6.2
+- Replaced all usage of File.OpenRead() with TitleContainer.OpenStream(), since the former prevented MonoSound from loading on Android projects
+
+v1.6.1
 - Fixed an issue where filters on a streamed sound would have noise
 
 v1.6.0.0

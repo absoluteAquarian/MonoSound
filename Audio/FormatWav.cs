@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework.Audio;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using MonoSound.XACT;
 using MP3Sharp;
 using MP3Sharp.Decoding;
@@ -120,7 +121,7 @@ namespace MonoSound.Audio {
 			if (Path.GetExtension(file) != ".wav")
 				throw new ArgumentException("File must be a .wav file", "file");
 
-			return FromFileWAV(File.OpenRead(file));
+			return FromFileWAV(TitleContainer.OpenStream(file));
 		}
 
 		/// <summary>
@@ -141,7 +142,7 @@ namespace MonoSound.Audio {
 			if (Path.GetExtension(file) != ".ogg")
 				throw new ArgumentException("File must be an .ogg file", "file");
 
-			return FromFileOGG(File.OpenRead(file));
+			return FromFileOGG(TitleContainer.OpenStream(file));
 		}
 
 		/// <summary>
@@ -306,7 +307,7 @@ namespace MonoSound.Audio {
 			if (Path.GetExtension(file) != ".mp3")
 				throw new ArgumentException("File must be an .mp3 file", "file");
 
-			return FromFileMP3(File.OpenRead(file));
+			return FromFileMP3(TitleContainer.OpenStream(file));
 		}
 
 		/// <summary>
