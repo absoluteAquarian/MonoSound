@@ -2,4 +2,4 @@
 
 - Low Pass filters can, for no reason, cause sound samples to be either 0 or +/-max.  Investigate
 - Implement the rest of SoLoud's sound filters
-- filtered sounds are filled with blips of noise
+- Implement the Filter/FilterInstance design from SoLoud (since it would make replacing/using filters be significantly easier)

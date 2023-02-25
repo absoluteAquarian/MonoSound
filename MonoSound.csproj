@@ -6,7 +6,7 @@
     <TieredCompilation>false</TieredCompilation>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	<Version>1.6.2</Version>
+	<Version>1.7</Version>
 	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	<Authors>John Baglio</Authors>
 	<Description>A library built for use with MonoGame DesktopGL projects.

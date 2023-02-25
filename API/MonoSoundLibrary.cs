@@ -38,7 +38,7 @@ namespace MonoSound {
 		/// <summary>
 		/// The version for MonoSound
 		/// </summary>
-		public static readonly string Version = "1.6.2";
+		public static readonly string Version = "1.7";
 
 		/// <summary>
 		/// Initializes the MonoSound library

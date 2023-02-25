@@ -1,4 +1,7 @@
-﻿v1.6.2
+﻿v1.7
+- Fixed a copy/paste typo which caused the `RegisterBiquadResonantFilter`, `RegisterEchoFilter` and `RegisterReverbFilter` methods in `MonoSoundManager` to mention the wrong methods
+
+v1.6.2
 - Replaced all usage of File.OpenRead() with TitleContainer.OpenStream(), since the former prevented MonoSound from loading on Android projects
 
 v1.6.1

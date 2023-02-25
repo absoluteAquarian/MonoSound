@@ -125,15 +125,15 @@ namespace MonoSound {
 		public static void FreeStreamedSound(ref SoundEffectInstance instance) => StreamLoader.FreeStreamedSound(ref instance);
 
 		/// <inheritdoc cref="FilterLoader.RegisterBiquadResonantFilter(SoundFilterType, float, float, float)"/>
-		[Obsolete("Use StreamLoader.FreeStreamedSound instead", error: true)]
+		[Obsolete("Use FilterLoader.RegisterBiquadResonantFilter instead", error: true)]
 		public static int RegisterBiquadResonantFilter(SoundFilterType type, float strength, float frequencyCap, float resonance) => FilterLoader.RegisterBiquadResonantFilter(type, strength, frequencyCap, resonance);
 
 		/// <inheritdoc cref="FilterLoader.RegisterEchoFilter(float, float, float, float)"/>
-		[Obsolete("Use StreamLoader.FreeStreamedSound instead", error: true)]
+		[Obsolete("Use FilterLoader.RegisterEchoFilter instead", error: true)]
 		public static int RegisterEchoFilter(float strength, float delay, float decayFactor, float filterStrength) => FilterLoader.RegisterEchoFilter(strength, delay, decayFactor, filterStrength);
 
 		/// <inheritdoc cref="FilterLoader.RegisterReverbFilter(float, float, float, float)"/>
-		[Obsolete("Use StreamLoader.FreeStreamedSound instead", error: true)]
+		[Obsolete("Use FilterLoader.RegisterReverbFilter instead", error: true)]
 		public static int RegisterReverbFilter(float filterStrength, float lowFrequencyReverbStrength, float highFrequencyReverbStrength, float reverbStrength) => FilterLoader.RegisterReverbFilter(filterStrength, lowFrequencyReverbStrength, highFrequencyReverbStrength, reverbStrength);
 	}
 }
