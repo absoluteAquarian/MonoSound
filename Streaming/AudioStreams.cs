@@ -100,7 +100,7 @@ namespace MonoSound.Streaming {
 	/// </summary>
 	public class Mp3Stream : WavStream {
 		// MP3Sharp doesn't have a defined way to get the audio duration without reading the entire file, which defeats the purpose of streaming
-		public override TimeSpan MaxDuration => throw new NotImplementedException("MP3Sharp cannot determine the audio duration without reading the entire file");
+		public sealed override TimeSpan MaxDuration => throw new NotImplementedException("MP3Sharp cannot determine the audio duration without reading the entire file");
 
 		/// <summary>
 		/// Initializes a new <see cref="Mp3Stream"/> from an .mp3 file
