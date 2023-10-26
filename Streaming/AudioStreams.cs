@@ -136,8 +136,8 @@ namespace MonoSound.Streaming {
 	/// An object representing audio streaming from an Ogg Vorbis (.ogg) data stream
 	/// </summary>
 	public class OggStream : StreamPackage {
-		private NVorbis.VorbisReader vorbisStream;
-		private TimeSpan vorbisReadStart;
+		protected NVorbis.VorbisReader vorbisStream;
+		protected TimeSpan vorbisReadStart;
 
 		public sealed override TimeSpan MaxDuration => vorbisStream.TotalTime;
 
