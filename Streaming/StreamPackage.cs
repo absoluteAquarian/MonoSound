@@ -148,17 +148,21 @@ namespace MonoSound.Streaming {
 		/// <param name="seconds">How many seconds' worth of samples should be read.</param>
 		/// <param name="samples">An array of WAVE-formatted sample data.</param>
 		/// <param name="bytesRead">How many bytes of data were read.</param>
-		/// <param name="endOfStream">Whether the end of the stream has been reached.</param>
-		public abstract void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool endOfStream);
+		/// <param name="checkLooping">Whether looping should be checked after the samples are read.</param>
+		public abstract void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping);
 
 		private void Read(double seconds, int max) {
 			//The sound has finished playing.  No need to keep trying to stream more data
 			if (FinishedStreaming || max < 1)
 				return;
 
+			ModifyReadSeconds(ref seconds);
+			if (seconds <= 0)
+				return;
+
 			while (_queuedReads.Count < max) {
 				//Read "seconds" amount of data from the stream, then send it to "sfx"
-				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool endOfStream);
+				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool checkLooping);
 
 				lock (_filterLock) {
 					ProcessFilters(ref read);
@@ -170,10 +174,17 @@ namespace MonoSound.Streaming {
 
 				_queuedReads.Enqueue(read);
 
-				if (endOfStream)
+				if (checkLooping)
 					CheckLooping();
 			}
 		}
+
+		/// <summary>
+		/// Modify how much audio is read by the next <see cref="ReadSamples"/> call here.<br/>
+		/// This method can be useful for e.g. preventing audio bleed across loop boundaries.
+		/// </summary>
+		/// <param name="seconds">The duration of samples to read</param>
+		protected virtual void ModifyReadSeconds(ref double seconds) { }
 
 		/// <summary>
 		/// Sets the starting location of the next batch of samples to read from the underlying stream, in seconds

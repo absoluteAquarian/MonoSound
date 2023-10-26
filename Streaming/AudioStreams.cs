@@ -47,7 +47,7 @@ namespace MonoSound.Streaming {
 			sampleReadStart = underlyingStream.Position;
 		}
 
-		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool endOfStream) {
+		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			int samplesToRead = (int)(seconds * BitsPerSample / 8 * SampleRate * (short)Channels);
 
 			if (samplesToRead == 0) {
@@ -60,7 +60,7 @@ namespace MonoSound.Streaming {
 			samples = new byte[samplesToRead];
 			bytesRead = underlyingStream.Read(samples, 0, samplesToRead);
 
-			endOfStream = bytesRead < samples.Length;
+			checkLooping = bytesRead < samples.Length;
 		}
 	}
 
@@ -169,7 +169,7 @@ namespace MonoSound.Streaming {
 			return 0;
 		}
 
-		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool endOfStream) {
+		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			//Float samples = 2 bytes per sample (converted to short samples)
 			int samplesToRead = (int)(seconds * SampleRate * (short)Channels);
 
@@ -193,7 +193,7 @@ namespace MonoSound.Streaming {
 				samples[i * 2 + 1] = sampleWrite[1];
 			}
 
-			endOfStream = readOggSamples < samplesToRead;
+			checkLooping = readOggSamples < samplesToRead;
 
 			// SecondsRead is manually set here since the second duration can't really be determined based off of what was read
 			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;
@@ -292,7 +292,7 @@ namespace MonoSound.Streaming {
 			sampleReadStart = underlyingStream.Position;
 		}
 
-		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool endOfStream) {
+		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			int samplesToRead = (int)(seconds * BitsPerSample / 8 * SampleRate * (short)Channels);
 
 			if (samplesToRead == 0) {
@@ -305,7 +305,7 @@ namespace MonoSound.Streaming {
 			samples = new byte[samplesToRead];
 			bytesRead = underlyingStream.Read(samples, 0, samplesToRead);
 
-			endOfStream = bytesRead < samples.Length;
+			checkLooping = bytesRead < samples.Length;
 		}
 	}
 }
