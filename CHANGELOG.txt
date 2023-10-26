@@ -12,6 +12,7 @@
 - The `CustomFileFormat` type and its API is now obsolete.  Use the `CustomAudioFormat` type instead
   - `MonoSoundLibrary.RegisterFormat(string, Func<Stream, FormatWav>, Func<Stream, StreamPackage>)` is now obsolete.  Use `MonoSoundLibrary.RegisterFormat(CustomAudioFormat)` instead
 - `vorbisStream` and `vorbisReadStart` in `OggStream` are now visible to child classes
+- `Filter` now contains a `bool RequiresSampleMemory` property which is used to prevent the filter from being used by certain APIs
 
 v1.6.2
 - Replaced all usage of File.OpenRead() with TitleContainer.OpenStream(), since the former prevented MonoSound from loading on Android projects

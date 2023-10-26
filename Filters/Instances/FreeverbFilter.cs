@@ -46,6 +46,8 @@ namespace MonoSound.Filters.Instances {
 		float mDamp;
 		float mWidth;
 
+		public override bool RequiresSampleMemory => true;
+
 		public FreeverbFilter(){
 			initParams(5);
 

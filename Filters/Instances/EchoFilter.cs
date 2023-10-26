@@ -43,6 +43,8 @@ namespace MonoSound.Filters.Instances{
 		public const int DECAY = 2;
 		public const int FILTER = 3;
 
+		public override bool RequiresSampleMemory => true;
+
 		public EchoFilter(){
 			mDelay = 0.3f;
 			mDecay = 0.7f;

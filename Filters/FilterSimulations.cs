@@ -57,8 +57,8 @@ namespace MonoSound.Filters {
 		public static void ApplyFilterTo(ref Filter existingFilterObject, int id, float[] samples, int sampleRate) {
 			Filter filter = MonoSoundLibrary.customFilters[id];
 
-			if (filter is EchoFilter || filter is FreeverbFilter)
-				throw new NotSupportedException("Echo and Reverb filters are not supported by this method call");
+			if (filter.RequiresSampleMemory)
+				throw new NotSupportedException("Provided filter requires sample memory, hence it is not supported by this method call");
 			
 			if (existingFilterObject?.ID != filter.ID || existingFilterObject.type != filter.type) {
 				existingFilterObject?.Reset();

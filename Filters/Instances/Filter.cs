@@ -22,6 +22,12 @@ namespace MonoSound.Filters.Instances {
 		//Ignored: *mParamFader
 		private bool isFree = true;  // Checking mParam is likely not good enough...
 
+		/// <summary>
+		/// Whether this filter requires knowledge of samples earlier in the source audio.<br/>
+		/// Making this property return <see langword="true"/> will prevent this filter from being used by certain APIs that only expect short snippets of audio data.
+		/// </summary>
+		public virtual bool RequiresSampleMemory => false;
+
 		public Filter() {
 			mNumParams = 0;
 			mParamChanged = 0;
