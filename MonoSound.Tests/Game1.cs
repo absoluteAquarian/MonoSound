@@ -231,6 +231,11 @@ namespace MonoSound.Tests {
 
 			if (songInstance != null)
 				_spriteBatch.DrawString(font, $"chill.ogg / Non-streamed     Pan = {songInstance.Pan}", new Vector2(20, 40), Color.White);
+			else if (streamedSound != null) {
+				TimeSpan current = streamedSound.CurrentDuration;
+				TimeSpan max = streamedSound.MaxDuration;
+				_spriteBatch.DrawString(font, $"chill.ogg / Streamed         {current.Minutes:D2}:{current.Seconds:D2}.{current.Milliseconds:D3} / {max.Minutes:D2}:{max.Seconds:D2}.{max.Milliseconds:D3} s", new Vector2(20, 40), Color.White);
+			}
 
 			int y = 75;
 			foreach (string line in machine.ReportCurrentTree(currentSequence)) {

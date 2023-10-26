@@ -35,9 +35,7 @@
     <PackageReference Include="MP3Sharp" Version="1.0.5" />
   </ItemGroup>
   <ItemGroup>
-    <Reference Include="MonoSound">
-      <HintPath>..\bin\Debug\netcoreapp3.1\MonoSound.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\MonoSound.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="Content\chill-mono.ogg">

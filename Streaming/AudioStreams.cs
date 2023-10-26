@@ -99,6 +99,9 @@ namespace MonoSound.Streaming {
 	/// An object representing audio streaming from an MPEG-1 Audio Layer 3 (.mp3) data stream
 	/// </summary>
 	public class Mp3Stream : WavStream {
+		// MP3Sharp doesn't have a defined way to get the audio duration without reading the entire file, which defeats the purpose of streaming
+		public override TimeSpan MaxDuration => throw new NotImplementedException("MP3Sharp cannot determine the audio duration without reading the entire file");
+
 		/// <summary>
 		/// Initializes a new <see cref="Mp3Stream"/> from an .mp3 file
 		/// </summary>
@@ -121,6 +124,11 @@ namespace MonoSound.Streaming {
 
 			if (BitsPerSample != 16)
 				throw new ArgumentException("Stream format is not supported: " + mp3Stream.Format);
+		}
+
+		public sealed override void SetStreamPosition(double seconds) {
+			// MP3Sharp doesn't have a defined way to arbitrarily set the position
+			throw new NotImplementedException("MP3Sharp cannot seek to a specific position without reading from the start of the stream");
 		}
 	}
 
@@ -200,7 +208,8 @@ namespace MonoSound.Streaming {
 		}
 
 		public override void SetStreamPosition(double seconds) {
-			base.SetStreamPosition(seconds);
+			if (seconds < 0)
+				throw new ArgumentOutOfRangeException(nameof(seconds), "Position must be a positive number");
 
 			vorbisStream.DecodedTime = TimeSpan.FromSeconds(seconds);
 			ReadBytes = vorbisStream.DecodedPosition;

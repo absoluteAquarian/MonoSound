@@ -164,6 +164,12 @@ namespace MonoSound.Streaming {
 				//Read "seconds" amount of data from the stream, then send it to "sfx"
 				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool checkLooping);
 
+				// If no bytes were read, assuming something went wrong and bail after checking for looping
+				if (bytesRead <= 0) {
+					CheckLooping();
+					break;
+				}
+
 				lock (_filterLock) {
 					ProcessFilters(ref read);
 				}
