@@ -6,6 +6,7 @@ namespace MonoSound.Audio {
 	/// <summary>
 	/// An object representing a custom file format
 	/// </summary>
+	[Obsolete("This class has been deprecated.  Use the CustomAudioFormat type instead")]
 	public class CustomFileFormat {
 		/// <summary>
 		/// The extension for the format

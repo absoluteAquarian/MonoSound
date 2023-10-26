@@ -16,6 +16,8 @@ namespace MonoSound {
 
 		internal static Dictionary<string, CustomFileFormat> registeredFormats;
 
+		internal static Dictionary<string, CustomAudioFormat> customAudioFormats;
+
 		internal static Dictionary<string, MonoWaveBank> waveBanks;
 		internal static Dictionary<string, MonoWaveBank> streamedWaveBanks;
 		internal static Dictionary<string, MonoSoundBank> soundBanks;
@@ -53,6 +55,7 @@ namespace MonoSound {
 
 			customFilters = new Dictionary<int, Filter>();
 			registeredFormats = new Dictionary<string, CustomFileFormat>();
+			customAudioFormats = new Dictionary<string, CustomAudioFormat>();
 			waveBanks = new Dictionary<string, MonoWaveBank>();
 			streamedWaveBanks = new Dictionary<string, MonoWaveBank>();
 			soundBanks = new Dictionary<string, MonoSoundBank>();
@@ -86,6 +89,7 @@ namespace MonoSound {
 
 			customFilters = null;
 			registeredFormats = null;
+			customAudioFormats = null;
 			waveBanks = null;
 			streamedWaveBanks = null;
 			soundBanks = null;
@@ -109,6 +113,7 @@ namespace MonoSound {
 		/// If the data stream is invalid, make the function return <see langword="null"/>.<br/>
 		/// Disposing the <see cref="Stream"/> parameter is <b>NOT</b> recommended.
 		/// </param>
+		[Obsolete("The CustomFileFormat API is deprecated.  Use the RegisterFormat overload that uses CustomAudioFormat instead")]
 		public static CustomFileFormat RegisterFormat(string extension, Func<Stream, FormatWav> readFull, Func<Stream, StreamPackage> readStreamed) {
 			ThrowIfNotInitialized();
 
@@ -118,6 +123,27 @@ namespace MonoSound {
 				SoundFilterManager.AllValidExtensions.Add(extension);
 
 			return format;
+		}
+
+		/// <summary>
+		/// Registers a custom audio format
+		/// </summary>
+		/// <param name="format">The audio format object.  This object will handle reading from files, audio streams and indicating what file formats it supports.</param>
+		/// <exception cref="ArgumentException"/>
+		public static void RegisterFormat(CustomAudioFormat format) {
+			ThrowIfNotInitialized();
+
+			foreach (string ext in SoundFilterManager.AllValidExtensions.Concat(new string[] { ".xsb", ".xwb" })) {
+				if (format.DoesExtensionApply(ext))
+					throw new ArgumentException($"The audio format \"{ext}\" was already supported, cannot add another format that accepts it");
+			}
+
+			foreach (string extension in format.ValidExtensions) {
+				customAudioFormats[extension] = format;
+
+				if (!SoundFilterManager.AllValidExtensions.Contains(extension))
+					SoundFilterManager.AllValidExtensions.Add(extension);
+			}
 		}
 
 		/// <summary>

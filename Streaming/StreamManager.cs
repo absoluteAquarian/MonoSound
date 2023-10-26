@@ -51,11 +51,15 @@ namespace MonoSound.Streaming {
 		public static StreamPackage TryInitializeCustomStream(string path, bool loopedSound) {
 			string extension = Path.GetExtension(path);
 
+			if (MonoSoundLibrary.customAudioFormats.TryGetValue(extension, out var audioFormat)) {
+				StreamPackage package = audioFormat.CreateStream(path);
+				InitPackage(package, loopedSound, path);
+				return package;
+			}
+
 			if (MonoSoundLibrary.registeredFormats.TryGetValue(extension, out var format)) {
 				StreamPackage package = format.readStreamed(TitleContainer.OpenStream(path));
-
 				InitPackage(package, loopedSound, path);
-
 				return package;
 			}
 
@@ -63,16 +67,19 @@ namespace MonoSound.Streaming {
 		}
 
 		public static StreamPackage TryInitializeCustomStream(Stream stream, bool loopedSound) {
-			foreach (var format in MonoSoundLibrary.registeredFormats.Values) {
+			return GetCustomAudioPackage(stream, loopedSound, MonoSoundLibrary.customAudioFormats, fmt => fmt.CreateStream)
+				?? GetCustomAudioPackage(stream, loopedSound, MonoSoundLibrary.registeredFormats, fmt => fmt.readStreamed);
+		}
+
+		private static StreamPackage GetCustomAudioPackage<T>(Stream stream, bool loopedSound, Dictionary<string, T> formats, Func<T, Func<Stream, StreamPackage>> packageFactory) {
+			foreach (var format in formats.Values) {
 				long pos = stream.Position;
 
-				StreamPackage package = format.readStreamed(stream);
+				StreamPackage package = packageFactory(format)(stream);
 
 				if (package != null) {
 					string name = stream is FileStream fs ? GetSafeName(fs.Name) : "$streamed_" + StreamSourceCreationIndex++;
-
 					InitPackage(package, loopedSound, name);
-
 					return package;
 				}
 

@@ -237,8 +237,15 @@ namespace MonoSound.Streaming {
 			} else {
 				// Reset the stream, but don't clear the queue
 				Reset_Inner(clearQueue: false);
+				OnLooping();
 			}
 		}
+
+		/// <summary>
+		/// Called just after the stream is reset to its initial position.<br/>
+		/// You can use this method to call <see cref="SetStreamPosition(double)"/> to override where the stream resets to, or override <see cref="ModifyResetOffset(long)"/> if you want to use byte offsets.
+		/// </summary>
+		protected virtual void OnLooping() { }
 
 		/// <summary>
 		/// Applies a set of filters to any audio data streamed by this package.  Only certain filter types are supported, however.

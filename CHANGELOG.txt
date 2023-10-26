@@ -2,12 +2,14 @@
 - Fixed a copy/paste typo which caused the `RegisterBiquadResonantFilter`, `RegisterEchoFilter` and `RegisterReverbFilter` methods in `MonoSoundManager` to mention the wrong methods
 - Updated the `StreamPackage` class:
   - Fixed a bug where looping would fail due to null reference errors
-  - Added `double GetSecondDuration(long)`, `long ModifyResetOffset(long)` and `void SetStreamPosition(double)`
+  - Added `double GetSecondDuration(long)`, `long ModifyResetOffset(long)`, `void SetStreamPosition(double)` and `void OnLooping()`
   - Added the `TimeSpan CurrentDuration` and `TimeSpan MaxDuration` properties
   - `override void ChildDispose(bool)` is now obsolete.  Use `override void Dispose(bool)` instead
   - The `int ReadBytes` property was changed to `long ReadBytes`
   - The `int TotalBytes` property was changed to `long TotalBytes`
   - The `ReadBytes` and `SecondsRead` properties now expose their setters to child classes
+- The `CustomFileFormat` type and its API is now obsolete.  Use the `CustomAudioFormat` type instead
+  - `MonoSoundLibrary.RegisterFormat(string, Func<Stream, FormatWav>, Func<Stream, StreamPackage>)` is now obsolete.  Use `MonoSoundLibrary.RegisterFormat(CustomAudioFormat)` instead
 
 v1.6.2
 - Replaced all usage of File.OpenRead() with TitleContainer.OpenStream(), since the former prevented MonoSound from loading on Android projects
