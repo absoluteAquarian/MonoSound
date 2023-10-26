@@ -131,6 +131,8 @@ namespace MonoSound.Streaming {
 		private NVorbis.VorbisReader vorbisStream;
 		private TimeSpan vorbisReadStart;
 
+		public sealed override TimeSpan MaxDuration => vorbisStream.TotalTime;
+
 		/// <summary>
 		/// Initializes a new <see cref="OggStream"/> from an .ogg file
 		/// </summary>
@@ -163,6 +165,10 @@ namespace MonoSound.Streaming {
 			base.Initialize();
 		}
 
+		public sealed override double GetSecondDuration(long byteSampleCount) {
+			return 0;
+		}
+
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool endOfStream) {
 			//Float samples = 2 bytes per sample (converted to short samples)
 			int samplesToRead = (int)(seconds * SampleRate * (short)Channels);
@@ -187,16 +193,32 @@ namespace MonoSound.Streaming {
 				samples[i * 2 + 1] = sampleWrite[1];
 			}
 
-			endOfStream = readOggSamples < vorbisRead.Length;
+			endOfStream = readOggSamples < samplesToRead;
+
+			// SecondsRead is manually set here since the second duration can't really be determined based off of what was read
+			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;
+		}
+
+		public override void SetStreamPosition(double seconds) {
+			base.SetStreamPosition(seconds);
+
+			vorbisStream.DecodedTime = TimeSpan.FromSeconds(seconds);
+			ReadBytes = vorbisStream.DecodedPosition;
+			SecondsRead = seconds;
 		}
 
 		public override void Reset() {
+			base.Reset();
 			vorbisStream.DecodedTime = vorbisReadStart;
 
-			base.Reset();
+			long pos = vorbisStream.DecodedPosition;
+			vorbisStream.DecodedPosition += Math.Max(pos, ModifyResetOffset(pos));
+
+			ReadBytes = vorbisStream.DecodedPosition;
+			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;
 		}
 
-		protected override void ChildDispose(bool disposing) {
+		protected override void Dispose(bool disposing) {
 			if (disposing)
 				vorbisStream?.Dispose();
 

@@ -4,9 +4,7 @@ using MonoSound.Filters;
 using MonoSound.Filters.Instances;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 
 namespace MonoSound.Streaming {
 	/// <summary>
@@ -27,8 +25,8 @@ namespace MonoSound.Streaming {
 		public int SampleRate { get; protected set; }
 		public AudioChannels Channels { get; protected set; }
 		public short BitsPerSample { get; protected set; }
-		public int TotalBytes { get; protected set; }
-		public int ReadBytes { get; private set; }
+		public long TotalBytes { get; protected set; }
+		public long ReadBytes { get; protected set; }
 
 		/// <summary>
 		/// The byte offset of the audio sample data in the streamed data
@@ -38,19 +36,31 @@ namespace MonoSound.Streaming {
 		/// <summary>
 		/// How many seconds' worth of audio have been read by this stream.  This variable is reset in <see cref="Reset"/>
 		/// </summary>
-		public double SecondsRead { get; private set; }
+		public double SecondsRead { get; protected set; }
 
 		/// <summary>
 		/// Whether this stream should loop to the beginning of the audio samples once it has completed.
 		/// </summary>
 		public bool IsLooping { get; internal set; }
 
+		/// <summary>
+		/// Gets or sets the current play duration for the streamed audio
+		/// </summary>
+		public TimeSpan CurrentDuration {
+			get => TimeSpan.FromSeconds(SecondsRead);
+			set => SetStreamPosition(value.TotalSeconds);
+		}
+
+		/// <summary>
+		/// Gets the max duration for the streamed audio
+		/// </summary>
+		public virtual TimeSpan MaxDuration => TimeSpan.FromSeconds(GetSecondDuration(TotalBytes));
+
 		private readonly object _filterLock = new object();
 		private int[] filterIDs;
 		private Filter[] filterObjects;  // Used to speed up filter applications
 
 		private readonly ConcurrentQueue<byte[]> _queuedReads = new ConcurrentQueue<byte[]>();
-		private bool blockQueueClearing;
 
 		protected StreamPackage(AudioType type) {
 			//This constructor is mainly for the OGG streams, which would need to set "underlyingStream" to null anyway
@@ -75,15 +85,39 @@ namespace MonoSound.Streaming {
 		/// Reset the stream here.  By default, sets <see cref="ReadBytes"/> and <see cref="SecondsRead"/> to zero and sets the position of the underlying stream to the start of the sample data
 		/// </summary>
 		public virtual void Reset() {
+			Reset_Inner(true);
+		}
+
+		private void Reset_Inner(bool clearQueue) {
 			//Move the "cursor" back to the beginning and reset the counters
 			ReadBytes = 0;
 			SecondsRead = 0;
 
-			if (underlyingStream != null)
-				underlyingStream.Position = sampleReadStart;
+			if (underlyingStream != null) {
+				long position = Math.Max(sampleReadStart, ModifyResetOffset(sampleReadStart));
+				long diff = sampleReadStart - position;
 
-			if (!blockQueueClearing)
+				underlyingStream.Position = position;
+
+				ReadBytes = diff;
+				SecondsRead = GetSecondDuration(diff);
+			}
+
+			if (clearQueue)
 				_queuedReads.Clear();
+		}
+
+		public virtual double GetSecondDuration(long byteSampleCount) {
+			// sample count = seconds * BitsPerSample / 8 * SampleRate * Channels
+			return byteSampleCount / (float)BitsPerSample * 8f / SampleRate / (int)Channels;
+		}
+
+		/// <summary>
+		/// Adjust where the audio stream will reset to when looping here.
+		/// </summary>
+		/// <param name="byteOffset">The offset in the data stream.  Defaults to the start of sample data.</param>
+		protected virtual long ModifyResetOffset(long byteOffset) {
+			return byteOffset;
 		}
 
 		/// <summary>
@@ -132,12 +166,29 @@ namespace MonoSound.Streaming {
 
 				ReadBytes += bytesRead;
 
-				SecondsRead += seconds;
+				SecondsRead += GetSecondDuration(read.Length);
 
 				_queuedReads.Enqueue(read);
 
 				if (endOfStream)
 					CheckLooping();
+			}
+		}
+
+		/// <summary>
+		/// Sets the starting location of the next batch of samples to read from the underlying stream, in seconds
+		/// </summary>
+		public virtual void SetStreamPosition(double seconds) {
+			if (seconds < 0)
+				throw new ArgumentOutOfRangeException(nameof(seconds), "Position must be a positive number");
+
+			// sample count = seconds * BitsPerSample / 8 * SampleRate * Channels
+			if (underlyingStream != null) {
+				long offset = (long)(seconds * BitsPerSample / 8 * SampleRate * (int)Channels);
+				underlyingStream.Position = sampleReadStart + offset;
+
+				ReadBytes = offset;
+				SecondsRead = seconds;
 			}
 		}
 
@@ -182,17 +233,10 @@ namespace MonoSound.Streaming {
 		private void CheckLooping() {
 			if (!IsLooping) {
 				FinishedStreaming = true;
-
 				Dispose();
 			} else {
-				blockQueueClearing = true;
-
-				Reset();
-
-				blockQueueClearing = false;
-
-				// Read data so that the looping doesn't get choppy
-				QueueBuffers(null, null);
+				// Reset the stream, but don't clear the queue
+				Reset_Inner(clearQueue: false);
 			}
 		}
 
@@ -222,16 +266,19 @@ namespace MonoSound.Streaming {
 		private bool disposed;
 		public bool Disposed => disposed;
 
-		~StreamPackage() => Dispose(false);
+		~StreamPackage() => Dispose_Inner(false);
 
 		public void Dispose() {
-			Dispose(true);
+			Dispose_Inner(true);
 			GC.SuppressFinalize(this);
 		}
 
-		protected virtual void ChildDispose(bool disposing) { }
+		[Obsolete("Use the Dispose method instead", error: true)]
+		protected virtual void ChildDispose(bool disposing) => Dispose(disposing);
 
-		private void Dispose(bool disposing) {
+		protected virtual void Dispose(bool disposing) { }
+
+		private void Dispose_Inner(bool disposing) {
 			if (!disposed) {
 				disposed = true;
 
@@ -248,7 +295,7 @@ namespace MonoSound.Streaming {
 					underlyingStream?.Dispose();
 				}
 
-				ChildDispose(disposing);
+				Dispose(disposing);
 
 				PlayingSound = null;
 				underlyingStream = null;
