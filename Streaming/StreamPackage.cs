@@ -34,12 +34,12 @@ namespace MonoSound.Streaming {
 		protected long sampleReadStart;
 
 		/// <summary>
-		/// How many seconds' worth of audio have been read by this stream.  This variable is reset in <see cref="Reset"/>
+		/// How many seconds' worth of audio have been read by this stream
 		/// </summary>
 		public double SecondsRead { get; protected set; }
 
 		/// <summary>
-		/// Whether this stream should loop to the beginning of the audio samples once it has completed.
+		/// Whether this stream should loop its audio samples once it has reached the end.
 		/// </summary>
 		public bool IsLooping { get; internal set; }
 
@@ -81,14 +81,18 @@ namespace MonoSound.Streaming {
 			PlayingSound.BufferNeeded += QueueBuffers;
 		}
 
+		[Obsolete("Method definition is deprecated", error: true)]
+		public virtual void Reset() => Reset_Impl(true);
+
 		/// <summary>
 		/// Reset the stream here.  By default, sets <see cref="ReadBytes"/> and <see cref="SecondsRead"/> to zero and sets the position of the underlying stream to the start of the sample data
 		/// </summary>
-		public virtual void Reset() {
-			Reset_Inner(true);
+		/// <param name="clearQueue">Whether the audio data queue should be cleared</param>
+		public virtual void Reset(bool clearQueue) {
+			Reset_Impl(clearQueue);
 		}
 
-		private void Reset_Inner(bool clearQueue) {
+		private void Reset_Impl(bool clearQueue) {
 			//Move the "cursor" back to the beginning and reset the counters
 			ReadBytes = 0;
 			SecondsRead = 0;
@@ -106,6 +110,11 @@ namespace MonoSound.Streaming {
 			if (clearQueue)
 				_queuedReads.Clear();
 		}
+
+		/// <summary>
+		/// Clears the audio data queue
+		/// </summary>
+		public void ClearAudioQueue() => _queuedReads.Clear();
 
 		public virtual double GetSecondDuration(long byteSampleCount) {
 			// sample count = seconds * BitsPerSample / 8 * SampleRate * Channels
@@ -128,7 +137,7 @@ namespace MonoSound.Streaming {
 		}
 
 		private void QueueBuffers(object sender, EventArgs e) {
-			FillQueue(2);  // Must be at least 2 for the buffering to work properly, for whatever reason
+			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
 
 			while (_queuedReads.TryDequeue(out byte[] read))
 				(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
@@ -165,7 +174,7 @@ namespace MonoSound.Streaming {
 				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool checkLooping);
 
 				// If no bytes were read, assuming something went wrong and bail after checking for looping
-				if (bytesRead <= 0) {
+				if (bytesRead <= 0 || read.Length == 0) {
 					CheckLooping();
 					break;
 				}
@@ -253,7 +262,7 @@ namespace MonoSound.Streaming {
 				Dispose();
 			} else {
 				// Reset the stream, but don't clear the queue
-				Reset_Inner(clearQueue: false);
+				Reset(clearQueue: false);
 				OnLooping();
 			}
 		}

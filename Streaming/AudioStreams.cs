@@ -216,8 +216,7 @@ namespace MonoSound.Streaming {
 			SecondsRead = seconds;
 		}
 
-		public override void Reset() {
-			base.Reset();
+		public override void Reset(bool clearQueue) {
 			vorbisStream.DecodedTime = vorbisReadStart;
 
 			long pos = vorbisStream.DecodedPosition;
@@ -225,6 +224,9 @@ namespace MonoSound.Streaming {
 
 			ReadBytes = vorbisStream.DecodedPosition;
 			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;
+
+			if (clearQueue)
+				ClearAudioQueue();
 		}
 
 		protected override void Dispose(bool disposing) {

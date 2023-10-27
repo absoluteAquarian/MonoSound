@@ -193,7 +193,7 @@ namespace MonoSound.Streaming {
 						streams.Values.AsParallel().AsUnordered().ForAll(stream => {
 							//If the stream has stopped before the sound has finished streaming, reset the counters and stream
 							if (stream.PlayingSound.State == SoundState.Stopped && stream.SecondsRead > 0 && !stream.IsLooping && !stream.FinishedStreaming)
-								stream.Reset();
+								stream.Reset(clearQueue: true);
 						});
 					}
 				}
