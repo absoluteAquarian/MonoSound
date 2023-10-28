@@ -23,6 +23,8 @@ namespace MonoSound.Audio {
 		/// </summary>
 		public readonly Func<Stream, StreamPackage> readStreamed;
 
+		internal Func<Stream, object, StreamPackage> RedirectReadStreamed => (s, o) => readStreamed(s);
+
 		internal CustomFileFormat(string extension, Func<Stream, FormatWav> read, Func<Stream, StreamPackage> readStreamed) {
 			if (string.IsNullOrWhiteSpace(extension))
 				throw new ArgumentException("Invalid extension: " + extension, nameof(extension));

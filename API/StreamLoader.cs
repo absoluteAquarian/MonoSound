@@ -1,4 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Audio;
+using MonoSound.Audio;
+using MonoSound.Filters;
 using MonoSound.Streaming;
 using System;
 using System.IO;
@@ -11,7 +13,7 @@ namespace MonoSound {
 		/// <summary>
 		/// Gets a streamed sound effect
 		/// </summary>
-		/// <param name="filePath">The path to the sound file.</param>
+		/// <param name="filePath">The path to the sound file</param>
 		/// <param name="looping">Whether the sound should loop</param>
 		public static StreamPackage GetStreamedSound(string filePath, bool looping) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
@@ -33,42 +35,77 @@ namespace MonoSound {
 				case ".mp3":
 					instance = StreamManager.InitializeStream(filePath, looping, AudioType.MP3);
 					break;
+				case ".xwb":
+					throw new ArgumentException("XWB streams must be created via StreamLoader.GetStreamedXACTSound()");
 				default:
-					instance = StreamManager.TryInitializeCustomStream(filePath, looping);
-
-					if (instance is null)
-						throw new InvalidOperationException("Audio stream is not supported by any of the registered custom formats");
-
-					break;
+					if (SoundFilterManager.AllValidExtensions.Contains(extension))
+						throw new ArgumentException("Custom streams should be created via StreamLoader.GetStreamedSound(Stream, object)");
+					throw new ArgumentException($"Extension \"{extension}\" was not recognized by any known format");
 			}
 
 			return instance;
 		}
 
 		/// <summary>
+		/// Gets a streamed sound effect from one of the registered custom audio formats
+		/// </summary>
+		/// <param name="filePath">The path to the sound file</param>
+		/// <param name="state">Extra information for the format to use</param>
+		public static StreamPackage GetStreamedSound(string filePath, object state) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			return StreamManager.TryInitializeCustomStream(filePath, /* NOTE: unused */ false, state);
+		}
+
+		/// <summary>
+		/// Gets a streamed sound effect using a custom audio format
+		/// </summary>
+		/// <param name="filePath">The path to the sound file</param>
+		/// <param name="format">An object representing how the format will decode the audio stream</param>
+		/// <param name="state">Extra information for the format to use</param>
+		public static StreamPackage GetStreamedSound(string filePath, CustomAudioFormat format, object state) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			return StreamManager.InitializeCustomStream(filePath, format, state);
+		}
+
+		/// <summary>
 		/// Gets a streamed sound effect
 		/// </summary>
 		/// <param name="sampleSource">The stream where the samples will be read from. It is expected to contain a full audio file's data</param>
-		/// <param name="fileIdentifier">An enumeration value indicating what type of audio <paramref name="sampleSource"/> contains.  Cannot be <seealso cref="AudioType.XWB"/></param>
+		/// <param name="fileIdentifier">An enumeration value indicating what type of audio <paramref name="sampleSource"/> contains.  Cannot be <seealso cref="AudioType.XWB"/> nor <see cref="AudioType.Custom"/></param>
 		/// <param name="looping">Whether the sound should loop</param>
 		public static StreamPackage GetStreamedSound(Stream sampleSource, AudioType fileIdentifier, bool looping) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			if (fileIdentifier == AudioType.XWB)
-				throw new ArgumentException("XWB streams must be created via StreamLoader.GetStreamedXACTSound()");
+			return fileIdentifier switch {
+				AudioType.XWB => throw new ArgumentException("XWB streams must be created via StreamLoader.GetStreamedXACTSound()"),
+				AudioType.Custom => throw new ArgumentException("Custom streams should be created via StreamLoader.GetStreamedSound(Stream, object)"),
+				_ => StreamManager.InitializeStream(sampleSource, looping, fileIdentifier),
+			};
+		}
 
-			StreamPackage instance;
+		/// <summary>
+		/// Gets a streamed sound effect from one of the registered custom audio formats
+		/// </summary>
+		/// <param name="sampleSource">The stream where the samples will be read from. It is expected to contain a full audio file's data</param>
+		/// <param name="state">Extra information for the format to use</param>
+		public static StreamPackage GetStreamedSound(Stream sampleSource, object state) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			if (fileIdentifier != AudioType.Custom)
-				instance = StreamManager.InitializeStream(sampleSource, looping, fileIdentifier);
-			else {
-				instance = StreamManager.TryInitializeCustomStream(sampleSource, looping);
+			return StreamManager.TryInitializeCustomStream(sampleSource, /* NOTE: unused */ false, state);
+		}
 
-				if (instance is null)
-					throw new InvalidOperationException("Audio stream is not supported by any of the registered custom formats");
-			}
+		/// <summary>
+		/// Gets a streamed sound effect using a custom audio format
+		/// </summary>
+		/// <param name="sampleSource">The stream where the samples will be read from. It is expected to contain a full audio file's data</param>
+		/// <param name="format">An object representing how the format will decode the audio stream</param>
+		/// <param name="state">Extra information for the format to use</param>
+		public static StreamPackage GetStreamedSound(Stream sampleSource, CustomAudioFormat format, object state) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			return instance;
+			return StreamManager.InitializeCustomStream(sampleSource, format, state);
 		}
 
 		/// <summary>
@@ -100,9 +137,9 @@ namespace MonoSound {
 		}
 
 		/// <summary>
-		/// Stops streaming for a certain sound effect, stops playing it and then disposes it
+		/// Stops the streamed sound, disposes it, removes it from the tracked streams collection and then sets <paramref name="instance"/> to <see langword="null"/>
 		/// </summary>
-		/// <param name="instance">The sound effect instance</param>
+		/// <param name="instance">The stream instance</param>
 		public static void FreeStreamedSound(ref StreamPackage instance) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -110,9 +147,9 @@ namespace MonoSound {
 		}
 
 		/// <summary>
-		/// Stops streaming for a certain sound effect, stops playing it and then disposes it
+		/// Stops the streamed sound, disposes it, removes it from the tracked streams collection and then sets <paramref name="instance"/> to <see langword="null"/>
 		/// </summary>
-		/// <param name="instance">The sound effect instance</param>
+		/// <param name="instance">The stream instance</param>
 		[Obsolete("Will be removed in a future update")]
 		public static void FreeStreamedSound(ref SoundEffectInstance instance) {
 			MonoSoundLibrary.ThrowIfNotInitialized();

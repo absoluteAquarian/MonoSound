@@ -137,7 +137,7 @@ namespace MonoSound.Streaming {
 	/// </summary>
 	public class OggStream : StreamPackage {
 		protected NVorbis.VorbisReader vorbisStream;
-		protected TimeSpan vorbisReadStart;
+		protected TimeSpan loopTargetTime;
 
 		public sealed override TimeSpan MaxDuration => vorbisStream.TotalTime;
 
@@ -146,7 +146,7 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		/// <param name="file">The absolute or relative location of the file to read from</param>
 		public OggStream(string file) : base(AudioType.OGG) {
-			// Why can't i just use VorbisReader(string) here?
+			// NOTE: VorbisReader(string) uses File.OpenRead() and we need TitleContainer.OpenStream() instead
 			vorbisStream = new NVorbis.VorbisReader(TitleContainer.OpenStream(file), closeStreamOnDispose: true);
 
 			Initialize();
@@ -168,7 +168,7 @@ namespace MonoSound.Streaming {
 			BitsPerSample = 16;  // Decoding to byte buffer converts floats to shorts
 			TotalBytes = -1;
 
-			vorbisReadStart = vorbisStream.DecodedTime;
+			loopTargetTime = TimeSpan.Zero;
 
 			base.Initialize();
 		}
@@ -217,7 +217,7 @@ namespace MonoSound.Streaming {
 		}
 
 		public override void Reset(bool clearQueue) {
-			vorbisStream.DecodedTime = vorbisReadStart;
+			vorbisStream.DecodedTime = loopTargetTime;
 
 			long pos = vorbisStream.DecodedPosition;
 			vorbisStream.DecodedPosition += Math.Max(pos, ModifyResetOffset(pos));

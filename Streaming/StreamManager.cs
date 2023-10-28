@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
+using MonoSound.Audio;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,14 +22,12 @@ namespace MonoSound.Streaming {
 				AudioType.WAV => new WavStream(path),
 				AudioType.OGG => new OggStream(path),
 				AudioType.MP3 => new Mp3Stream(path),
+				AudioType.Custom => throw new ArgumentException("Custom audio format streams should be initialized via StreamManager.TryInitializeCustomStream()"),
 				_ => throw new ArgumentException("Unknown stream type requested")
 			};
 
-			string name = GetSafeName(path);
-
-			InitPackage(package, loopedSound, name);
-
-			return streams[name];
+			InitPackage(package, loopedSound, GetSafeName(path));
+			return package;
 		}
 
 		public static StreamPackage InitializeStream(Stream sampleSource, bool loopedSound, AudioType type) {
@@ -38,48 +37,60 @@ namespace MonoSound.Streaming {
 				AudioType.WAV => new WavStream(sampleSource),
 				AudioType.OGG => new OggStream(sampleSource),
 				AudioType.MP3 => new Mp3Stream(sampleSource),
+				AudioType.Custom => throw new ArgumentException("Custom audio format streams should be initialized via StreamManager.TryInitializeCustomStream()"),
 				_ => throw new ArgumentException("Unknown stream type requested")
 			};
 
-			string name = sampleSource is FileStream fs ? GetSafeName(fs.Name) : "$streamed_" + StreamSourceCreationIndex++;
-
-			InitPackage(package, loopedSound, name);
-
-			return streams[name];
+			InitPackage(package, loopedSound, GetStreamName(sampleSource));
+			return package;
 		}
 
-		public static StreamPackage TryInitializeCustomStream(string path, bool loopedSound) {
+		public static StreamPackage InitializeCustomStream(string path, CustomAudioFormat format, object state) {
+			StreamPackage package = format.CreateStream(path, state);
+			InitPackage(package, true, GetSafeName(path));
+			return package;
+		}
+
+		public static StreamPackage InitializeCustomStream(Stream sampleSource, CustomAudioFormat format, object state) {
+			StreamPackage package = format.CreateStream(sampleSource, state)
+				?? throw new ArgumentException("Audio stream was not valid for the given custom format");
+			InitPackage(package, true, GetStreamName(sampleSource));
+			return package;
+		}
+
+		public static StreamPackage TryInitializeCustomStream(string path, bool loopedSound, object state) {
 			string extension = Path.GetExtension(path);
 
 			if (MonoSoundLibrary.customAudioFormats.TryGetValue(extension, out var audioFormat)) {
-				StreamPackage package = audioFormat.CreateStream(path);
-				InitPackage(package, loopedSound, path);
+				StreamPackage package = audioFormat.CreateStream(path, state);
+				InitPackage(package, true, GetSafeName(path));
 				return package;
 			}
 
+			// Legacy API
 			if (MonoSoundLibrary.registeredFormats.TryGetValue(extension, out var format)) {
 				StreamPackage package = format.readStreamed(TitleContainer.OpenStream(path));
-				InitPackage(package, loopedSound, path);
+				InitPackage(package, loopedSound, GetSafeName(path));
 				return package;
 			}
 
-			return null;
+			throw new InvalidOperationException($"Extension \"{extension}\" was not recognized by any custom audio formats");
 		}
 
-		public static StreamPackage TryInitializeCustomStream(Stream stream, bool loopedSound) {
-			return GetCustomAudioPackage(stream, loopedSound, MonoSoundLibrary.customAudioFormats, fmt => fmt.CreateStream)
-				?? GetCustomAudioPackage(stream, loopedSound, MonoSoundLibrary.registeredFormats, fmt => fmt.readStreamed);
+		public static StreamPackage TryInitializeCustomStream(Stream stream, bool loopedSound, object state) {
+			return GetCustomAudioPackage(stream, loopedSound, state, MonoSoundLibrary.customAudioFormats, fmt => fmt.CreateStream)
+				?? GetCustomAudioPackage(stream, loopedSound, state, MonoSoundLibrary.registeredFormats, fmt => fmt.RedirectReadStreamed)  // Legacy API
+				?? throw new InvalidOperationException("Audio stream was not recognized by any custom audio formats");
 		}
 
-		private static StreamPackage GetCustomAudioPackage<T>(Stream stream, bool loopedSound, Dictionary<string, T> formats, Func<T, Func<Stream, StreamPackage>> packageFactory) {
+		private static StreamPackage GetCustomAudioPackage<T>(Stream stream, bool loopedSound, object state, Dictionary<string, T> formats, Func<T, Func<Stream, object, StreamPackage>> packageFactory) {
 			foreach (var format in formats.Values) {
 				long pos = stream.Position;
 
-				StreamPackage package = packageFactory(format)(stream);
+				StreamPackage package = packageFactory(format)(stream, state);
 
 				if (package != null) {
-					string name = stream is FileStream fs ? GetSafeName(fs.Name) : "$streamed_" + StreamSourceCreationIndex++;
-					InitPackage(package, loopedSound, name);
+					InitPackage(package, loopedSound, GetStreamName(stream));
 					return package;
 				}
 
@@ -87,6 +98,13 @@ namespace MonoSound.Streaming {
 			}
 
 			return null;
+		}
+
+		private static string GetStreamName(Stream stream) {
+			if (stream is FileStream fs)
+				return GetSafeName(fs.Name);
+
+			return "$streamed_" + Interlocked.Increment(ref StreamSourceCreationIndex);
 		}
 
 		internal static void InitPackage(StreamPackage package, bool loopedSound, string packageName) {
@@ -107,7 +125,7 @@ namespace MonoSound.Streaming {
 				streams.Add(name, package);
 			}
 
-			return streams[name];
+			return package;
 		}
 
 		public static StreamPackage InitializeXWBStream(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, bool loopedSound) {
@@ -120,7 +138,7 @@ namespace MonoSound.Streaming {
 				streams.Add(name, package);
 			}
 
-			return streams[name];
+			return package;
 		}
 
 		private static string GetSafeName(string original) {
@@ -141,40 +159,31 @@ namespace MonoSound.Streaming {
 		[Obsolete("Will be removed in a future update")]
 		public static void StopStreamingSound(ref SoundEffectInstance instance) {
 			lock (modifyLock) {
-				string package = null;
-				foreach (var stream in streams) {
-					if (object.ReferenceEquals(instance, stream.Value.PlayingSound)) {
-						package = stream.Key;
+				foreach (var (key, stream) in streams) {
+					if (object.ReferenceEquals(instance, stream.PlayingSound)) {
+						stream.PlayingSound.Stop();
+						stream.Dispose();
+						streams.Remove(key);
+
+						instance = null;
 						break;
 					}
-				}
-
-				if (package != null) {
-					streams[package].PlayingSound.Stop();
-					streams[package].Dispose();
-					streams.Remove(package);
-
-					instance = null;
 				}
 			}
 		}
 
+		
 		public static void StopStreamingSound(ref StreamPackage instance) {
 			lock (modifyLock) {
-				string package = null;
-				foreach (var stream in streams) {
-					if (object.ReferenceEquals(instance, stream.Value)) {
-						package = stream.Key;
+				foreach (var (key, stream) in streams) {
+					if (object.ReferenceEquals(instance, stream)) {
+						stream.PlayingSound.Stop();
+						stream.Dispose();
+						streams.Remove(key);
+
+						instance = null;
 						break;
 					}
-				}
-
-				if (package != null) {
-					streams[package].PlayingSound.Stop();
-					streams[package].Dispose();
-					streams.Remove(package);
-
-					instance = null;
 				}
 			}
 		}
@@ -192,8 +201,11 @@ namespace MonoSound.Streaming {
 					lock (modifyLock) {
 						streams.Values.AsParallel().AsUnordered().ForAll(stream => {
 							//If the stream has stopped before the sound has finished streaming, reset the counters and stream
-							if (stream.PlayingSound.State == SoundState.Stopped && stream.SecondsRead > 0 && !stream.IsLooping && !stream.FinishedStreaming)
-								stream.Reset(clearQueue: true);
+							if (stream.PlayingSound.State == SoundState.Stopped && stream.SecondsRead > 0 && !stream.IsLooping && !stream.FinishedStreaming) {
+								lock (stream._readLock) {
+									stream.Reset(clearQueue: true);
+								}
+							}
 						});
 					}
 				}

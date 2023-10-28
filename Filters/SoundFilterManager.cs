@@ -59,9 +59,10 @@ namespace MonoSound.Filters {
 		private static void ThrowIfPathHasNoValidExtension(string path, out string extension) {
 			extension = Path.GetExtension(path);
 
-			foreach (string ex in AllValidExtensions)
+			foreach (string ex in AllValidExtensions) {
 				if (ex == extension)
 					return;
+			}
 
 			//If we've reached this line, either the file had an extension and it wasn't a valid one or the file didn't have an extension
 			throw new ArgumentException($"The given path did not contain a valid extension: {extension}", "path");

@@ -15,11 +15,13 @@ namespace MonoSound.Streaming {
 		/// The object responsible for queuing samples and playing them
 		/// </summary>
 		public DynamicSoundEffectInstance PlayingSound { get; private set; }
+
 		//Useless, but helps in clarifying what package is from what type of file
 		public readonly AudioType type;
 
 		//Each stream package keeps track of a separate instance of a "reader" to allow reading of the same file
 		protected Stream underlyingStream;
+
 		public bool FinishedStreaming { get; private set; }
 
 		public int SampleRate { get; protected set; }
@@ -41,7 +43,7 @@ namespace MonoSound.Streaming {
 		/// <summary>
 		/// Whether this stream should loop its audio samples once it has reached the end.
 		/// </summary>
-		public bool IsLooping { get; internal set; }
+		public bool IsLooping { get; set; }
 
 		/// <summary>
 		/// Gets or sets the current play duration for the streamed audio
@@ -61,6 +63,7 @@ namespace MonoSound.Streaming {
 		private Filter[] filterObjects;  // Used to speed up filter applications
 
 		private readonly ConcurrentQueue<byte[]> _queuedReads = new ConcurrentQueue<byte[]>();
+		internal readonly object _readLock = new object();
 
 		protected StreamPackage(AudioType type) {
 			//This constructor is mainly for the OGG streams, which would need to set "underlyingStream" to null anyway
@@ -137,10 +140,12 @@ namespace MonoSound.Streaming {
 		}
 
 		private void QueueBuffers(object sender, EventArgs e) {
-			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
+			lock (_readLock) {
+				FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
 
-			while (_queuedReads.TryDequeue(out byte[] read))
-				(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
+				while (_queuedReads.TryDequeue(out byte[] read))
+					(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
+			}
 		}
 
 		internal void FillQueue(int max) {
@@ -165,11 +170,15 @@ namespace MonoSound.Streaming {
 			if (FinishedStreaming || max < 1)
 				return;
 
-			ModifyReadSeconds(ref seconds);
-			if (seconds <= 0)
-				return;
-
+			double origSeconds = seconds;
 			while (_queuedReads.Count < max) {
+				seconds = origSeconds;
+				ModifyReadSeconds(ref seconds);
+				if (seconds <= 0) {
+					CheckLooping();
+					break;
+				}
+
 				//Read "seconds" amount of data from the stream, then send it to "sfx"
 				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool checkLooping);
 

@@ -38,14 +38,16 @@ namespace MonoSound.Audio {
 		/// Create an object for streaming this audio format from a given file
 		/// </summary>
 		/// <param name="filePath">The path to the file</param>
+		/// <param name="state">Extra data provided by the caller</param>
 		/// <returns>An object that will handle the audio streaming from the file</returns>
-		public abstract StreamPackage CreateStream(string filePath);
+		public abstract StreamPackage CreateStream(string filePath, object state);
 
 		/// <summary>
 		/// Create an object for streaming this audio format from a given data stream
 		/// </summary>
 		/// <param name="dataStream">The data stream</param>
+		/// <param name="state">Extra data provided by the caller</param>
 		/// <returns>An object that will handle the audio streaming from the data stream, or <see langword="null"/> if the stream isn't in the correct format</returns>
-		public abstract StreamPackage CreateStream(Stream dataStream);
+		public abstract StreamPackage CreateStream(Stream dataStream, object state);
 	}
 }

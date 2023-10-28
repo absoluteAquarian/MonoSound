@@ -126,7 +126,7 @@ namespace MonoSound {
 		}
 
 		/// <summary>
-		/// Registers a custom audio format
+		/// Registers a custom audio format for use in automatic file/stream handling
 		/// </summary>
 		/// <param name="format">The audio format object.  This object will handle reading from files, audio streams and indicating what file formats it supports.</param>
 		/// <exception cref="ArgumentException"/>
