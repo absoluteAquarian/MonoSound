@@ -63,7 +63,6 @@ namespace MonoSound.Streaming {
 		private Filter[] filterObjects;  // Used to speed up filter applications
 
 		private readonly ConcurrentQueue<byte[]> _queuedReads = new ConcurrentQueue<byte[]>();
-		internal readonly object _readLock = new object();
 
 		protected StreamPackage(AudioType type) {
 			//This constructor is mainly for the OGG streams, which would need to set "underlyingStream" to null anyway
@@ -77,25 +76,26 @@ namespace MonoSound.Streaming {
 			Initialize();
 		}
 
-		public virtual void Start() {
+		public void Start() {
 			if (disposed)
 				throw new ObjectDisposedException("this");
 
 			PlayingSound.Play();
 		}
 
-		public virtual void Pause() {
+		public void Pause() {
 			if (disposed)
 				throw new ObjectDisposedException("this");
 
 			PlayingSound.Pause();
 		}
 
-		public virtual void Stop() {
+		public void Stop() {
 			if (disposed)
 				throw new ObjectDisposedException("this");
 
 			PlayingSound.Stop();
+			Reset(true);
 		}
 
 		private void InitSound() {
@@ -161,12 +161,10 @@ namespace MonoSound.Streaming {
 		}
 
 		private void QueueBuffers(object sender, EventArgs e) {
-			lock (_readLock) {
-				FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
+			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
 
-				while (_queuedReads.TryDequeue(out byte[] read))
-					(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
-			}
+			while (_queuedReads.TryDequeue(out byte[] read))
+				(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
 		}
 
 		internal void FillQueue(int max) {

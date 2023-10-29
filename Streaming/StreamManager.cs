@@ -3,9 +3,7 @@ using Microsoft.Xna.Framework.Audio;
 using MonoSound.Audio;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Threading;
 
 namespace MonoSound.Streaming {
@@ -159,7 +157,7 @@ namespace MonoSound.Streaming {
 		public static bool IsStreamActive(StreamPackage package) {
 			lock (modifyLock) {
 				foreach (var (_, stream) in streams) {
-					if (object.ReferenceEquals(package, stream.PlayingSound))
+					if (object.ReferenceEquals(package, stream))
 						return true;
 				}
 			}
@@ -215,34 +213,12 @@ namespace MonoSound.Streaming {
 			instance = null;
 		}
 
-		private static CancellationToken token;
+		internal static void Deinitialize() {
+			// Free the streams
+			foreach (var stream in streams.Values)
+				stream.Dispose();
 
-		internal static void HandleStreaming(object state) {
-			Stopwatch watch = new Stopwatch();
-			watch.Start();
-
-			token = MonoSoundLibrary.GetCancellationToken();
-
-			try {
-				while (true) {
-					lock (modifyLock) {
-						streams.Values.AsParallel().AsUnordered().ForAll(stream => {
-							//If the stream has stopped before the sound has finished streaming, reset the counters and stream
-							if (stream.PlayingSound.State == SoundState.Stopped && stream.SecondsRead > 0 && !stream.IsLooping && !stream.FinishedStreaming) {
-								lock (stream._readLock) {
-									stream.Reset(clearQueue: true);
-								}
-							}
-						});
-					}
-				}
-			} catch when (token.IsCancellationRequested) {
-				// Free the streams
-				foreach (var stream in streams.Values)
-					stream.Dispose();
-
-				streams = null;
-			}
+			streams = null;
 		}
 	}
 }

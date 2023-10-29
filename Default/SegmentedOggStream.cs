@@ -54,6 +54,8 @@ namespace MonoSound.Default {
 		public readonly SegmentTracker tracker;
 		private int _delayedJumpTarget;
 
+		public event Action<StreamPackage> OnDelayedSectionStart;
+
 		public SegmentedOggStream(string file, IAudioSegment[] checkpoints) : base(file) {
 			tracker = new SegmentTracker(checkpoints);
 			_delayedJumpTarget = -1;
@@ -77,12 +79,41 @@ namespace MonoSound.Default {
 			}
 		}
 
+		/// <summary>
+		/// Jumps to the start of the first segment
+		/// </summary>
+		/// <param name="onCurrentCheckpointEnd">Whether to jump immediately (<see langword="false"/>) or when the current segment ends (<see langword="true"/>)</param>
 		public void JumpToStart(bool onCurrentCheckpointEnd = false) => JumpTo(0, onCurrentCheckpointEnd);
 
-		public void JumpToNextLoopSection(bool onCurrentCheckpointEnd = false) => JumpTo(tracker.TargetSegment + 1, onCurrentCheckpointEnd);
+		/// <summary>
+		/// Jumps to the start of the next segment.  Does nothing if the current segment is the final segment.
+		/// </summary>
+		/// <param name="onCurrentCheckpointEnd">Whether to jump immediately (<see langword="false"/>) or when the current segment ends (<see langword="true"/>)</param>
+		public void JumpToNextLoopSection(bool onCurrentCheckpointEnd = false) {
+			if (tracker.TargetSegment == tracker.Count - 1)
+				return;
 
+			JumpTo(tracker.TargetSegment + 1, onCurrentCheckpointEnd);
+		}
+
+		/// <summary>
+		/// Immediately jumps to the currently delayed segment, if one was set
+		/// </summary>
+		public void JumpToDelayedSection() {
+			if (_delayedJumpTarget >= 0) {
+				JumpTo(_delayedJumpTarget, false);
+				_delayedJumpTarget = -1;
+			}
+		}
+
+		/// <summary>
+		/// Jumps to the start of a given segment.  If <paramref name="section"/> is the current section, nothing happens.
+		/// </summary>
+		/// <param name="section">The 0-indexed segment number</param>
+		/// <param name="onCurrentCheckpointEnd">Whether to jump immediately (<see langword="false"/>) or when the current segment ends (<see langword="true"/>)</param>
+		/// <exception cref="ArgumentOutOfRangeException"/>
 		public void JumpTo(int section, bool onCurrentCheckpointEnd = false) {
-			if (section < 0 || section > tracker.Count)
+			if (section < 0 || section >= tracker.Count)
 				throw new ArgumentOutOfRangeException(nameof(section));
 
 			if (onCurrentCheckpointEnd) {
@@ -90,22 +121,28 @@ namespace MonoSound.Default {
 				return;
 			}
 
-			int old = tracker.TargetSegment;
+			if (section == tracker.TargetSegment)
+				return;
+
 			tracker.TargetSegment = section;
 
-			if (old != tracker.TargetSegment) {
-				tracker.GetLoopBounds(out TimeSpan start, out _);
-				//CurrentDuration = start;
-				base.SetStreamPosition(start.TotalSeconds);
-				loopTargetTime = start;
-			}
+			tracker.GetLoopBounds(out TimeSpan start, out _);
+			//CurrentDuration = start;
+			base.SetStreamPosition(start.TotalSeconds);
+			loopTargetTime = start;
 		}
 
 		private bool _delayedForcedLoopCheck;
 
 		protected override void ModifyReadSeconds(ref double seconds) {
 			// If the next read would bleed across the loop boundary, cut it short
-			tracker.GetLoopBounds(out _, out TimeSpan loop);
+			tracker.GetLoopBounds(out TimeSpan start, out TimeSpan loop);
+
+			// First read from the delayed section will ALWAYS be exactly at the starting point
+			if (CurrentDuration == start && OnDelayedSectionStart != null) {
+				OnDelayedSectionStart(this);
+				OnDelayedSectionStart = null;
+			}
 
 			if (CurrentDuration + TimeSpan.FromSeconds(seconds) > loop && tracker.CurrentSegment.Loop(out TimeSpan loopTarget)) {
 				if (tracker.CurrentSegment is EndSegment end && end.LoopToStartOfAudio) {
@@ -154,10 +191,7 @@ namespace MonoSound.Default {
 				_delayedJumpTarget = -1;
 			}
 
-			if (_delayedJumpTarget >= 0) {
-				JumpTo(_delayedJumpTarget, false);
-				_delayedJumpTarget = -1;
-			}
+			JumpToDelayedSection();
 
 			base.Reset(clearQueue);
 		}

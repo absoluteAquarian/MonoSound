@@ -68,8 +68,6 @@ namespace MonoSound {
 				if (Directory.Exists(Controls.LogDirectory))
 					Directory.Delete(Controls.LogDirectory, true);
 			} catch { }
-
-			ThreadPool.QueueUserWorkItem(StreamManager.HandleStreaming);
 		}
 
 		/// <summary>
@@ -82,6 +80,7 @@ namespace MonoSound {
 			cancelSource.Cancel();
 
 			SoundFilterManager.DeInit();
+			StreamManager.Deinitialize();
 
 			FilterSimulations.bqrFilter?.Free();
 			FilterSimulations.echFilter?.Free();
