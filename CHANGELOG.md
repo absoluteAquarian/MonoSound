@@ -4,15 +4,17 @@
 - Updated the `StreamPackage` class:
   - Fixed a bug where looping would fail due to null reference errors
   - Added `double GetSecondDuration(long)`, `long ModifyResetOffset(long)`, `void SetStreamPosition(double)`, `void OnLooping()` and `void ClearAudioQueue()`
-  - Added the `TimeSpan CurrentDuration` and `TimeSpan MaxDuration` properties
+  - Added the `TimeSpan CurrentDuration`, `TimeSpan MaxDuration` and `TimeSpan ReadTime` properties
   - `override void ChildDispose(bool)` is now obsolete.  Use `override void Dispose(bool)` instead
-  - `override void Reset()` is now obsolete.  Use `override void Reset(bool)` instead
   - The `int ReadBytes` property was changed to `long ReadBytes`
   - The `int TotalBytes` property was changed to `long TotalBytes`
   - The `ReadBytes` and `SecondsRead` properties now expose their setters to child classes
   - The `IsLooping` property's setter is now publicly visible
   - The `endOfStream` parameter from `void ReadSamples(double, out byte[], out int, out bool)` has been renamed to `checkLooping`
   - `void HandleLooping()` is now a `virtual` method exposed to child classes
+  - The `PlayingSound` property is now hidden to encourage users to use the methods in `StreamPackage` instead
+    - A new `SoundMetrics Metrics` property has been added to facilitate `Volume`, `Pan`, `Pitch` and `State` usage
+    - `void Play()`, `void Resume()` and `void Stop()` have been added to `StreamPackage`
 - The `CustomFileFormat` type and its API is now obsolete.  Use the `CustomAudioFormat` type instead
   - `MonoSoundLibrary.RegisterFormat(string, Func<Stream, FormatWav>, Func<Stream, StreamPackage>)` is now obsolete.  Use `MonoSoundLibrary.RegisterFormat(CustomAudioFormat)` instead
   - `CustomAudioFormat` does not have to be registered in order to be usable

@@ -127,7 +127,7 @@ namespace MonoSound.Default {
 			tracker.TargetSegment = section;
 
 			tracker.GetLoopBounds(out TimeSpan start, out _);
-			//CurrentDuration = start;
+			CurrentDuration = start;
 			base.SetStreamPosition(start.TotalSeconds);
 			loopTargetTime = start;
 		}
@@ -139,19 +139,19 @@ namespace MonoSound.Default {
 			tracker.GetLoopBounds(out TimeSpan start, out TimeSpan loop);
 
 			// First read from the delayed section will ALWAYS be exactly at the starting point
-			if (CurrentDuration == start && OnDelayedSectionStart != null) {
+			if (ReadTime == start && OnDelayedSectionStart != null) {
 				OnDelayedSectionStart(this);
 				OnDelayedSectionStart = null;
 			}
 
-			if (CurrentDuration + TimeSpan.FromSeconds(seconds) > loop && tracker.CurrentSegment.Loop(out TimeSpan loopTarget)) {
+			if (ReadTime + TimeSpan.FromSeconds(seconds) > loop && tracker.CurrentSegment.Loop(out TimeSpan loopTarget)) {
 				if (tracker.CurrentSegment is EndSegment end && end.LoopToStartOfAudio) {
 					// Reset the tracker
 					tracker.TargetSegment = 0;
 				}
 
 				// Clamp the seconds to the remaining portion of this loop
-				seconds = (loop - CurrentDuration).TotalSeconds;
+				seconds = (loop - ReadTime).TotalSeconds;
 
 				loopTargetTime = loopTarget;
 
@@ -183,7 +183,7 @@ namespace MonoSound.Default {
 			base.SetStreamPosition(seconds);
 		}
 
-		public override void Reset(bool clearQueue) {
+		public override void Reset() {
 			// If the audio stream was stopped, reset the loop info to the start of the audio
 			if (PlayingSound.State == SoundState.Stopped) {
 				loopTargetTime = TimeSpan.Zero;
@@ -193,7 +193,7 @@ namespace MonoSound.Default {
 
 			JumpToDelayedSection();
 
-			base.Reset(clearQueue);
+			base.Reset();
 		}
 
 		protected override void HandleLooping() {

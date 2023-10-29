@@ -2,19 +2,25 @@
 using MonoSound.Audio;
 using MonoSound.Filters;
 using MonoSound.Filters.Instances;
+using MonoSound.Reflection;
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
+using System.Threading;
 
 namespace MonoSound.Streaming {
 	/// <summary>
 	/// An object representing streamed audio from a data stream
 	/// </summary>
 	public abstract class StreamPackage : IDisposable {
+		internal DynamicSoundEffectInstance PlayingSound { get; private set; }
+
 		/// <summary>
-		/// The object responsible for queuing samples and playing them
+		/// The parameters for the sound played by this instance
 		/// </summary>
-		public DynamicSoundEffectInstance PlayingSound { get; private set; }
+		public SoundMetrics Metrics { get; private set; }
 
 		//Useless, but helps in clarifying what package is from what type of file
 		public readonly AudioType type;
@@ -41,17 +47,25 @@ namespace MonoSound.Streaming {
 		public double SecondsRead { get; protected set; }
 
 		/// <summary>
+		/// How many seconds' worth of audio have been read by this stream
+		/// </summary>
+		public TimeSpan ReadTime => TimeSpan.FromSeconds(SecondsRead);
+
+		/// <summary>
 		/// Whether this stream should loop its audio samples once it has reached the end.
 		/// </summary>
 		public bool IsLooping { get; set; }
 
+		internal long _playTime;
 		/// <summary>
 		/// Gets or sets the current play duration for the streamed audio
 		/// </summary>
 		public TimeSpan CurrentDuration {
-			get => TimeSpan.FromSeconds(SecondsRead);
-			set => SetStreamPosition(value.TotalSeconds);
+			get => TimeSpan.FromTicks(Interlocked.Read(ref _playTime));
+			set => Interlocked.Exchange(ref _playTime, value.Ticks);
 		}
+
+		private double _lastBufferDuration;
 
 		/// <summary>
 		/// Gets the max duration for the streamed audio
@@ -76,7 +90,17 @@ namespace MonoSound.Streaming {
 			Initialize();
 		}
 
-		public void Start() {
+		private void UpdatePlayTime(double time) {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+			
+			if (PlayingSound.State != SoundState.Playing)
+				return;
+
+			Interlocked.Add(ref _playTime, TimeSpan.FromSeconds(time).Ticks);
+		}
+
+		public void Play() {
 			if (disposed)
 				throw new ObjectDisposedException("this");
 
@@ -95,7 +119,7 @@ namespace MonoSound.Streaming {
 				throw new ObjectDisposedException("this");
 
 			PlayingSound.Stop();
-			Reset(true);
+			Reset_Impl(true);
 		}
 
 		private void InitSound() {
@@ -103,23 +127,18 @@ namespace MonoSound.Streaming {
 			PlayingSound?.Dispose();
 			PlayingSound = new DynamicSoundEffectInstance(SampleRate, Channels);
 			PlayingSound.BufferNeeded += QueueBuffers;
-		}
 
-		[Obsolete("Method definition is deprecated", error: true)]
-		public virtual void Reset() => Reset_Impl(true);
+			Metrics = new SoundMetrics(PlayingSound);
+		}
 
 		/// <summary>
-		/// Reset the stream here.  By default, sets <see cref="ReadBytes"/> and <see cref="SecondsRead"/> to zero and sets the position of the underlying stream to the start of the sample data
+		/// Reset the stream here.  By default, sets <see cref="ReadBytes"/>, <see cref="SecondsRead"/> and <see cref="CurrentDuration"/> to zero and sets the position of the underlying stream to the start of the sample data
 		/// </summary>
-		/// <param name="clearQueue">Whether the audio data queue should be cleared</param>
-		public virtual void Reset(bool clearQueue) {
-			Reset_Impl(clearQueue);
-		}
-
-		private void Reset_Impl(bool clearQueue) {
-			//Move the "cursor" back to the beginning and reset the counters
+		public virtual void Reset() {
+			// Move the "cursor" back to the beginning and reset the counters
 			ReadBytes = 0;
 			SecondsRead = 0;
+			Interlocked.Exchange(ref _playTime, 0);  // CurrentDuration = TimeSpan.Zero;
 
 			if (underlyingStream != null) {
 				long position = Math.Max(sampleReadStart, ModifyResetOffset(sampleReadStart));
@@ -130,6 +149,10 @@ namespace MonoSound.Streaming {
 				ReadBytes = diff;
 				SecondsRead = GetSecondDuration(diff);
 			}
+		}
+
+		private void Reset_Impl(bool clearQueue) {
+			Reset();
 
 			if (clearQueue)
 				_queuedReads.Clear();
@@ -161,10 +184,20 @@ namespace MonoSound.Streaming {
 		}
 
 		private void QueueBuffers(object sender, EventArgs e) {
+			double currentDuration = CalculateBufferTime();
+
+			// Stopwatch usage is unreliable for tracking time
+			// Instead, apply any changes to the buffer once the event has been raised
+			double deltaTime = _lastBufferDuration - currentDuration;
+			if (deltaTime > 0)
+				UpdatePlayTime(deltaTime);
+
 			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
 
 			while (_queuedReads.TryDequeue(out byte[] read))
 				(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
+
+			_lastBufferDuration = CalculateBufferTime();
 		}
 
 		internal void FillQueue(int max) {
@@ -173,6 +206,21 @@ namespace MonoSound.Streaming {
 
 			if (_queuedReads.Count < max)
 				Read(Controls.StreamBufferLengthInSeconds, max);
+		}
+
+		private static readonly Type OALSoundBuffer = typeof(SoundEffect).Assembly.GetType("Microsoft.Xna.Framework.Audio.OALSoundBuffer");
+
+		private double CalculateBufferTime() {
+			double time = 0;
+			
+			// TODO: implementation for tracking play time may need to be different if MonoSound ever tries to compile against WindowsDX
+			var _queuedBuffers = typeof(DynamicSoundEffectInstance).RetrieveField("_queuedBuffers", PlayingSound) as IEnumerable;
+			foreach (var item in _queuedBuffers) {
+				var Duration = OALSoundBuffer.RetrieveField<double>("<Duration>k__BackingField", item);
+				time += Duration;
+			}
+
+			return time;
 		}
 
 		/// <summary>
@@ -308,7 +356,7 @@ namespace MonoSound.Streaming {
 				StreamManager.StopStreamingSound(ref redirect);
 			} else {
 				// Reset the stream, but don't clear the queue
-				Reset(clearQueue: false);
+				Reset_Impl(clearQueue: false);
 				OnLooping();
 			}
 		}
@@ -377,6 +425,7 @@ namespace MonoSound.Streaming {
 				Dispose(disposing);
 
 				PlayingSound = null;
+				Metrics = null;
 				underlyingStream = null;
 			}
 		}

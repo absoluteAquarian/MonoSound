@@ -139,11 +139,11 @@ namespace MonoSound.Tests {
 
 				if (segmentFade <= 0) {
 					streamedSegmentedSound.JumpToDelayedSection();
-					streamedSegmentedSound.OnDelayedSectionStart += p => p.PlayingSound.Volume = segmentedSongVolume;
+					streamedSegmentedSound.OnDelayedSectionStart += p => p.Metrics.Volume = segmentedSongVolume;
 					segmentFade = 0;
 				} else {
 					// Apply the lower volume
-					streamedSegmentedSound.PlayingSound.Volume = segmentedSongVolume * segmentFade;
+					streamedSegmentedSound.Metrics.Volume = segmentedSongVolume * segmentFade;
 				}
 			}
 
@@ -189,10 +189,10 @@ namespace MonoSound.Tests {
 
 			if (!StreamLoader.IsStreaming(streamedSound)) {
 				streamedSound = StreamLoader.GetStreamedSound("Content/chill-mono.ogg", looping: true);
-				streamedSound.PlayingSound.Volume = 0.3f;
+				streamedSound.Metrics.Volume = 0.3f;
 			}
 
-			streamedSound.PlayingSound.Play();
+			streamedSound.Play();
 		}
 
 		private static void StopStreamedSong() {
@@ -237,10 +237,10 @@ namespace MonoSound.Tests {
 					// Ending
 					new EndSegment(TimeSpan.FromSeconds(89.55))
 				});
-				streamedSegmentedSound.PlayingSound.Volume = segmentedSongVolume = 0.3f;
+				streamedSegmentedSound.Metrics.Volume = segmentedSongVolume = 0.3f;
 			}
 
-			streamedSegmentedSound.PlayingSound.Play();
+			streamedSegmentedSound.Play();
 		}
 
 		private static void StopSegmentedSong() {

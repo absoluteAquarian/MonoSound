@@ -2,14 +2,16 @@
 using Microsoft.Xna.Framework.Audio;
 using MonoSound.Audio;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace MonoSound.Streaming {
 	internal static class StreamManager {
-		private static Dictionary<string, StreamPackage> streams = new Dictionary<string, StreamPackage>();
-		private static readonly object modifyLock = new object();
+		private static ConcurrentDictionary<string, StreamPackage> streams;
 
 		private static int StreamSourceCreationIndex;
 
@@ -108,9 +110,7 @@ namespace MonoSound.Streaming {
 		internal static void InitPackage(StreamPackage package, bool loopedSound, string packageName) {
 			package.IsLooping = loopedSound;
 
-			lock (modifyLock) {
-				streams.Add(packageName, package);
-			}
+			streams.AddOrUpdate(packageName, package, (k, s) => s);
 		}
 
 		public static StreamPackage InitializeXWBStream(string soundBankPath, string waveBankPath, string cueName, bool loopedSound) {
@@ -119,9 +119,7 @@ namespace MonoSound.Streaming {
 			};
 
 			string name = GetSafeName(cueName);
-			lock (modifyLock) {
-				streams.Add(name, package);
-			}
+			streams.AddOrUpdate(name, package, (k, s) => s);
 
 			return package;
 		}
@@ -132,9 +130,7 @@ namespace MonoSound.Streaming {
 			};
 
 			string name = GetSafeName(cueName);
-			lock (modifyLock) {
-				streams.Add(name, package);
-			}
+			streams.AddOrUpdate(name, package, (k, s) => s);
 
 			return package;
 		}
@@ -155,11 +151,9 @@ namespace MonoSound.Streaming {
 		}
 
 		public static bool IsStreamActive(StreamPackage package) {
-			lock (modifyLock) {
-				foreach (var (_, stream) in streams) {
-					if (object.ReferenceEquals(package, stream))
-						return true;
-				}
+			foreach (var (_, stream) in streams) {
+				if (object.ReferenceEquals(package, stream))
+					return true;
 			}
 
 			return false;
@@ -174,15 +168,13 @@ namespace MonoSound.Streaming {
 				return;
 			}
 
-			lock (modifyLock) {
-				foreach (var (key, stream) in streams) {
-					if (object.ReferenceEquals(instance, stream.PlayingSound)) {
-						stream.PlayingSound.Stop();
-						stream.Dispose();
-						streams.Remove(key);
-						instance = null;
-						return;
-					}
+			foreach (var (key, stream) in streams) {
+				if (object.ReferenceEquals(instance, stream.PlayingSound)) {
+					stream.PlayingSound.Stop();
+					stream.Dispose();
+					streams.TryRemove(key, out _);
+					instance = null;
+					return;
 				}
 			}
 
@@ -199,18 +191,20 @@ namespace MonoSound.Streaming {
 				return;
 			}
 
-			lock (modifyLock) {
-				foreach (var (key, stream) in streams) {
-					if (object.ReferenceEquals(instance, stream)) {
-						streams.Remove(key);
-						break;
-					}
+			foreach (var (key, stream) in streams) {
+				if (object.ReferenceEquals(instance, stream)) {
+					streams.TryRemove(key, out _);
+					break;
 				}
 			}
 
 			instance.PlayingSound?.Stop();
 			instance.Dispose();
 			instance = null;
+		}
+
+		internal static void Initialize() {
+			streams = new ConcurrentDictionary<string, StreamPackage>();
 		}
 
 		internal static void Deinitialize() {

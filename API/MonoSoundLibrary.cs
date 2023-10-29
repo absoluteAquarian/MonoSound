@@ -52,6 +52,7 @@ namespace MonoSound {
 			cancelSource = new CancellationTokenSource();
 
 			SoundFilterManager.Init();
+			StreamManager.Initialize();
 
 			customFilters = new Dictionary<int, Filter>();
 			registeredFormats = new Dictionary<string, CustomFileFormat>();
