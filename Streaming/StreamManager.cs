@@ -156,36 +156,63 @@ namespace MonoSound.Streaming {
 			return original + i;
 		}
 
+		public static bool IsStreamActive(StreamPackage package) {
+			lock (modifyLock) {
+				foreach (var (_, stream) in streams) {
+					if (object.ReferenceEquals(package, stream.PlayingSound))
+						return true;
+				}
+			}
+
+			return false;
+		}
+
 		[Obsolete("Will be removed in a future update")]
 		public static void StopStreamingSound(ref SoundEffectInstance instance) {
+			if (instance is null)
+				return;
+			if (instance.IsDisposed) {
+				instance = null;
+				return;
+			}
+
 			lock (modifyLock) {
 				foreach (var (key, stream) in streams) {
 					if (object.ReferenceEquals(instance, stream.PlayingSound)) {
 						stream.PlayingSound.Stop();
 						stream.Dispose();
 						streams.Remove(key);
-
 						instance = null;
-						break;
+						return;
 					}
 				}
 			}
+
+			instance.Dispose();
+			instance = null;
 		}
 
 		
 		public static void StopStreamingSound(ref StreamPackage instance) {
+			if (instance is null)
+				return;
+			if (instance.Disposed) {
+				instance = null;
+				return;
+			}
+
 			lock (modifyLock) {
 				foreach (var (key, stream) in streams) {
 					if (object.ReferenceEquals(instance, stream)) {
-						stream.PlayingSound.Stop();
-						stream.Dispose();
 						streams.Remove(key);
-
-						instance = null;
 						break;
 					}
 				}
 			}
+
+			instance.PlayingSound?.Stop();
+			instance.Dispose();
+			instance = null;
 		}
 
 		private static CancellationToken token;

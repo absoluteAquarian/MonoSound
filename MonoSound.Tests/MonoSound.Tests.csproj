@@ -38,6 +38,9 @@
     <ProjectReference Include="..\MonoSound.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Update="Content\bonetrousle.ogg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Content\chill-mono.ogg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

@@ -18,10 +18,10 @@
 		/// </summary>
 		public static bool LogFilters { get; set; }
 
-		internal static double streamBufferLengthInSeconds = 0.1;
+		internal static double streamBufferLengthInSeconds = 0.01;
 
 		/// <summary>
-		/// How many seconds' worth of data is read from a data stream when streaming audio.  Defaults to <c>0.1</c> seconds.
+		/// How many seconds' worth of data is read from a data stream when streaming audio.  Defaults to <c>0.01</c> seconds.
 		/// </summary>
 		public static double StreamBufferLengthInSeconds {
 			get => streamBufferLengthInSeconds;

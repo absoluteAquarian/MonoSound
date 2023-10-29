@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using MonoSound.Default;
 using MonoSound.Filters;
 using MonoSound.Streaming;
 using System;
@@ -41,7 +42,24 @@ namespace MonoSound.Tests {
 					new TestState(Keys.D4, "Apply Low Pass Filter", ApplyLowPassFilterToStreamedSong),
 					new TestState(Keys.D5, "Apply High Pass Filter", ApplyHighPassFilterToStreamedSong),
 					new TestState(Keys.D6, "Apply Band Pass Filter", ApplyBandPassFilterToStreamedSong)),
-				new TestState(Keys.D3, "Filtered Sounds", null).WithChildren(
+				new TestState(Keys.D3, "Segmented Sound Streaming", null).WithChildren(
+					new TestState(Keys.D1, "Play Song", PlaySegmentedSong),
+					new TestState(Keys.D2, "Stop Song", StopSegmentedSong),
+					new TestState(Keys.D3, "Clear Filters", ClearSegmentedSongFilters),
+					new TestState(Keys.D4, "Apply Low Pass Filter", ApplyLowPassFilterToSegmentedSong),
+					new TestState(Keys.D5, "Apply High Pass Filter", ApplyHighPassFilterToSegmentedSong),
+					new TestState(Keys.D6, "Apply Band Pass Filter", ApplyBandPassFilterToSegmentedSong),
+					new TestState(Keys.D7, "Jump to Section...", null).WithChildren(
+						new TestState(Keys.D1, "Introduction", null).WithChildren(
+							new TestState(Keys.D1, "Immediate", JumpToSection_0_Immediate),
+							new TestState(Keys.D2, "After Current", JumpToSection_0_Delayed)),
+						new TestState(Keys.D2, "Middle", null).WithChildren(
+							new TestState(Keys.D1, "Immediate", JumpToSection_1_Immediate),
+							new TestState(Keys.D2, "After Current", JumpToSection_1_Delayed)),
+						new TestState(Keys.D3, "Ending", null).WithChildren(
+							new TestState(Keys.D1, "Immediate", JumpToSection_2_Immediate),
+							new TestState(Keys.D2, "After Current", JumpToSection_2_Delayed)))),
+				new TestState(Keys.D4, "Filtered Sounds", null).WithChildren(
 					new TestState(Keys.D1, "Low Pass Filter", PlayLowPassFilteredSound),
 					new TestState(Keys.D2, "High Pass Filter", PlayHighPassFilteredSound),
 					new TestState(Keys.D3, "Band Pass Filter", PlayBandPassFilteredSound)));
@@ -62,8 +80,6 @@ namespace MonoSound.Tests {
 			highPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.HighPass, 1, 1500, 8);
 			bandPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.BandPass, 1, 2000, 3);
 
-			Controls.StreamBufferLengthInSeconds = 0.01;
-
 			_fontSystem = new FontSystem();
 			_fontSystem.AddFont(File.ReadAllBytes("C:/Windows/Fonts/times.ttf"));
 		}
@@ -72,6 +88,7 @@ namespace MonoSound.Tests {
 		static SoundEffect sfx, song, filteredSfx;
 		static SoundEffectInstance songInstance, filteredSfxInstance;
 		static StreamPackage streamedSound;
+		static SegmentedOggStream streamedSegmentedSound;
 
 		static int lowPass, highPass, bandPass;
 
@@ -126,8 +143,8 @@ namespace MonoSound.Tests {
 
 		private static void PlayMonoPanning() {
 			// Different pan testing (succeeds due to the sound using Mono)
-			if (streamedSound != null)
-				StreamLoader.FreeStreamedSound(ref streamedSound);
+			StreamLoader.FreeStreamedSound(ref streamedSound);
+			StreamLoader.FreeStreamedSound(ref streamedSegmentedSound);
 
 			song ??= EffectLoader.GetEffect("Content/chill-mono.ogg");
 
@@ -149,7 +166,9 @@ namespace MonoSound.Tests {
 				songInstance = null;
 			}
 
-			if (streamedSound is null) {
+			StreamLoader.FreeStreamedSound(ref streamedSegmentedSound);
+
+			if (!StreamLoader.IsStreaming(streamedSound)) {
 				streamedSound = StreamLoader.GetStreamedSound("Content/chill-mono.ogg", looping: true);
 				streamedSound.PlayingSound.Volume = 0.3f;
 			}
@@ -158,8 +177,7 @@ namespace MonoSound.Tests {
 		}
 
 		private static void StopStreamedSong() {
-			if (streamedSound != null)
-				StreamLoader.FreeStreamedSound(ref streamedSound);
+			StreamLoader.FreeStreamedSound(ref streamedSound);
 		}
 
 		private static void ClearStreamedSongFilters() {
@@ -180,6 +198,96 @@ namespace MonoSound.Tests {
 		private static void ApplyBandPassFilterToStreamedSong() {
 			// Applying filters to streamed audio testing
 			streamedSound?.ApplyFilters(ids: bandPass);
+		}
+
+		private static void PlaySegmentedSong() {
+			// Streamed audio testing
+			if (songInstance != null) {
+				songInstance.Dispose();
+				songInstance = null;
+			}
+
+			StreamLoader.FreeStreamedSound(ref streamedSound);
+
+			if (!StreamLoader.IsStreaming(streamedSegmentedSound)) {
+				streamedSegmentedSound = (SegmentedOggStream)StreamLoader.GetStreamedSound("Content/bonetrousle.ogg", new SegmentedOggFormat(), new IAudioSegment[] {
+					// Intro
+					new Segment(TimeSpan.Zero, TimeSpan.FromSeconds(31.95)),
+					// Main loop
+					new Segment(TimeSpan.FromSeconds(31.95), TimeSpan.FromSeconds(89.55)),
+					// Ending
+					new EndSegment(TimeSpan.FromSeconds(89.55))
+				});
+				streamedSegmentedSound.PlayingSound.Volume = 0.3f;
+			}
+
+			streamedSegmentedSound.PlayingSound.Play();
+		}
+
+		private static void StopSegmentedSong() {
+			StreamLoader.FreeStreamedSound(ref streamedSegmentedSound);
+		}
+
+		private static void ClearSegmentedSongFilters() {
+			// Applying filters to streamed audio testing
+			streamedSegmentedSound?.ApplyFilters(ids: null);
+		}
+
+		private static void ApplyLowPassFilterToSegmentedSong() {
+			// Applying filters to streamed audio testing
+			streamedSegmentedSound?.ApplyFilters(ids: lowPass);
+		}
+
+		private static void ApplyHighPassFilterToSegmentedSong() {
+			// Applying filters to streamed audio testing
+			streamedSegmentedSound?.ApplyFilters(ids: highPass);
+		}
+
+		private static void ApplyBandPassFilterToSegmentedSong() {
+			// Applying filters to streamed audio testing
+			streamedSegmentedSound?.ApplyFilters(ids: bandPass);
+		}
+
+		private static void JumpToSection_0_Immediate() {
+			if (streamedSegmentedSound is null)
+				return;
+
+			streamedSegmentedSound.JumpTo(0, false);
+		}
+
+		private static void JumpToSection_0_Delayed() {
+			if (streamedSegmentedSound is null)
+				return;
+
+			streamedSegmentedSound.JumpTo(0, true);
+		}
+
+		private static void JumpToSection_1_Immediate() {
+			if (streamedSegmentedSound is null)
+				return;
+
+			streamedSegmentedSound.JumpTo(1, false);
+		}
+
+		private static void JumpToSection_1_Delayed() {
+			if (streamedSegmentedSound is null)
+				return;
+
+			streamedSegmentedSound.JumpTo(1, true);
+		}
+
+		private static void JumpToSection_2_Immediate() {
+			if (streamedSegmentedSound is null)
+				return;
+
+			streamedSegmentedSound.JumpTo(2, false);
+		}
+
+		private static void JumpToSection_2_Delayed() {
+			if (streamedSegmentedSound is null)
+				return;
+
+			streamedSegmentedSound.JumpTo(2, true);
 		}
 
 		private static void PlayLowPassFilteredSound() {
@@ -234,10 +342,19 @@ namespace MonoSound.Tests {
 			else if (streamedSound != null) {
 				TimeSpan current = streamedSound.CurrentDuration;
 				TimeSpan max = streamedSound.MaxDuration;
-				_spriteBatch.DrawString(font, $"chill.ogg / Streamed         {current.Minutes:D2}:{current.Seconds:D2}.{current.Milliseconds:D3} / {max.Minutes:D2}:{max.Seconds:D2}.{max.Milliseconds:D3} s", new Vector2(20, 40), Color.White);
+				_spriteBatch.DrawString(font, $"chill.ogg / Streamed         {FormatTime(current)} / {FormatTime(max)} s", new Vector2(20, 40), Color.White);
+			} else if (streamedSegmentedSound != null) {
+				TimeSpan current = streamedSegmentedSound.CurrentDuration;
+				TimeSpan max = streamedSegmentedSound.MaxDuration;
+
+				int sectionNum = streamedSegmentedSound.tracker.TargetSegment;
+				IAudioSegment section = streamedSegmentedSound.tracker.CurrentSegment;
+
+				_spriteBatch.DrawString(font, $"bonetrousle.ogg / Streamed         {FormatTime(current)} / {FormatTime(max)} s", new Vector2(20, 40), Color.White);
+				_spriteBatch.DrawString(font, $"Segment #{sectionNum + 1}:  {FormatTime(section.Start)} - {FormatTime(section.End)} s", new Vector2(26, 40 + font.LineHeight + 2), Color.White);
 			}
 
-			int y = 75;
+			int y = 100;
 			foreach (string line in machine.ReportCurrentTree(currentSequence)) {
 				_spriteBatch.DrawString(font, line, new Vector2(10, y), Color.White);
 				y += font.LineHeight;
@@ -246,6 +363,10 @@ namespace MonoSound.Tests {
 			_spriteBatch.End();
 
 			base.Draw(gameTime);
+		}
+
+		private static string FormatTime(TimeSpan time) {
+			return $"{time.Minutes:D2}:{time.Seconds:D2}.{time.Milliseconds:D3}";
 		}
 
 		private static string ByteCountToLargeRepresentation(long bytes) {

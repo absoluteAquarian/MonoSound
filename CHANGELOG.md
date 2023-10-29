@@ -1,5 +1,6 @@
 ﻿## v1.7
 - Fixed a copy/paste typo which caused the `RegisterBiquadResonantFilter`, `RegisterEchoFilter` and `RegisterReverbFilter` methods in `MonoSoundManager` to mention the wrong methods
+- `Controls.StreamBufferLengthInSeconds` now defaults to `0.01` instead of `0.1`
 - Updated the `StreamPackage` class:
   - Fixed a bug where looping would fail due to null reference errors
   - Added `double GetSecondDuration(long)`, `long ModifyResetOffset(long)`, `void SetStreamPosition(double)`, `void OnLooping()` and `void ClearAudioQueue()`
@@ -11,6 +12,7 @@
   - The `ReadBytes` and `SecondsRead` properties now expose their setters to child classes
   - The `IsLooping` property's setter is now publicly visible
   - The `endOfStream` parameter from `void ReadSamples(double, out byte[], out int, out bool)` has been renamed to `checkLooping`
+  - `void HandleLooping()` is now a `virtual` method exposed to child classes
 - The `CustomFileFormat` type and its API is now obsolete.  Use the `CustomAudioFormat` type instead
   - `MonoSoundLibrary.RegisterFormat(string, Func<Stream, FormatWav>, Func<Stream, StreamPackage>)` is now obsolete.  Use `MonoSoundLibrary.RegisterFormat(CustomAudioFormat)` instead
   - `CustomAudioFormat` does not have to be registered in order to be usable
@@ -20,6 +22,8 @@
 - `SteamLoader` has new methods for handling custom audio formats
 - Added an example for `CustomAudioFormat`:  `MonoSound.Default.SegmentedOggFormat`
   - This type should not be registered.  Instead, create a `new SegmentedOggFormat()` and pass it to the `StreamLoader` methods that accept a `CustomAudioFormat` parameter
+  - Streams created from this format use the `MonoSound.Default.SegmentedOggStream` type
+  - Example usage can be found in the `MonoSound.Tests` project
 
 ## v1.6.2
 - Replaced all usage of File.OpenRead() with TitleContainer.OpenStream(), since the former prevented MonoSound from loading on Android projects

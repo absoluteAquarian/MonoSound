@@ -3,6 +3,7 @@ using MonoSound.Audio;
 using MonoSound.Filters;
 using MonoSound.Streaming;
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 
 namespace MonoSound {
@@ -137,6 +138,17 @@ namespace MonoSound {
 		}
 
 		/// <summary>
+		/// Returns whether a streaming package is currently streaming
+		/// </summary>
+		/// <param name="package">The audio stream</param>
+		public static bool IsStreaming([MaybeNullWhen(false)] StreamPackage package) {
+			if (package is null || package.Disposed)
+				return false;
+
+			return StreamManager.IsStreamActive(package);
+		}
+
+		/// <summary>
 		/// Stops the streamed sound, disposes it, removes it from the tracked streams collection and then sets <paramref name="instance"/> to <see langword="null"/>
 		/// </summary>
 		/// <param name="instance">The stream instance</param>
@@ -144,6 +156,14 @@ namespace MonoSound {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			StreamManager.StopStreamingSound(ref instance);
+		}
+
+		/// <inheritdoc cref="FreeStreamedSound(ref StreamPackage)"/>
+		public static void FreeStreamedSound<T>(ref T instance) where T : StreamPackage {
+			// Need to redirect to a local since "ref T" can't be converted to "ref StreamPackage"
+			StreamPackage redirect = instance;
+			FreeStreamedSound(ref redirect);
+			instance = null;
 		}
 
 		/// <summary>

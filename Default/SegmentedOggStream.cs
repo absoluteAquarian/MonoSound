@@ -8,90 +8,95 @@ namespace MonoSound.Default {
 	/// An extension of the OGG format used by <see cref="SegmentedOggFormat"/> to facilitate segmented looping
 	/// </summary>
 	public sealed class SegmentedOggStream : OggStream {
-		public class CheckpointTracker {
-			public readonly SegmentedOggStream source;
+		public class SegmentTracker {
+			private readonly IAudioSegment[] _segments;
 
-			private readonly ICheckpoint[] _checkpoints;
-
-			private int _targetCheckpoint;
-			public int TargetCheckpoint {
-				get => _targetCheckpoint;
-				set => _targetCheckpoint = Math.Clamp(value, 0, _checkpoints.Length - 1);
+			private int _targetSegment;
+			public int TargetSegment {
+				get => _targetSegment;
+				set => _targetSegment = Math.Clamp(value, 0, _segments.Length - 1);
 			}
 
-			public int Count => _checkpoints.Length;
+			public int Count => _segments.Length;
 
-			public ICheckpoint this[int index] {
-				get => _checkpoints[index];
-				set => _checkpoints[index] = value;
+			public IAudioSegment this[int index] {
+				get => _segments[index];
+				set => _segments[index] = value;
 			}
 
-			public ICheckpoint CurrentCheckpoint => _checkpoints[_targetCheckpoint];
+			public IAudioSegment CurrentSegment => _segments[_targetSegment];
 
-			public CheckpointTracker(SegmentedOggStream source, ICheckpoint[] checkpoints) {
-				if (checkpoints is null || checkpoints.Length == 0)
-					throw new ArgumentException("Invalid checkpoint array provided", nameof(checkpoints));
+			public SegmentTracker(IAudioSegment[] segments) {
+				if (segments is null || segments.Length == 0)
+					throw new ArgumentException("Invalid segment array provided", nameof(segments));
 
-				this.source = source;
-				_checkpoints = checkpoints;
-				_targetCheckpoint = -1;
+				_segments = segments;
 			}
 
 			public void GetLoopBounds(out TimeSpan start, out TimeSpan loop) {
-				var checkpoint = _checkpoints[_targetCheckpoint];
+				var checkpoint = _segments[_targetSegment];
 
 				start = checkpoint.Start;
 				loop = checkpoint.End;
 			}
 
 			public void GetLoopBounds(int section, out TimeSpan start, out TimeSpan loop) {
-				if (section < 0 || section > _checkpoints.Length)
+				if (section < 0 || section > _segments.Length)
 					throw new ArgumentOutOfRangeException(nameof(section));
 
-				var checkpoint = _checkpoints[section];
+				var checkpoint = _segments[section];
 
 				start = checkpoint.Start;
 				loop = checkpoint.End;
 			}
 		}
 
-		public readonly CheckpointTracker tracker;
+		public readonly SegmentTracker tracker;
+		private int _delayedJumpTarget;
 
-		public SegmentedOggStream(string file, ICheckpoint[] checkpoints) : base(file) {
-			tracker = new CheckpointTracker(this, checkpoints);
+		public SegmentedOggStream(string file, IAudioSegment[] checkpoints) : base(file) {
+			tracker = new SegmentTracker(checkpoints);
+			_delayedJumpTarget = -1;
+			ModifyTracker();
 		}
 
-		public SegmentedOggStream(Stream stream, ICheckpoint[] checkpoints) : base(stream) {
-			tracker = new CheckpointTracker(this, checkpoints);
+		public SegmentedOggStream(Stream stream, IAudioSegment[] checkpoints) : base(stream) {
+			tracker = new SegmentTracker(checkpoints);
+			_delayedJumpTarget = -1;
+			ModifyTracker();
 		}
 
-		protected override void Initialize() {
-			base.Initialize();
-
+		private void ModifyTracker() {
 			for (int i = 0; i < tracker.Count; i++) {
 				var checkpoint = tracker[i];
 
-				if (checkpoint is EndCheckpoint e) {
+				if (checkpoint is EndSegment e) {
 					e.End = MaxDuration;
 					tracker[i] = e;
 				}
 			}
 		}
 
-		public void JumpToStart() => JumpTo(0);
+		public void JumpToStart(bool onCurrentCheckpointEnd = false) => JumpTo(0, onCurrentCheckpointEnd);
 
-		public void JumpToNextLoopSection() => JumpTo(tracker.TargetCheckpoint + 1);
+		public void JumpToNextLoopSection(bool onCurrentCheckpointEnd = false) => JumpTo(tracker.TargetSegment + 1, onCurrentCheckpointEnd);
 
-		public void JumpTo(int section) {
+		public void JumpTo(int section, bool onCurrentCheckpointEnd = false) {
 			if (section < 0 || section > tracker.Count)
 				throw new ArgumentOutOfRangeException(nameof(section));
 
-			int old = tracker.TargetCheckpoint;
-			tracker.TargetCheckpoint = section;
+			if (onCurrentCheckpointEnd) {
+				_delayedJumpTarget = section;
+				return;
+			}
 
-			if (old != tracker.TargetCheckpoint) {
+			int old = tracker.TargetSegment;
+			tracker.TargetSegment = section;
+
+			if (old != tracker.TargetSegment) {
 				tracker.GetLoopBounds(out TimeSpan start, out _);
-				CurrentDuration = start;
+				//CurrentDuration = start;
+				base.SetStreamPosition(start.TotalSeconds);
 				loopTargetTime = start;
 			}
 		}
@@ -102,7 +107,12 @@ namespace MonoSound.Default {
 			// If the next read would bleed across the loop boundary, cut it short
 			tracker.GetLoopBounds(out _, out TimeSpan loop);
 
-			if (CurrentDuration + TimeSpan.FromSeconds(seconds) > loop && tracker.CurrentCheckpoint.Loop(out TimeSpan loopTarget)) {
+			if (CurrentDuration + TimeSpan.FromSeconds(seconds) > loop && tracker.CurrentSegment.Loop(out TimeSpan loopTarget)) {
+				if (tracker.CurrentSegment is EndSegment end && end.LoopToStartOfAudio) {
+					// Reset the tracker
+					tracker.TargetSegment = 0;
+				}
+
 				// Clamp the seconds to the remaining portion of this loop
 				seconds = (loop - CurrentDuration).TotalSeconds;
 
@@ -125,12 +135,12 @@ namespace MonoSound.Default {
 			TimeSpan pos = TimeSpan.FromSeconds(seconds);
 
 			// Assume callee wanted to jump to the section that contains the timestamp
-			for (int i = 0; i <= tracker.Count; i++) {
-				tracker.GetLoopBounds(i, out _, out TimeSpan loop);
+			for (int i = 0; i < tracker.Count; i++) {
+				tracker.GetLoopBounds(i, out TimeSpan start, out _);
 
 				// Allow multiple assignment in the event that the position is between checkpoints
-				if (pos <= loop)
-					tracker.TargetCheckpoint = i;
+				if (start <= pos)
+					tracker.TargetSegment = i;
 			}
 
 			base.SetStreamPosition(seconds);
@@ -140,10 +150,27 @@ namespace MonoSound.Default {
 			// If the audio stream was stopped, reset the loop info to the start of the audio
 			if (PlayingSound.State == SoundState.Stopped) {
 				loopTargetTime = TimeSpan.Zero;
-				tracker.TargetCheckpoint = 0;
+				tracker.TargetSegment = 0;
+				_delayedJumpTarget = -1;
+			}
+
+			if (_delayedJumpTarget >= 0) {
+				JumpTo(_delayedJumpTarget, false);
+				_delayedJumpTarget = -1;
 			}
 
 			base.Reset(clearQueue);
+		}
+
+		protected override void HandleLooping() {
+			// If the tracker is at any segment except the last one, force looping to occur
+			if (tracker.TargetSegment < tracker.Count - 1) {
+				bool old = IsLooping;
+				IsLooping = true;
+				base.HandleLooping();
+				IsLooping = old;
+			} else
+				base.HandleLooping();
 		}
 	}
 }

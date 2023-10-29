@@ -220,7 +220,7 @@ namespace MonoSound.Streaming {
 			vorbisStream.DecodedTime = loopTargetTime;
 
 			long pos = vorbisStream.DecodedPosition;
-			vorbisStream.DecodedPosition += Math.Max(pos, ModifyResetOffset(pos));
+			vorbisStream.DecodedPosition = Math.Max(pos, ModifyResetOffset(pos));
 
 			ReadBytes = vorbisStream.DecodedPosition;
 			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;

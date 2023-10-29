@@ -13,15 +13,15 @@ namespace MonoSound.Default {
 		public override string[] ValidExtensions => throw new NotImplementedException();  // Force registering the format to fail
 
 		public override StreamPackage CreateStream(string filePath, object state) {
-			if (!(state is ICheckpoint[] checkpoints))
-				throw new ArgumentException("Expected an array of ICheckpoint", nameof(state));
+			if (!(state is IAudioSegment[] checkpoints))
+				throw new ArgumentException($"Expected an array of {nameof(IAudioSegment)}", nameof(state));
 
 			return new SegmentedOggStream(TitleContainer.OpenStream(filePath), checkpoints);
 		}
 
 		public override StreamPackage CreateStream(Stream dataStream, object state) {
-			if (!(state is ICheckpoint[] checkpoints))
-				throw new ArgumentException("Expected an array of ICheckpoint", nameof(state));
+			if (!(state is IAudioSegment[] checkpoints))
+				throw new ArgumentException($"Expected an array of {nameof(IAudioSegment)}", nameof(state));
 
 			try {
 				return new SegmentedOggStream(dataStream, checkpoints);

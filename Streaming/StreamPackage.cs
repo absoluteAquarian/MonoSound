@@ -77,6 +77,27 @@ namespace MonoSound.Streaming {
 			Initialize();
 		}
 
+		public virtual void Start() {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
+			PlayingSound.Play();
+		}
+
+		public virtual void Pause() {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
+			PlayingSound.Pause();
+		}
+
+		public virtual void Stop() {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
+			PlayingSound.Stop();
+		}
+
 		private void InitSound() {
 			//Initialize the instance
 			PlayingSound?.Dispose();
@@ -175,16 +196,29 @@ namespace MonoSound.Streaming {
 				seconds = origSeconds;
 				ModifyReadSeconds(ref seconds);
 				if (seconds <= 0) {
-					CheckLooping();
+					HandleLooping();
 					break;
 				}
 
 				//Read "seconds" amount of data from the stream, then send it to "sfx"
 				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool checkLooping);
 
+				// Ensure that the buffer meets the requirement for the DynamicSoundEffectInstance
+				int requiredSampleSize = 2 * (int)Channels;
+				if (read.Length % requiredSampleSize != 0) {
+					int length = read.Length - read.Length % requiredSampleSize;
+					if (length <= 0) {
+						// Just set it to an empty array
+						read = Array.Empty<byte>();
+					} else {
+						// Resize the array.  Some samples at the end will be trimmed off, but that's fine
+						Array.Resize(ref read, length);
+					}
+				}
+
 				// If no bytes were read, assuming something went wrong and bail after checking for looping
 				if (bytesRead <= 0 || read.Length == 0) {
-					CheckLooping();
+					HandleLooping();
 					break;
 				}
 
@@ -199,7 +233,7 @@ namespace MonoSound.Streaming {
 				_queuedReads.Enqueue(read);
 
 				if (checkLooping)
-					CheckLooping();
+					HandleLooping();
 			}
 		}
 
@@ -265,10 +299,15 @@ namespace MonoSound.Streaming {
 			}
 		}
 
-		private void CheckLooping() {
+		/// <summary>
+		/// Executes when sample reading has indicating that a loop should be checked.<br/>
+		/// By default, this method stops the stream via <see cref="StreamLoader.FreeStreamedSound(ref StreamPackage)"/> if <see cref="IsLooping"/> is <see langword="false"/>, or resets the stream to the loop point if <see cref="IsLooping"/> is <see langword="true"/>.
+		/// </summary>
+		protected virtual void HandleLooping() {
 			if (!IsLooping) {
 				FinishedStreaming = true;
-				Dispose();
+				StreamPackage redirect = this;
+				StreamManager.StopStreamingSound(ref redirect);
 			} else {
 				// Reset the stream, but don't clear the queue
 				Reset(clearQueue: false);

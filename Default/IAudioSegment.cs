@@ -1,7 +1,7 @@
 ﻿using System;
 
 namespace MonoSound.Default {
-	public interface ICheckpoint {
+	public interface IAudioSegment {
 		/// <summary>
 		/// The location of the start of the loop.  This is where the audio stream will jump to once <see cref="Start"/> has been reached.
 		/// </summary>
@@ -23,12 +23,17 @@ namespace MonoSound.Default {
 	/// <summary>
 	/// A structure representing a non-looping audio segment that begins at the start of the audio data
 	/// </summary>
-	public readonly struct StartCheckpoint : ICheckpoint {
+	public readonly struct StartSegment : IAudioSegment {
 		public TimeSpan Start => TimeSpan.Zero;
 
 		public TimeSpan End { get; }
 
-		public StartCheckpoint(TimeSpan end) {
+		/// <summary>
+		/// Creates a non-looping audio segment that begins at the start of the audio data
+		/// </summary>
+		/// <param name="end">Where the segment ends</param>
+		/// <exception cref="ArgumentException"/>
+		public StartSegment(TimeSpan end) {
 			if (end <= TimeSpan.Zero)
 				throw new ArgumentException("End point must be positive");
 
@@ -44,12 +49,18 @@ namespace MonoSound.Default {
 	/// <summary>
 	/// A structure representing a looping audio segment that starts somewhere between the start and end of the audio data
 	/// </summary>
-	public readonly struct Checkpoint : ICheckpoint {
+	public readonly struct Segment : IAudioSegment {
 		public TimeSpan Start { get; }
 
 		public TimeSpan End { get; }
 
-		public Checkpoint(TimeSpan start, TimeSpan end) {
+		/// <summary>
+		/// Creates a looping audio segment that starts somewhere between the start and end of the audio data
+		/// </summary>
+		/// <param name="start">Where the segment starts</param>
+		/// <param name="end">Where the segment ends</param>
+		/// <exception cref="ArgumentException"/>
+		public Segment(TimeSpan start, TimeSpan end) {
 			if (start >= end)
 				throw new ArgumentException("Starting point must be before ending point");
 
@@ -66,7 +77,7 @@ namespace MonoSound.Default {
 	/// <summary>
 	/// A structure representing a looping audio segment that ends at the end of the audio data
 	/// </summary>
-	public struct EndCheckpoint : ICheckpoint {
+	public struct EndSegment : IAudioSegment {
 		public TimeSpan Start { get; }
 
 		public TimeSpan End { get; internal set; }
@@ -77,7 +88,12 @@ namespace MonoSound.Default {
 		/// </summary>
 		public bool LoopToStartOfAudio { get; set; }
 
-		public EndCheckpoint(TimeSpan start) {
+		/// <summary>
+		/// Creates a looping audio segment that ends at the end of the audio data
+		/// </summary>
+		/// <param name="start">Where the segment starts</param>
+		/// <exception cref="ArgumentException"/>
+		public EndSegment(TimeSpan start) {
 			if (start <= TimeSpan.Zero)
 				throw new ArgumentException("End point must be positive");
 
@@ -87,7 +103,7 @@ namespace MonoSound.Default {
 		}
 
 		public bool Loop(out TimeSpan loopTarget) {
-			// Jump to the start of the audio file
+			// Jump to the start of the audio file or segment
 			loopTarget = LoopToStartOfAudio ? TimeSpan.Zero : Start;
 			return true;
 		}
