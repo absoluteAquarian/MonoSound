@@ -159,6 +159,9 @@ namespace MonoSound.Streaming {
 		private void Reset_Impl(bool clearQueue) {
 			Reset();
 
+			if (PlayingSound.State == SoundState.Stopped)
+				Interlocked.Exchange(ref _playTime, 0);
+
 			if (clearQueue)
 				_queuedReads.Clear();
 		}
