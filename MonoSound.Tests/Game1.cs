@@ -229,7 +229,7 @@ namespace MonoSound.Tests {
 			StreamLoader.FreeStreamedSound(ref streamedSound);
 
 			if (!StreamLoader.IsStreaming(streamedSegmentedSound)) {
-				streamedSegmentedSound = (SegmentedOggStream)StreamLoader.GetStreamedSound("Content/bonetrousle.ogg", new SegmentedOggFormat(), new IAudioSegment[] {
+				streamedSegmentedSound = (SegmentedOggStream)StreamLoader.GetStreamedSound("Content/bonetrousle.ogg", new SegmentedOggFormat(), true, new IAudioSegment[] {
 					// Intro
 					new Segment(TimeSpan.Zero, TimeSpan.FromSeconds(31.95)),
 					// Main loop

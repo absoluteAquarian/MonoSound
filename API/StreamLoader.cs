@@ -51,11 +51,12 @@ namespace MonoSound {
 		/// Gets a streamed sound effect from one of the registered custom audio formats
 		/// </summary>
 		/// <param name="filePath">The path to the sound file</param>
+		/// <param name="looping">Whether the sound should loop</param>
 		/// <param name="state">Extra information for the format to use</param>
-		public static StreamPackage GetStreamedSound(string filePath, object state) {
+		public static StreamPackage GetStreamedSound(string filePath, bool looping, object state) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			return StreamManager.TryInitializeCustomStream(filePath, /* NOTE: unused */ false, state);
+			return StreamManager.TryInitializeCustomStream(filePath, looping, state);
 		}
 
 		/// <summary>
@@ -63,11 +64,12 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="filePath">The path to the sound file</param>
 		/// <param name="format">An object representing how the format will decode the audio stream</param>
+		/// <param name="looping">Whether the sound should loop</param>
 		/// <param name="state">Extra information for the format to use</param>
-		public static StreamPackage GetStreamedSound(string filePath, CustomAudioFormat format, object state) {
+		public static StreamPackage GetStreamedSound(string filePath, CustomAudioFormat format, bool looping, object state) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			return StreamManager.InitializeCustomStream(filePath, format, state);
+			return StreamManager.InitializeCustomStream(filePath, format, looping, state);
 		}
 
 		/// <summary>
@@ -90,11 +92,12 @@ namespace MonoSound {
 		/// Gets a streamed sound effect from one of the registered custom audio formats
 		/// </summary>
 		/// <param name="sampleSource">The stream where the samples will be read from. It is expected to contain a full audio file's data</param>
+		/// <param name="looping">Whether the sound should loop</param>
 		/// <param name="state">Extra information for the format to use</param>
-		public static StreamPackage GetStreamedSound(Stream sampleSource, object state) {
+		public static StreamPackage GetStreamedSound(Stream sampleSource, bool looping, object state) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			return StreamManager.TryInitializeCustomStream(sampleSource, /* NOTE: unused */ false, state);
+			return StreamManager.TryInitializeCustomStream(sampleSource, looping, state);
 		}
 
 		/// <summary>
@@ -102,11 +105,12 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="sampleSource">The stream where the samples will be read from. It is expected to contain a full audio file's data</param>
 		/// <param name="format">An object representing how the format will decode the audio stream</param>
+		/// <param name="looping">Whether the sound should loop</param>
 		/// <param name="state">Extra information for the format to use</param>
-		public static StreamPackage GetStreamedSound(Stream sampleSource, CustomAudioFormat format, object state) {
+		public static StreamPackage GetStreamedSound(Stream sampleSource, CustomAudioFormat format, bool looping, object state) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			return StreamManager.InitializeCustomStream(sampleSource, format, state);
+			return StreamManager.InitializeCustomStream(sampleSource, format, looping, state);
 		}
 
 		/// <summary>

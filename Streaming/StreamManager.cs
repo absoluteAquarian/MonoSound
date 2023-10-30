@@ -45,16 +45,16 @@ namespace MonoSound.Streaming {
 			return package;
 		}
 
-		public static StreamPackage InitializeCustomStream(string path, CustomAudioFormat format, object state) {
+		public static StreamPackage InitializeCustomStream(string path, CustomAudioFormat format, bool looping, object state) {
 			StreamPackage package = format.CreateStream(path, state);
-			InitPackage(package, true, GetSafeName(path));
+			InitPackage(package, looping, GetSafeName(path));
 			return package;
 		}
 
-		public static StreamPackage InitializeCustomStream(Stream sampleSource, CustomAudioFormat format, object state) {
+		public static StreamPackage InitializeCustomStream(Stream sampleSource, CustomAudioFormat format, bool looping, object state) {
 			StreamPackage package = format.CreateStream(sampleSource, state)
 				?? throw new ArgumentException("Audio stream was not valid for the given custom format");
-			InitPackage(package, true, GetStreamName(sampleSource));
+			InitPackage(package, looping, GetStreamName(sampleSource));
 			return package;
 		}
 
@@ -63,7 +63,7 @@ namespace MonoSound.Streaming {
 
 			if (MonoSoundLibrary.customAudioFormats.TryGetValue(extension, out var audioFormat)) {
 				StreamPackage package = audioFormat.CreateStream(path, state);
-				InitPackage(package, true, GetSafeName(path));
+				InitPackage(package, loopedSound, GetSafeName(path));
 				return package;
 			}
 
