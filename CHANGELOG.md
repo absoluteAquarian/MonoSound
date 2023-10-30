@@ -21,7 +21,7 @@
 - `vorbisStream` and `vorbisReadStart` in `OggStream` are now visible to child classes
   - `vorbisReadStart` has been renamed to `loopTargetTime`
 - `Filter` now contains a `bool RequiresSampleMemory` property which is used to prevent the filter from being used by certain APIs
-- `SteamLoader` has new methods for handling custom audio formats
+- `EffectLoader` and `SteamLoader` have new methods for handling custom audio formats
 - Added an example for `CustomAudioFormat`:  `MonoSound.Default.SegmentedOggFormat`
   - This type should not be registered.  Instead, create a `new SegmentedOggFormat()` and pass it to the `StreamLoader` methods that accept a `CustomAudioFormat` parameter
   - Streams created from this format use the `MonoSound.Default.SegmentedOggStream` type

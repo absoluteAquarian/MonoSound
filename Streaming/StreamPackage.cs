@@ -60,10 +60,7 @@ namespace MonoSound.Streaming {
 		/// <summary>
 		/// Gets or sets the current play duration for the streamed audio
 		/// </summary>
-		public TimeSpan CurrentDuration {
-			get => TimeSpan.FromTicks(Interlocked.Read(ref _playTime));
-			set => Interlocked.Exchange(ref _playTime, value.Ticks);
-		}
+		public TimeSpan CurrentDuration => TimeSpan.FromTicks(Interlocked.Read(ref _playTime));
 
 		private double _lastBufferDuration;
 
