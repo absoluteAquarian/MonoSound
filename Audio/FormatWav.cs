@@ -111,6 +111,16 @@ namespace MonoSound.Audio {
 			return audioData;
 		}
 
+		internal PCMData GetMetadata() {
+			float duration = (int)((float)DataLength / ByteRate);
+			return new PCMData() {
+				bitsPerSample = BitsPerSample,
+				channels = (AudioChannels)ChannelCount,
+				duration = (int)(duration * 1000),
+				sampleRate = SampleRate
+			};
+		}
+
 		private FormatWav() { }
 
 		/// <summary>

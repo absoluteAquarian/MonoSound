@@ -82,18 +82,8 @@ namespace MonoSound.Filters {
 					break;
 				case ".wav":
 					//Could've jumped here from the ".ogg" case.  Don't try and set the 'wav' variable if it was already set
-					if (wav is null)
-						wav = FormatWav.FromFileWAV(path);
-
-					float duration = (int)((float)wav.DataLength / wav.ByteRate);
-
-					//Ignore the loop fields because they probably aren't that important
-					metaData = new PCMData() {
-						bitsPerSample = wav.BitsPerSample,
-						channels = (AudioChannels)wav.ChannelCount,
-						duration = (int)(duration * 1000),
-						sampleRate = wav.SampleRate
-					};
+					wav ??= FormatWav.FromFileWAV(path);
+					metaData = wav.GetMetadata();
 					break;
 				case ".ogg":
 					wav = FormatWav.FromFileOGG(path);
@@ -194,18 +184,10 @@ namespace MonoSound.Filters {
 			if (HasFilteredSFX(name, out FilterPackage package, filtersToApply))
 				return package.effect;
 
-			float duration = (int)((float)wav.DataLength / wav.ByteRate);
-			PCMData data = new PCMData() {
-				bitsPerSample = wav.BitsPerSample,
-				channels = (AudioChannels)wav.ChannelCount,
-				duration = (int)(duration * 1000),
-				sampleRate = wav.SampleRate
-			};
-
-			return ApplyFilters(wav, name, data, filtersToApply);
+			return ApplyFilters(wav, name, wav.GetMetadata(), filtersToApply);
 		}
 
-		private static SoundEffect ApplyFilters(FormatWav wav, string path, PCMData metaData, Filter[] filtersToApply) {
+		internal static SoundEffect ApplyFilters(FormatWav wav, string path, PCMData metaData, params Filter[] filtersToApply) {
 			FilterPackage cache = new FilterPackage() {
 				asset = path,
 				types = GetFilterTypes(filtersToApply),
