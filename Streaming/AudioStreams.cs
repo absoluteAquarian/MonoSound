@@ -213,7 +213,7 @@ namespace MonoSound.Streaming {
 
 			vorbisStream.DecodedTime = TimeSpan.FromSeconds(seconds);
 			ReadBytes = vorbisStream.DecodedPosition;
-			SecondsRead = seconds;
+			ApplyImmediateJump(seconds);
 		}
 
 		public override void Reset() {
@@ -223,8 +223,7 @@ namespace MonoSound.Streaming {
 			vorbisStream.DecodedPosition = Math.Max(pos, ModifyResetOffset(pos));
 
 			ReadBytes = vorbisStream.DecodedPosition;
-			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;
-			CurrentDuration = vorbisStream.DecodedTime;
+			ApplyImmediateJump(vorbisStream.DecodedTime.TotalSeconds);
 		}
 
 		protected override void Dispose(bool disposing) {

@@ -142,6 +142,8 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="package">The audio stream</param>
 		public static bool IsStreaming([MaybeNullWhen(false)] StreamPackage package) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
 			if (package is null || package.Disposed)
 				return false;
 
@@ -160,9 +162,11 @@ namespace MonoSound {
 
 		/// <inheritdoc cref="FreeStreamedSound(ref StreamPackage)"/>
 		public static void FreeStreamedSound<T>(ref T instance) where T : StreamPackage {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
 			// Need to redirect to a local since "ref T" can't be converted to "ref StreamPackage"
 			StreamPackage redirect = instance;
-			FreeStreamedSound(ref redirect);
+			StreamManager.StopStreamingSound(ref redirect);
 			instance = null;
 		}
 

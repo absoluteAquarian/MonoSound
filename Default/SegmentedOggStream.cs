@@ -127,7 +127,6 @@ namespace MonoSound.Default {
 			tracker.TargetSegment = section;
 
 			tracker.GetLoopBounds(out TimeSpan start, out _);
-			CurrentDuration = start;
 			base.SetStreamPosition(start.TotalSeconds);
 			loopTargetTime = start;
 		}

@@ -42,12 +42,12 @@ namespace MonoSound.Streaming {
 		protected long sampleReadStart;
 
 		/// <summary>
-		/// How many seconds' worth of audio have been read by this stream
+		/// How many seconds' worth of audio have been read by this stream from the start of the audio (<b>NOT</b> the total time read if the audio loops!)
 		/// </summary>
 		public double SecondsRead { get; protected set; }
 
 		/// <summary>
-		/// How many seconds' worth of audio have been read by this stream
+		/// How many seconds' worth of audio have been read by this stream from the start of the audio (<b>NOT</b> the total time read if the audio loops!)
 		/// </summary>
 		public TimeSpan ReadTime => TimeSpan.FromSeconds(SecondsRead);
 
@@ -100,6 +100,19 @@ namespace MonoSound.Streaming {
 			Interlocked.Add(ref _playTime, TimeSpan.FromSeconds(time).Ticks);
 		}
 
+		private double _jumpReadStart;
+		private bool _hasActiveJump;
+
+		/// <summary>
+		/// Sets <see cref="SecondsRead"/> to <paramref name="seconds"/>, and sets a hidden variable used to track <see cref="CurrentDuration"/><br/>
+		/// This method is automatically called by <see cref="SetStreamPosition"/>
+		/// </summary>
+		protected void ApplyImmediateJump(double seconds) {
+			SecondsRead = seconds;
+			_jumpReadStart = seconds;
+			_hasActiveJump = true;
+		}
+
 		public void Play() {
 			if (disposed)
 				throw new ObjectDisposedException("this");
@@ -132,14 +145,9 @@ namespace MonoSound.Streaming {
 		}
 
 		/// <summary>
-		/// Reset the stream here.  By default, sets <see cref="ReadBytes"/>, <see cref="SecondsRead"/> and <see cref="CurrentDuration"/> to zero and sets the position of the underlying stream to the start of the sample data
+		/// Reset the stream here.  By default, this sets the next audio buffer to read to the start of the audio data.
 		/// </summary>
 		public virtual void Reset() {
-			// Move the "cursor" back to the beginning and reset the counters
-			ReadBytes = 0;
-			SecondsRead = 0;
-			Interlocked.Exchange(ref _playTime, 0);  // CurrentDuration = TimeSpan.Zero;
-
 			if (underlyingStream != null) {
 				long position = Math.Max(sampleReadStart, ModifyResetOffset(sampleReadStart));
 				long diff = sampleReadStart - position;
@@ -147,7 +155,7 @@ namespace MonoSound.Streaming {
 				underlyingStream.Position = position;
 
 				ReadBytes = diff;
-				SecondsRead = GetSecondDuration(diff);
+				ApplyImmediateJump(GetSecondDuration(diff));
 			}
 		}
 
@@ -192,19 +200,33 @@ namespace MonoSound.Streaming {
 			if (deltaTime > 0)
 				UpdatePlayTime(deltaTime);
 
+			if (_hasActiveJump) {
+				if (PlayingSound.PendingBufferCount > 0) {
+					// Don't submit new buffers until the current buffers have been exhaused
+					_lastBufferDuration = CalculateBufferTime();
+					return;
+				}
+
+				// Forcibly set CurrentDuration to where the jump started at
+				Interlocked.Exchange(ref _playTime, TimeSpan.FromSeconds(_jumpReadStart).Ticks);
+				_jumpReadStart = 0;
+				_hasActiveJump = false;
+			}
+
+			if (PlayingSound.State != SoundState.Playing)
+				return;  // Don't fill the queues
+
 			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
 
+			var sfx = sender as DynamicSoundEffectInstance;
 			while (_queuedReads.TryDequeue(out byte[] read))
-				(sender as DynamicSoundEffectInstance).SubmitBuffer(read);
+				sfx.SubmitBuffer(read);
 
 			_lastBufferDuration = CalculateBufferTime();
 		}
 
 		internal void FillQueue(int max) {
-			if (PlayingSound.State != SoundState.Playing)
-				return;  // Don't fill the queues
-
-			if (_queuedReads.Count < max)
+			if (_queuedReads.Count < max - PlayingSound.PendingBufferCount)
 				Read(Controls.StreamBufferLengthInSeconds, max);
 		}
 
@@ -303,7 +325,7 @@ namespace MonoSound.Streaming {
 				underlyingStream.Position = sampleReadStart + offset;
 
 				ReadBytes = offset;
-				SecondsRead = seconds;
+				ApplyImmediateJump(seconds);
 			}
 		}
 
