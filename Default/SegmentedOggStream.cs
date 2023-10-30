@@ -137,6 +137,10 @@ namespace MonoSound.Default {
 			// If the next read would bleed across the loop boundary, cut it short
 			tracker.GetLoopBounds(out TimeSpan start, out TimeSpan loop);
 
+			// Ensure that the tracker is always in a valid segment
+			if (ReadTime < start || ReadTime > loop)
+				FindValidTrackerSegment(ReadTime);
+
 			// First read from the delayed section will ALWAYS be exactly at the starting point
 			if (ReadTime == start && OnDelayedSectionStart != null) {
 				OnDelayedSectionStart(this);
@@ -168,18 +172,20 @@ namespace MonoSound.Default {
 		}
 
 		public override void SetStreamPosition(double seconds) {
-			TimeSpan pos = TimeSpan.FromSeconds(seconds);
-
 			// Assume callee wanted to jump to the section that contains the timestamp
+			FindValidTrackerSegment(TimeSpan.FromSeconds(seconds));
+
+			base.SetStreamPosition(seconds);
+		}
+
+		private void FindValidTrackerSegment(TimeSpan position) {
 			for (int i = 0; i < tracker.Count; i++) {
 				tracker.GetLoopBounds(i, out TimeSpan start, out _);
 
 				// Allow multiple assignment in the event that the position is between checkpoints
-				if (start <= pos)
+				if (start <= position)
 					tracker.TargetSegment = i;
 			}
-
-			base.SetStreamPosition(seconds);
 		}
 
 		public override void Reset() {
