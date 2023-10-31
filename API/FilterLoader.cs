@@ -86,8 +86,8 @@ namespace MonoSound {
 		/// This will affect all audio streams currently using the given filter, and any new <see cref="SoundEffect"/> objects returned by <see cref="EffectLoader"/>
 		/// </summary>
 		/// <param name="filterID">The registered filter ID</param>
-		/// <param name="type">The new type.  If not <see langword="null"/>, it must be set to <see cref="SoundFilterType.LowPass"/>, <see cref="SoundFilterType.BandPass"/> or <see cref="SoundFilterType.HighPass"/></param>
-		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be set to between 0 and 1.</param>
+		/// <param name="type">The new type.  If not <see langword="null"/>, it must be <see cref="SoundFilterType.LowPass"/>, <see cref="SoundFilterType.BandPass"/> or <see cref="SoundFilterType.HighPass"/></param>
+		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
 		/// <param name="frequencyCap">The new frequency parameter.  If not <see langword="null"/>, it is expected to be between 1000 and 8000.</param>
 		/// <param name="resonance">The new resonance.  If not <see langword="null"/>, it is expected to be between 2 and 20.</param>
 		/// <exception cref="ArgumentException"/>
@@ -125,9 +125,9 @@ namespace MonoSound {
 		/// This will affect all audio streams currently using the given filter, and any new <see cref="SoundEffect"/> objects returned by <see cref="EffectLoader"/>
 		/// </summary>
 		/// <param name="filterID">The registered filter ID</param>
-		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be set to between 0 and 1.</param>
+		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
 		/// <param name="delay">The new delay in seconds.  If not <see langword="null"/>, it must be greater than zero.</param>
-		/// <param name="decayFactor">The new decay factor applied to successive echoes.  If not <see langword="null"/>, it must be greater than zero.</param>
+		/// <param name="decayFactor">The new decay factor applied to successive echoes.  If not <see langword="null"/>, it must be between 0 and 1.</param>
 		/// <param name="filterStrength">The new preference strength for old samples.  If not <see langword="null"/>, it must be greater than or equal to zero and less than one.</param>
 		/// <exception cref="ArgumentException"/>
 		public static void UpdateEchoFilter(int filterID, float? strength = null, float? delay = null, float? decayFactor = null, float? filterStrength = null) {
@@ -168,10 +168,10 @@ namespace MonoSound {
 		/// This will affect all audio streams currently using the given filter, and any new <see cref="SoundEffect"/> objects returned by <see cref="EffectLoader"/>
 		/// </summary>
 		/// <param name="filterID">The registered filter ID</param>
-		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be set to between 0 and 1.</param>
-		/// <param name="lowFrequencyReverbStrength">The new low frequency modifier strength.  If not <see langword="null"/>, it must be set to between 0 and 1.</param>
-		/// <param name="highFrequencyReverbStrength">The new high frequency modifier strength.  If not <see langword="null"/>, it must be set to between 0 and 1.</param>
-		/// <param name="reverbStrength">The new reverb modifier strength.  If not <see langword="null"/>, it must be set to between 0 and 1.</param>
+		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
+		/// <param name="lowFrequencyReverbStrength">The new low frequency modifier strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
+		/// <param name="highFrequencyReverbStrength">The new high frequency modifier strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
+		/// <param name="reverbStrength">The new reverb modifier strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
 		/// <exception cref="ArgumentException"></exception>
 		public static void UpdateReverbFilter(int filterID, float? strength = null, float? lowFrequencyReverbStrength = null, float? highFrequencyReverbStrength = null, float? reverbStrength = null) {
 			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out var filter))
