@@ -1,33 +1,53 @@
 ﻿## v1.7
+ **Fixes:**
 - Fixed a copy/paste typo which caused the `RegisterBiquadResonantFilter`, `RegisterEchoFilter` and `RegisterReverbFilter` methods in `MonoSoundManager` to mention the wrong methods
+- Fixed a bug where the additional samples created by the Echo filter would not be played
+- Fixed a bug where `StreamPackage` would fail to loop due to a null-reference error
+
+**API Changes:**
 - `Controls.StreamBufferLengthInSeconds` now defaults to `0.01` instead of `0.1`
-- Updated the `StreamPackage` class:
-  - Fixed a bug where looping would fail due to null reference errors
-  - Added `double GetSecondDuration(long)`, `long ModifyResetOffset(long)`, `void SetStreamPosition(double)`, `void OnLooping()` and `void ClearAudioQueue()`
-  - Added the `TimeSpan CurrentDuration`, `TimeSpan MaxDuration` and `TimeSpan ReadTime` properties
-  - `override void ChildDispose(bool)` is now obsolete.  Use `override void Dispose(bool)` instead
-  - The `int ReadBytes` property was changed to `long ReadBytes`
-  - The `int TotalBytes` property was changed to `long TotalBytes`
-  - The `ReadBytes` and `SecondsRead` properties now expose their setters to child classes
-  - The `IsLooping` property's setter is now publicly visible
-  - The `endOfStream` parameter from `void ReadSamples(double, out byte[], out int, out bool)` has been renamed to `checkLooping`
-  - `void HandleLooping()` is now a `virtual` method exposed to child classes
-  - The `PlayingSound` property is now hidden to encourage users to use the methods in `StreamPackage` instead
-    - A new `SoundMetrics Metrics` property has been added to facilitate `Volume`, `Pan`, `Pitch` and `State` usage
-    - `void Play()`, `void Resume()` and `void Stop()` have been added to `StreamPackage`
-- The `CustomFileFormat` type and its API is now obsolete.  Use the `CustomAudioFormat` type instead
-  - `MonoSoundLibrary.RegisterFormat(string, Func<Stream, FormatWav>, Func<Stream, StreamPackage>)` is now obsolete.  Use `MonoSoundLibrary.RegisterFormat(CustomAudioFormat)` instead
-  - `CustomAudioFormat` does not have to be registered in order to be usable
-- `vorbisStream` and `vorbisReadStart` in `OggStream` are now visible to child classes
-  - `vorbisReadStart` has been renamed to `loopTargetTime`
-- `Filter` now contains a `bool RequiresSampleMemory` property which is used to prevent the filter from being used by certain APIs
+- `StreamPackage`
+  - New methods:
+    - `void ClearAudioQueue()`
+    - `double GetSecondDuration(long)`
+    - `long ModifyResetOffset(long)`
+    - `void OnLooping()`
+    - `void Pause()`
+    - `void Play()`
+    - `void SetStreamPosition(double)`
+    - `void Stop()`
+  - New properties:
+    - `TimeSpan CurrentDuration { get; }`
+    - `TimeSpan MaxDuration { get; }`
+    - `TimeSpan ReadTime { get; }`
+    - `SoundMetrics metrics { get; }`
+  - Obsolete members:
+    - `override void ChildDispose(bool)`
+      - Replacement: `override void Dispose(bool)`
+  - Member changes:
+    - `int ReadBytes` ⇒ `long ReadBytes`
+    - `int TotalBytes` ⇒ `long TotalBytes`
+    - The setters for `ReadBytes` and `SecondsRead` are now `protected`
+    - The setter for `IsLooping` is now `public`
+    - The `void HandleLooping()` method is now `virtual protected`
+    - The `PlayingSound` property is now `internal`
+- `OggStream`
+  - `vorbisStream` is now `protected`
+  - `vorbisReadStart` ⇒ `loopTargetTime`
+  - `loopTargetTime` is now `protected`
+- `Filter`
+  - Now contains a `bool RequiresSampleMemory` property which is used to prevent the filter from being used by certain APIs
 - `EffectLoader` and `SteamLoader` have new methods for handling custom audio formats
-- Added an example for `CustomAudioFormat`:  `MonoSound.Default.SegmentedOggFormat`
+- Added `MonoSound.Default.SegmentedOggFormat`
+  - Example use case for `CustomAudioFormat`
   - This type should not be registered.  Instead, create a `new SegmentedOggFormat()` and pass it to the `StreamLoader` methods that accept a `CustomAudioFormat` parameter
   - Streams created from this format use the `MonoSound.Default.SegmentedOggStream` type
   - Example usage can be found in the `MonoSound.Tests` project
-- Added methods in `FilterLoader` for updating the parameters on an already-existing filter
-- Fixed a bug where the additional samples used by the Echo filter would not be played
+- Added methods in `FilterLoader` for updating the parameters on an already-existing filters
+
+**Obsolete API:**
+- `CustomFileFormat` ⇒ `CustomAudioFormat`
+- `MonoSoundLibrary.RegisterFormat(string, Func<Stream, FormatWav>, Func<Stream, StreamPackage>)` ⇒ `MonoSoundLibrary.RegisterFormat(CustomAudioFormat)`
 
 ## v1.6.2
 - Replaced all usage of File.OpenRead() with TitleContainer.OpenStream(), since the former prevented MonoSound from loading on Android projects
