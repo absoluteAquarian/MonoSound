@@ -65,7 +65,9 @@ namespace MonoSound.Tests {
 				new TestState(Keys.D4, "Filtered Sounds", null).WithChildren(
 					new TestState(Keys.D1, "Low Pass Filter", PlayLowPassFilteredSound),
 					new TestState(Keys.D2, "High Pass Filter", PlayHighPassFilteredSound),
-					new TestState(Keys.D3, "Band Pass Filter", PlayBandPassFilteredSound)));
+					new TestState(Keys.D3, "Band Pass Filter", PlayBandPassFilteredSound),
+					new TestState(Keys.D4, "Echo Filter", PlayEchoFilteredSound),
+					new TestState(Keys.D5, "Reverb Filter", PlayReverbFilteredSound)));
 
 			base.Initialize();
 		}
@@ -82,6 +84,8 @@ namespace MonoSound.Tests {
 			lowPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.LowPass, 1, 1000, 5);
 			highPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.HighPass, 1, 1500, 8);
 			bandPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.BandPass, 1, 2000, 3);
+			echo = FilterLoader.RegisterEchoFilter(0.5f, 0.3f, 0.8f, 0.7f);
+			reverb = FilterLoader.RegisterReverbFilter(0.5f, 0.5f, 0.5f, 1f);
 
 			_fontSystem = new FontSystem();
 			_fontSystem.AddFont(File.ReadAllBytes("C:/Windows/Fonts/times.ttf"));
@@ -95,7 +99,7 @@ namespace MonoSound.Tests {
 		static float segmentedSongVolume;
 		static float segmentFade;
 
-		static int lowPass, highPass, bandPass;
+		static int lowPass, highPass, bandPass, echo, reverb;
 
 		static int timer;
 
@@ -371,6 +375,26 @@ namespace MonoSound.Tests {
 		private static void PlayBandPassFilteredSound() {
 			// Audio with filters testing
 			filteredSfx = EffectLoader.GetFilteredEffect("Content/spooky.mp3", bandPass);
+
+			filteredSfxInstance?.Dispose();
+			filteredSfxInstance = filteredSfx.CreateInstance();
+
+			filteredSfxInstance.Play();
+		}
+
+		private static void PlayEchoFilteredSound() {
+			// Audio with filters testing
+			filteredSfx = EffectLoader.GetFilteredEffect("Content/spooky.mp3", echo);
+
+			filteredSfxInstance?.Dispose();
+			filteredSfxInstance = filteredSfx.CreateInstance();
+
+			filteredSfxInstance.Play();
+		}
+
+		private static void PlayReverbFilteredSound() {
+			// Audio with filters testing
+			filteredSfx = EffectLoader.GetFilteredEffect("Content/spooky.mp3", reverb);
 
 			filteredSfxInstance?.Dispose();
 			filteredSfxInstance = filteredSfx.CreateInstance();

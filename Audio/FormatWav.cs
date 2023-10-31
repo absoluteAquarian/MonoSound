@@ -525,8 +525,16 @@ HeaderCheckStart:
 				}
 
 				//Echo filter can cause extra data to be given
-				if (newData.Length + 44 > data.Length)
+				if (newData.Length + 44 > data.Length) {
 					Array.Resize(ref data, newData.Length + 44);
+
+					// Update the to the new data length since it changed
+					var bytes = BitConverter.GetBytes(newData.Length);
+					data[40] = bytes[0];
+					data[41] = bytes[1];
+					data[42] = bytes[2];
+					data[43] = bytes[3];
+				}
 
 				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
 			} else if (BitsPerSample == 24) {
@@ -550,8 +558,16 @@ HeaderCheckStart:
 				}
 
 				//Echo filter can cause extra data to be given
-				if (newData.Length + 44 > data.Length)
+				if (newData.Length + 44 > data.Length) {
 					Array.Resize(ref data, newData.Length + 44);
+
+					// Update the to the new data length since it changed
+					var bytes = BitConverter.GetBytes(newData.Length);
+					data[40] = bytes[0];
+					data[41] = bytes[1];
+					data[42] = bytes[2];
+					data[43] = bytes[3];
+				}
 
 				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
 			} else
