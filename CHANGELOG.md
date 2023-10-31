@@ -26,6 +26,7 @@
   - This type should not be registered.  Instead, create a `new SegmentedOggFormat()` and pass it to the `StreamLoader` methods that accept a `CustomAudioFormat` parameter
   - Streams created from this format use the `MonoSound.Default.SegmentedOggStream` type
   - Example usage can be found in the `MonoSound.Tests` project
+- Added methods in `FilterLoader` for updating the parameters on an already-existing filter
 
 ## v1.6.2
 - Replaced all usage of File.OpenRead() with TitleContainer.OpenStream(), since the former prevented MonoSound from loading on Android projects
