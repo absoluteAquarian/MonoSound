@@ -1,5 +1,4 @@
-﻿using Microsoft.Xna.Framework.Audio;
-using MonoSound.Streaming;
+﻿using MonoSound.Streaming;
 using System;
 using System.IO;
 
@@ -190,7 +189,7 @@ namespace MonoSound.Default {
 
 		public override void Reset() {
 			// If the audio stream was stopped, reset the loop info to the start of the audio
-			if (PlayingSound.State == SoundState.Stopped) {
+			if (PlayingSound.State == Microsoft.Xna.Framework.Audio.SoundState.Stopped) {
 				loopTargetTime = TimeSpan.Zero;
 				tracker.TargetSegment = 0;
 				_delayedJumpTarget = -1;

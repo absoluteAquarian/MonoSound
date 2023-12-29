@@ -2,11 +2,8 @@
 using MonoSound.Audio;
 using MonoSound.Filters;
 using MonoSound.Filters.Instances;
-using MonoSound.Reflection;
 using System;
-using System.Collections;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.IO;
 using System.Threading;
 
@@ -138,6 +135,11 @@ namespace MonoSound.Streaming {
 			PlayingSound = new DynamicSoundEffectInstance(SampleRate, Channels);
 			PlayingSound.BufferNeeded += QueueBuffers;
 
+			// BUG FIX: Sometimes the streamed audio will start with the wrong parameters
+			PlayingSound.Volume = 1;
+			PlayingSound.Pan = 0;
+			PlayingSound.Pitch = 0;
+
 			Metrics = new SoundMetrics(PlayingSound);
 		}
 
@@ -230,17 +232,12 @@ namespace MonoSound.Streaming {
 				Read(Controls.StreamBufferLengthInSeconds, max);
 		}
 
-		private static readonly Type OALSoundBuffer = typeof(SoundEffect).Assembly.GetType("Microsoft.Xna.Framework.Audio.OALSoundBuffer");
-
 		private double CalculateBufferTime() {
 			double time = 0;
 			
 			// TODO: implementation for tracking play time may need to be different if MonoSound ever tries to compile against WindowsDX
-			var _queuedBuffers = typeof(DynamicSoundEffectInstance).RetrieveField("_queuedBuffers", PlayingSound) as IEnumerable;
-			foreach (var item in _queuedBuffers) {
-				var Duration = OALSoundBuffer.RetrieveField<double>("<Duration>k__BackingField", item);
-				time += Duration;
-			}
+			foreach (var item in PlayingSound._queuedBuffers)
+				time += item.Duration;
 
 			return time;
 		}

@@ -1,4 +1,11 @@
-﻿## v1.7
+﻿## v1.7.1
+**Fixes:
+- Implemented a hopefully temporary fix to a bug where streamed audio would randomly have the wrong pitch or volume
+
+**API Changes:**
+- Removed the internal `FastReflection` class and its related classes in favor of an assembly publicizer package
+
+## v1.7
  **Fixes:**
 - Fixed a copy/paste typo which caused the `RegisterBiquadResonantFilter`, `RegisterEchoFilter` and `RegisterReverbFilter` methods in `MonoSoundManager` to mention the wrong methods
 - Fixed a bug where the additional samples created by the Echo filter would not be played

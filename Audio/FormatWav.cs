@@ -1,6 +1,5 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
-using MonoSound.XACT;
 using MP3Sharp;
 using MP3Sharp.Decoding;
 using NVorbis;
@@ -454,9 +453,7 @@ HeaderCheckStart:
 			return wav;
 		}
 
-#pragma warning disable IDE0060
-		internal static FormatWav FromSoundEffectConstructor(MiniFormatTag codec, byte[] buffer, int channels, int sampleRate, int blockAlignment, int loopStart, int loopLength) {
-#pragma warning restore IDE0060
+		internal static FormatWav FromSoundEffectConstructor(XACT.MiniFormatTag codec, byte[] buffer, int channels, int sampleRate, int blockAlignment, int loopStart, int loopLength) {
 			//WaveBank sounds always have 16 bits/sample for some reason
 			const int bitsPerSample = 16;
 
