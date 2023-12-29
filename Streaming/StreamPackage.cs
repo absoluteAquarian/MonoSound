@@ -12,7 +12,7 @@ namespace MonoSound.Streaming {
 	/// An object representing streamed audio from a data stream
 	/// </summary>
 	public abstract class StreamPackage : IDisposable {
-		internal DynamicSoundEffectInstance PlayingSound { get; private set; }
+		internal StreamedSoundEffectInstance PlayingSound { get; private set; }
 
 		/// <summary>
 		/// The parameters for the sound played by this instance
@@ -121,6 +121,13 @@ namespace MonoSound.Streaming {
 			PlayingSound.Pause();
 		}
 
+		public void Resume() {
+			if (disposed)
+				throw new ObjectDisposedException("this");
+
+			PlayingSound.Resume();
+		}
+
 		public void Stop() {
 			if (disposed)
 				throw new ObjectDisposedException("this");
@@ -132,10 +139,10 @@ namespace MonoSound.Streaming {
 		private void InitSound() {
 			//Initialize the instance
 			PlayingSound?.Dispose();
-			PlayingSound = new DynamicSoundEffectInstance(SampleRate, Channels);
+			PlayingSound = new StreamedSoundEffectInstance(SampleRate, Channels);
 			PlayingSound.BufferNeeded += QueueBuffers;
 
-			// BUG FIX: Sometimes the streamed audio will start with the wrong parameters
+			// BUG FIX: Sometimes the streamed audio will randomly start with the wrong parameters
 			PlayingSound.Volume = 1;
 			PlayingSound.Pan = 0;
 			PlayingSound.Pitch = 0;
@@ -220,7 +227,7 @@ namespace MonoSound.Streaming {
 
 			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
 
-			var sfx = sender as DynamicSoundEffectInstance;
+			var sfx = sender as StreamedSoundEffectInstance;
 			while (_queuedReads.TryDequeue(out byte[] read))
 				sfx.SubmitBuffer(read);
 

@@ -15,6 +15,9 @@ namespace MonoSound.Streaming {
 
 		private static int StreamSourceCreationIndex;
 
+		private static Task _workThread;
+		private static readonly CancellationTokenSource _workTokenSource = new CancellationTokenSource();
+
 		public static StreamPackage InitializeStream(string path, bool loopedSound, AudioType type) {
 			StreamPackage package = type switch {
 				AudioType.XNB => new XnbStream(path),
@@ -205,14 +208,47 @@ namespace MonoSound.Streaming {
 
 		internal static void Initialize() {
 			streams = new ConcurrentDictionary<string, StreamPackage>();
+
+			_workThread = new Task(HandleStreamBuffering, _workTokenSource.Token, TaskCreationOptions.LongRunning);
+			_workThread.Start();
+
+			_canSafelyDestroyStreams = false;
 		}
 
 		internal static void Deinitialize() {
+			// Stop the threading
+			_workTokenSource.Cancel();
+			_workThread = null;
+
+			// Wait for the thread to finish
+			while (!_canSafelyDestroyStreams)
+				Thread.Yield();
+
 			// Free the streams
 			foreach (var stream in streams.Values)
 				stream.Dispose();
 
 			streams = null;
+		}
+
+		private static bool _canSafelyDestroyStreams = true;
+
+		private static void HandleStreamBuffering() {
+			try {
+				while (true) {
+					foreach (var (_, stream) in streams) {
+						if (stream.Metrics.State == SoundState.Playing)
+							stream.PlayingSound.StrobeQueue();
+					}
+
+					// After the streams are processed, free the thread time for use by other threads
+					Thread.Yield();
+				}
+			} catch when (_workTokenSource.IsCancellationRequested) {
+				// Nothing special to do here
+			} finally {
+				_canSafelyDestroyStreams = true;
+			}
 		}
 	}
 }

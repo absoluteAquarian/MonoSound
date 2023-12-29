@@ -35,6 +35,13 @@ The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGam
 	<!-- Certain members should not be publicized, mostly in cases of
          accidental overlap. -->
 	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.DynamicSoundEffectInstance.BufferNeeded" />
+	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.SoundEffectInstance.PlatformCreate" />
+	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.SoundEffectInstance.PlatformPlay" />
+	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.SoundEffectInstance.PlatformPause" />
+	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.SoundEffectInstance.PlatformResume" />
+	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.SoundEffectInstance.PlatformStop" />
+	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.SoundEffectInstance.Dispose" />
+	<DoNotPublicize Include="MonoGame.Framework:Microsoft.Xna.Framework.Audio.SoundEffectInstance.PlatformDispose" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" Pack="true" PackagePath="" />

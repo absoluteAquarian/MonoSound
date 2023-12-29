@@ -1,6 +1,7 @@
 ﻿## v1.7.1
 **Fixes:
 - Implemented a hopefully temporary fix to a bug where streamed audio would randomly have the wrong pitch or volume
+- Moved audio streaming to a worker thread and an internal `SoundEffectInstance`-deriving type to fix audio popping at lower framerates
 
 **API Changes:**
 - Removed the internal `FastReflection` class and its related classes in favor of an assembly publicizer package
