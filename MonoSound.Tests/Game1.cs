@@ -79,7 +79,7 @@ namespace MonoSound.Tests {
 
 			// TODO: use this.Content to load your game content here
 
-			MonoSoundLibrary.Init();
+			MonoSoundLibrary.Init(this);
 
 			lowPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.LowPass, 1, 1000, 5);
 			highPass = FilterLoader.RegisterBiquadResonantFilter(SoundFilterType.HighPass, 1, 1500, 8);

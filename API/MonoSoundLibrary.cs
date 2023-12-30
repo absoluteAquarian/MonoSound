@@ -1,4 +1,5 @@
-﻿using MonoSound.Audio;
+﻿using Microsoft.Xna.Framework;
+using MonoSound.Audio;
 using MonoSound.Filters;
 using MonoSound.Filters.Instances;
 using MonoSound.Streaming;
@@ -37,17 +38,26 @@ namespace MonoSound {
 		/// </summary>
 		public static int NextFilterID { get; internal set; }
 
+		internal static Game Game { get; private set; }
+
 		/// <summary>
 		/// The version for MonoSound
 		/// </summary>
 		public static readonly string Version = "1.7.1";
 
+		/// <inheritdoc cref="Init(Game)"/>
+		[Obsolete("Use the overload with the Game parameter instead", error: true)]
+		public static void Init() => Init(null);
+
 		/// <summary>
 		/// Initializes the MonoSound library
 		/// </summary>
-		public static void Init() {
+		/// <param name="game">The game instance.  This variable will be used by certain APIs.</param>
+		public static void Init(Game game) {
 			if (initialized)
 				throw new InvalidOperationException("MonoSound has already been initialized");
+
+			Game = game;
 
 			cancelSource = new CancellationTokenSource();
 

@@ -1,4 +1,7 @@
-﻿namespace MonoSound {
+﻿using MonoSound.API;
+using MonoSound.Streaming;
+
+namespace MonoSound {
 	/// <summary>
 	/// The class responsible for controlling how various aspects of MonoSound are handled.
 	/// </summary>
@@ -33,5 +36,10 @@
 				streamBufferLengthInSeconds = value;
 			}
 		}
+
+		/// <summary>
+		/// The default behavior for all <see cref="StreamPackage"/> audio streaming.
+		/// </summary>
+		public static StreamFocusBehavior DefaultStreamFocusBehavior { get; set; } = StreamFocusBehavior.KeepPlaying;
 	}
 }

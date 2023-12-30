@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
+using MonoSound.API;
 using MonoSound.Audio;
 using System;
 using System.Collections.Concurrent;
@@ -16,7 +17,7 @@ namespace MonoSound.Streaming {
 		private static int StreamSourceCreationIndex;
 
 		private static Task _workThread;
-		private static readonly CancellationTokenSource _workTokenSource = new CancellationTokenSource();
+		private static CancellationToken _workToken;
 
 		public static StreamPackage InitializeStream(string path, bool loopedSound, AudioType type) {
 			StreamPackage package = type switch {
@@ -209,15 +210,14 @@ namespace MonoSound.Streaming {
 		internal static void Initialize() {
 			streams = new ConcurrentDictionary<string, StreamPackage>();
 
-			_workThread = new Task(HandleStreamBuffering, _workTokenSource.Token, TaskCreationOptions.LongRunning);
+			_workToken = MonoSoundLibrary.GetCancellationToken();
+			_workThread = new Task(HandleStreamBuffering, _workToken, TaskCreationOptions.LongRunning);
 			_workThread.Start();
 
 			_canSafelyDestroyStreams = false;
 		}
 
 		internal static void Deinitialize() {
-			// Stop the threading
-			_workTokenSource.Cancel();
 			_workThread = null;
 
 			// Wait for the thread to finish
@@ -237,6 +237,21 @@ namespace MonoSound.Streaming {
 			try {
 				while (true) {
 					foreach (var (_, stream) in streams) {
+						// Handle the streaming behavior
+						if (MonoSoundLibrary.Game is Game game && stream.GetActualFocusBehavior() == StreamFocusBehavior.PauseOnLostFocus && stream.Metrics.State != SoundState.Stopped) {
+							if (!game.IsActive) {
+								if (!stream.focusPause) {
+									// Pause the stream and indicate that it's an automatic pause
+									stream.focusPause = true;
+									stream.Pause();
+								}
+							} else if (stream.focusPause) {
+								// Resume the stream
+								stream.focusPause = false;
+								stream.Resume();
+							}
+						}
+
 						if (stream.Metrics.State == SoundState.Playing)
 							stream.PlayingSound.StrobeQueue();
 					}
@@ -244,7 +259,7 @@ namespace MonoSound.Streaming {
 					// After the streams are processed, free the thread time for use by other threads
 					Thread.Yield();
 				}
-			} catch when (_workTokenSource.IsCancellationRequested) {
+			} catch when (_workToken.IsCancellationRequested) {
 				// Nothing special to do here
 			} finally {
 				_canSafelyDestroyStreams = true;

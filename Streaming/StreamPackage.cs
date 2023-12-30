@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Audio;
+using MonoSound.API;
 using MonoSound.Audio;
 using MonoSound.Filters;
 using MonoSound.Filters.Instances;
@@ -65,6 +66,16 @@ namespace MonoSound.Streaming {
 		/// Gets the max duration for the streamed audio
 		/// </summary>
 		public virtual TimeSpan MaxDuration => TimeSpan.FromSeconds(GetSecondDuration(TotalBytes));
+
+		internal bool focusPause;
+
+		/// <summary>
+		/// Gets or sets the audio streaming behavior for this streamed audio.<br/>
+		/// If <see langword="null"/>, <see cref="Controls.DefaultStreamFocusBehavior"/> will be used instead.
+		/// </summary>
+		public StreamFocusBehavior? FocusBehavior { get; set; } = null;
+
+		internal StreamFocusBehavior GetActualFocusBehavior() => FocusBehavior ?? Controls.DefaultStreamFocusBehavior;
 
 		private readonly object _filterLock = new object();
 		private int[] filterIDs;

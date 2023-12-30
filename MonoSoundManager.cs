@@ -1,4 +1,5 @@
-﻿using Microsoft.Xna.Framework.Audio;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using MonoSound.Filters;
 using System;
 using System.IO;
@@ -40,7 +41,7 @@ namespace MonoSound {
 		[Obsolete("Use MonoSoundLibrary.Version instead")]
 		public static readonly string Version = MonoSoundLibrary.Version;
 
-		/// <inheritdoc cref="MonoSoundLibrary.Init"/>
+		/// <inheritdoc cref="MonoSoundLibrary.Init(Game)"/>
 		[Obsolete("Use MonoSoundLibrary.Init instead", error: true)]
 		public static void Init() => MonoSoundLibrary.Init();
 
