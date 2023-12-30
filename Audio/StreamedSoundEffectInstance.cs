@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using System;
+using System.Runtime.CompilerServices;
 
+[assembly: IgnoresAccessChecksTo("MonoGame.Framework")]
 namespace MonoSound.Audio {
 	// A copy of DynamicSoundEffectInstance that's tailored for threaded buffer loading
 	// Typically I'd use something like MonoMod to adjust the behavior instead, but I don't know how well it would mesh with NativeAOT/BRUTE
