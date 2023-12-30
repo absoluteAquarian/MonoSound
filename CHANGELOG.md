@@ -1,5 +1,5 @@
 ﻿## v1.7.1
-**Fixes:
+**Fixes:**
 - Implemented a hopefully temporary fix for a bug where streamed audio would randomly have the wrong pitch or volume
 - Moved audio streaming to a worker thread and an internal `SoundEffectInstance`-deriving type to fix audio popping at lower framerates
 
