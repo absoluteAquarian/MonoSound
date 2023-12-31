@@ -213,56 +213,55 @@ namespace MonoSound.Streaming {
 			_workToken = MonoSoundLibrary.GetCancellationToken();
 			_workThread = new Task(HandleStreamBuffering, _workToken, TaskCreationOptions.LongRunning);
 			_workThread.Start();
-
-			_canSafelyDestroyStreams = false;
 		}
+
+		private static bool _areStreamsDisposed = false;
 
 		internal static void Deinitialize() {
 			_workThread = null;
 
-			// Wait for the thread to finish
-			while (!_canSafelyDestroyStreams)
-				Thread.Yield();
-
 			// Free the streams
-			foreach (var stream in streams.Values)
-				stream.Dispose();
+			lock (streams) {
+				foreach (var stream in streams.Values)
+					stream.Dispose();
+
+				_areStreamsDisposed = true;
+			}
 
 			streams = null;
 		}
 
-		private static bool _canSafelyDestroyStreams = true;
 
 		private static void HandleStreamBuffering() {
-			try {
-				while (true) {
+			// The CancellationToken will automatically force execution out of this loop when a cancellation is requested
+			while (true) {
+				lock (streams) {
+					// Sanity check to ensure that the thread properly exits when the streams are disposed
+					if (_areStreamsDisposed)
+						break;
+
 					foreach (var (_, stream) in streams) {
+						if (stream?.Metrics?.IsDisposed ?? true)
+							continue;
+
 						// Handle the streaming behavior
 						if (MonoSoundLibrary.Game is Game game && stream.GetActualFocusBehavior() == StreamFocusBehavior.PauseOnLostFocus && stream.Metrics.State != SoundState.Stopped) {
 							if (!game.IsActive) {
-								if (!stream.focusPause) {
-									// Pause the stream and indicate that it's an automatic pause
-									stream.focusPause = true;
-									stream.Pause();
-								}
-							} else if (stream.focusPause) {
+								// Pause the stream and indicate that it's an automatic pause
+								stream.FocusPause();
+							} else {
 								// Resume the stream
-								stream.focusPause = false;
-								stream.Resume();
+								stream.FocusResume();
 							}
 						}
 
 						if (stream.Metrics.State == SoundState.Playing)
 							stream.PlayingSound.StrobeQueue();
 					}
-
-					// After the streams are processed, free the thread time for use by other threads
-					Thread.Yield();
 				}
-			} catch when (_workToken.IsCancellationRequested) {
-				// Nothing special to do here
-			} finally {
-				_canSafelyDestroyStreams = true;
+
+				// After the streams are processed, free the thread time for use by other threads
+				Thread.Yield();
 			}
 		}
 	}

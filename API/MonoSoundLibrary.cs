@@ -43,7 +43,7 @@ namespace MonoSound {
 		/// <summary>
 		/// The version for MonoSound
 		/// </summary>
-		public static readonly string Version = "1.7.1";
+		public static readonly string Version = "1.7.1.1";
 
 		/// <inheritdoc cref="Init(Game)"/>
 		[Obsolete("Use the overload with the Game parameter instead", error: true)]

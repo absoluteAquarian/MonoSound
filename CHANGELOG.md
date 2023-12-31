@@ -1,4 +1,9 @@
-﻿## v1.7.1
+﻿## v1.7.1.1
+**Fixes:**
+- Added an exception handler to audio stream loading to prevent the worker thread from stopping if an exception is thrown
+- Fixed an oversight where `MonoSoundLibrary.DeInit()` would softlock
+
+## v1.7.1
 **Fixes:**
 - Implemented a hopefully temporary fix for a bug where streamed audio would randomly have the wrong pitch or volume
 - Moved audio streaming to a worker thread and an internal `SoundEffectInstance`-deriving type to fix audio popping at lower framerates

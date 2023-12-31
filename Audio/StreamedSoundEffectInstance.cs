@@ -185,15 +185,19 @@ namespace MonoSound.Audio {
 		}
 
 		internal void StrobeQueue() {
-			// Update the buffers
-			PlatformUpdateQueue();
+			try {
+				// Update the buffers
+				PlatformUpdateQueue();
 
-			// Raise the event
-			var handler = BufferNeeded;
-			if (handler != null) {
-				int count = _buffersNeeded < 3 ? _buffersNeeded : 3;
-				for (int i = 0; i < count; i++)
-					handler(this, EventArgs.Empty);
+				// Raise the event
+				var handler = BufferNeeded;
+				if (handler != null) {
+					int count = _buffersNeeded < 3 ? _buffersNeeded : 3;
+					for (int i = 0; i < count; i++)
+						handler(this, EventArgs.Empty);
+				}
+			} catch {
+				// Swallow any exceptions that occur here to prevent the handler thread from stopping.
 			}
 
 			_buffersNeeded = 0;

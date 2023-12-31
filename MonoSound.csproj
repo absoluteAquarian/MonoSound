@@ -6,7 +6,7 @@
     <TieredCompilation>false</TieredCompilation>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	<Version>1.7.1</Version>
+	<Version>1.7.1.1</Version>
 	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	<Authors>John Baglio</Authors>
 	<Description>A library built for use with MonoGame DesktopGL projects.
@@ -18,7 +18,7 @@ The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGam
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<RepositoryUrl>https://github.com/absoluteAquarian/MonoSound</RepositoryUrl>
 	<PackageTags>monogame;sound;sound-filters;filters;xact;audio</PackageTags>
-	<PackageReleaseNotes>Version 1.7 included a major codebase overhaul.  This version adds some bug fixes, new features and improves console support.</PackageReleaseNotes>
+	<PackageReleaseNotes>Version 1.7 included a major codebase overhaul.  This version adds some bug fixes.</PackageReleaseNotes>
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

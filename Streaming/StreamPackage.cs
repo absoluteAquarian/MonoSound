@@ -67,15 +67,13 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		public virtual TimeSpan MaxDuration => TimeSpan.FromSeconds(GetSecondDuration(TotalBytes));
 
-		internal bool focusPause;
+		private bool focusPause;
 
 		/// <summary>
 		/// Gets or sets the audio streaming behavior for this streamed audio.<br/>
 		/// If <see langword="null"/>, <see cref="Controls.DefaultStreamFocusBehavior"/> will be used instead.
 		/// </summary>
 		public StreamFocusBehavior? FocusBehavior { get; set; } = null;
-
-		internal StreamFocusBehavior GetActualFocusBehavior() => FocusBehavior ?? Controls.DefaultStreamFocusBehavior;
 
 		private readonly object _filterLock = new object();
 		private int[] filterIDs;
@@ -93,6 +91,22 @@ namespace MonoSound.Streaming {
 			this.type = type;
 
 			Initialize();
+		}
+
+		internal StreamFocusBehavior GetActualFocusBehavior() => FocusBehavior ?? Controls.DefaultStreamFocusBehavior;
+
+		internal void FocusPause() {
+			if (Metrics.State == SoundState.Playing && !focusPause) {
+				Pause();
+				focusPause = true;
+			}
+		}
+
+		internal void FocusResume() {
+			if (Metrics.State == SoundState.Paused && focusPause) {
+				Resume();
+				focusPause = false;
+			}
 		}
 
 		private void UpdatePlayTime(double time) {
