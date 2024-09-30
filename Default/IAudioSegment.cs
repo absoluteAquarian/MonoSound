@@ -1,6 +1,9 @@
 ﻿using System;
 
 namespace MonoSound.Default {
+	/// <summary>
+	/// An interface for defining a segment of audio data that can be looped
+	/// </summary>
 	public interface IAudioSegment {
 		/// <summary>
 		/// The location of the start of the loop.  This is where the audio stream will jump to once <see cref="Start"/> has been reached.
@@ -24,8 +27,10 @@ namespace MonoSound.Default {
 	/// A structure representing a non-looping audio segment that begins at the start of the audio data
 	/// </summary>
 	public readonly struct StartSegment : IAudioSegment {
+		/// <inheritdoc cref="IAudioSegment.Start"/>
 		public TimeSpan Start => TimeSpan.Zero;
 
+		/// <inheritdoc cref="IAudioSegment.End"/>
 		public TimeSpan End { get; }
 
 		/// <summary>
@@ -40,6 +45,7 @@ namespace MonoSound.Default {
 			End = end;
 		}
 
+		/// <inheritdoc cref="IAudioSegment.Loop"/>
 		public bool Loop(out TimeSpan loopTarget) {
 			loopTarget = default;
 			return false;
@@ -50,8 +56,10 @@ namespace MonoSound.Default {
 	/// A structure representing a looping audio segment that starts somewhere between the start and end of the audio data
 	/// </summary>
 	public readonly struct Segment : IAudioSegment {
+		/// <inheritdoc cref="IAudioSegment.Start"/>
 		public TimeSpan Start { get; }
 
+		/// <inheritdoc cref="IAudioSegment.End"/>
 		public TimeSpan End { get; }
 
 		/// <summary>
@@ -68,6 +76,7 @@ namespace MonoSound.Default {
 			End = end;
 		}
 
+		/// <inheritdoc cref="IAudioSegment.Loop"/>
 		public bool Loop(out TimeSpan loopTarget) {
 			loopTarget = Start;
 			return true;
@@ -78,8 +87,10 @@ namespace MonoSound.Default {
 	/// A structure representing a looping audio segment that ends at the end of the audio data
 	/// </summary>
 	public struct EndSegment : IAudioSegment {
+		/// <inheritdoc cref="IAudioSegment.Start"/>
 		public TimeSpan Start { get; }
 
+		/// <inheritdoc cref="IAudioSegment.End"/>
 		public TimeSpan End { get; internal set; }
 
 		/// <summary>
@@ -102,6 +113,7 @@ namespace MonoSound.Default {
 			LoopToStartOfAudio = true;
 		}
 
+		/// <inheritdoc cref="IAudioSegment.Loop"/>
 		public bool Loop(out TimeSpan loopTarget) {
 			// Jump to the start of the audio file or segment
 			loopTarget = LoopToStartOfAudio ? TimeSpan.Zero : Start;

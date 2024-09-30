@@ -20,11 +20,6 @@ namespace MonoSound.Audio {
 
 		private byte[] data;
 
-		/// <summary>
-		/// Gets a clone of the underlying byte stream
-		/// </summary>
-		public byte[] Data => (byte[])data.Clone();
-
 		//Header data is always the first 44 bytes
 		/// <summary>
 		/// "RIFF" if the file stores its values as Little-Endian, "RIFX" otherwise
@@ -83,21 +78,25 @@ namespace MonoSound.Audio {
 		/// <summary>
 		/// The length of the sample data in bytes
 		/// </summary>
-		public int DataLength => BitConverter.ToInt32(data, 40);
+		public int DataLength {
+			get => BitConverter.ToInt32(data, 40);
+			private set => BitConverter.GetBytes(value).CopyTo(data, 40);
+		}
 
+		/// <summary>
+		/// Converts the portion of the underlying byte stream that contains audio data into a series of sample instances
+		/// </summary>
+		/// <returns></returns>
 		public WavSample[] GetSamples() {
 			byte[] audioData = GetSoundBytes();
 
-			List<WavSample> samples = new List<WavSample>();
+			List<WavSample> samples = [];
 			int size = BitsPerSample / 8;
 
-			for (int i = 0; i < audioData.Length; i += size) {
-				byte[] pass = new byte[size];
-				Array.Copy(audioData, i, pass, 0, size);
-				samples.Add(new WavSample((short)(BitsPerSample / 8), pass));
-			}
+			for (int i = 0; i < audioData.Length; i += size)
+				samples.Add(new WavSample(audioData.AsSpan().Slice(i, size)));
 
-			return samples.ToArray();
+			return [.. samples];
 		}
 
 		/// <summary>
@@ -237,7 +236,7 @@ namespace MonoSound.Audio {
 			//Read the samples
 			float[] buffer = new float[reader.SampleRate / 10 * reader.Channels];
 			byte[] sampleWrite;
-			List<byte> samples = new List<byte>();
+			List<byte> samples = [];
 			int count;
 			while ((count = reader.ReadSamples(buffer, 0, buffer.Length)) > 0) {
 				for (int i = 0; i < count; i++) {
@@ -254,7 +253,7 @@ namespace MonoSound.Audio {
 				}
 			}
 
-			return FromDecompressorData(samples.ToArray(), header);
+			return FromDecompressorData([.. samples], header);
 		}
 
 		internal static FormatWav FromDecompressorData(byte[] sampleData, byte[] header) {
@@ -366,7 +365,7 @@ namespace MonoSound.Audio {
 
 				//Read the samples
 				byte[] sampleWrite = new byte[1024];
-				List<byte> samples = new List<byte>();
+				List<byte> samples = [];
 				int count;
 
 				while ((count = stream.Read(sampleWrite, 0, 1024)) > 0) {
@@ -376,7 +375,7 @@ namespace MonoSound.Audio {
 					samples.AddRange(read);
 				}
 
-				return FromDecompressorData(samples.ToArray(), header);
+				return FromDecompressorData([.. samples], header);
 			} catch (BitstreamException) {
 				// Try again
 				attempts++;
@@ -484,6 +483,11 @@ HeaderCheckStart:
 			return FromDecompressorData(buffer, header);
 		}
 
+		/// <summary>
+		/// Saves the current instance to a <i>.wav</i> file
+		/// </summary>
+		/// <param name="file">The file to write the data to.  Must have the <i>.wav</i> extension</param>
+		/// <exception cref="ArgumentException"/>
 		public void SaveToFile(string file) {
 			if (Path.GetExtension(file) != ".wav")
 				throw new ArgumentException("Destination file must be a .wav file", "file");
@@ -509,66 +513,37 @@ HeaderCheckStart:
 		}
 
 		internal void ReconstructFromFloatSamples(float[] allSamples) {
+			if (allSamples is not { Length: > 0 })
+				throw new ArgumentException("No samples were provided", "allSamples");
+			
+			byte[] newData;
+
 			if (BitsPerSample == 16) {
-				byte[] newData = new byte[allSamples.Length * 2];
+				newData = new byte[allSamples.Length * 2];
 
-				for (int i = 0; i < allSamples.Length; i++) {
-					ClampSample(ref allSamples[i]);
-
-					short convert = (short)(allSamples[i] * short.MaxValue);
-					byte[] temp = BitConverter.GetBytes(convert);
-					newData[2 * i] = temp[0];
-					newData[2 * i + 1] = temp[1];
-				}
-
-				//Echo filter can cause extra data to be given
-				if (newData.Length + 44 > data.Length) {
-					Array.Resize(ref data, newData.Length + 44);
-
-					// Update the to the new data length since it changed
-					var bytes = BitConverter.GetBytes(newData.Length);
-					data[40] = bytes[0];
-					data[41] = bytes[1];
-					data[42] = bytes[2];
-					data[43] = bytes[3];
-				}
-
-				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
+				for (int i = 0; i < allSamples.Length; i++)
+					new PCM16Bit(allSamples[i]).WriteToStream(newData, i * 2);
 			} else if (BitsPerSample == 24) {
-				byte[] newData = new byte[allSamples.Length * 3];
+				newData = new byte[allSamples.Length * 3];
 
-				for (int i = 0; i < allSamples.Length; i++) {
-					ClampSample(ref allSamples[i]);
-
-					int convert = (int)(allSamples[i] * WavSample.MaxValue_24BitPCM);
-					byte[] temp = BitConverter.GetBytes(convert);
-
-					if (BitConverter.IsLittleEndian) {
-						newData[3 * i] = temp[1];
-						newData[3 * i + 1] = temp[2];
-						newData[3 * i + 2] = temp[3];
-					} else {
-						newData[3 * i] = temp[3];
-						newData[3 * i + 1] = temp[2];
-						newData[3 * i + 2] = temp[1];
-					}
-				}
-
-				//Echo filter can cause extra data to be given
-				if (newData.Length + 44 > data.Length) {
-					Array.Resize(ref data, newData.Length + 44);
-
-					// Update the to the new data length since it changed
-					var bytes = BitConverter.GetBytes(newData.Length);
-					data[40] = bytes[0];
-					data[41] = bytes[1];
-					data[42] = bytes[2];
-					data[43] = bytes[3];
-				}
-
-				Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
+				for (int i = 0; i < allSamples.Length; i++)
+					new PCM24Bit(allSamples[i]).WriteToStream(newData, i * 3);
 			} else
 				throw new InvalidOperationException("Attempted to process data for a bit depth that's not supported.  WAV files must use 16-bit or 24-bit PCM data");
+
+			// Echo filter can cause extra data to be given
+			if (newData.Length + 44 > data.Length) {
+				Array.Resize(ref data, newData.Length + 44);
+
+				// Update the new data length in the header since it changed
+				var bytes = BitConverter.GetBytes(newData.Length);
+				data[40] = bytes[0];
+				data[41] = bytes[1];
+				data[42] = bytes[2];
+				data[43] = bytes[3];
+			}
+
+			Buffer.BlockCopy(newData, 0, data, 44, newData.Length);
 		}
 
 		/// <summary>
@@ -583,21 +558,24 @@ HeaderCheckStart:
 
 		private bool disposed;
 
-		~FormatWav() {
-			Dispose(false);
+		/// <summary>
+		/// Finalizer for the <see cref="FormatWav"/> class
+		/// </summary>
+		~FormatWav() => Dispose(false);
+
+		/// <inheritdoc cref="IDisposable.Dispose"/>
+		public void Dispose() {
+			Dispose(true);
 			GC.SuppressFinalize(this);
 		}
 
-		public void Dispose() {
-			Dispose(true);
-		}
-
-		public void Dispose(bool disposing) {
+		private void Dispose(bool disposing) {
 			if (!disposed) {
 				if (disposing) {
-					data = null;
+					// Dispose managed resources
 				}
 
+				data = null;
 				disposed = true;
 			}
 		}

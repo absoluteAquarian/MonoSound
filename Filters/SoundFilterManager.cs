@@ -17,7 +17,7 @@ namespace MonoSound.Filters {
 		internal static List<string> AllValidExtensions = new List<string>(validExtensions);
 
 		public static void Init() {
-			filters = new List<FilterPackage>();
+			filters = [];
 		}
 
 		public static void DeInit() {

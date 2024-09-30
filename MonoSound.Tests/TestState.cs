@@ -16,7 +16,7 @@ namespace MonoSound.Tests {
 			this.key = key;
 			this.identifier = identifier;
 			this.onSelected = onSelected;
-			children = new List<TestState>();
+			children = [];
 		}
 
 		public TestState WithChild(TestState child) {
@@ -37,7 +37,7 @@ namespace MonoSound.Tests {
 
 			TestState state = this;
 
-			List<TestState> tree = new List<TestState>();
+			List<TestState> tree = [];
 
 			foreach (var key in sequence) {
 				state = state.Get(key);

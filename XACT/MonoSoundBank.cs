@@ -41,7 +41,7 @@ namespace MonoSound.XACT {
 		internal string[] _waveBankNames;
 		internal WaveBankTable _waveBanks;
 
-		readonly Dictionary<string, MonoXactSound> _sounds = new Dictionary<string, MonoXactSound>();
+		readonly Dictionary<string, MonoXactSound> _sounds = [];
 
 		private MonoSoundBank() { }
 

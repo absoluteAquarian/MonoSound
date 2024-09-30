@@ -1,4 +1,5 @@
-﻿using MonoSound.API;
+﻿using Microsoft.Xna.Framework;
+using MonoSound.API;
 using MonoSound.Streaming;
 
 namespace MonoSound {
@@ -12,7 +13,7 @@ namespace MonoSound {
 		public static bool AllowEchoOversampling { get; set; }
 
 		/// <summary>
-		/// If enabled, this folder path will be where filtered sounds are saved to. This property should be set after <seealso cref="MonoSoundLibrary.Init"/> is called.
+		/// If enabled, this folder path will be where filtered sounds are saved to. This property should be set after <seealso cref="MonoSoundLibrary.Init(Game)"/> is called.
 		/// </summary>
 		public static string LogDirectory { get; set; }
 
@@ -28,13 +29,7 @@ namespace MonoSound {
 		/// </summary>
 		public static double StreamBufferLengthInSeconds {
 			get => streamBufferLengthInSeconds;
-			set {
-				if (value < 1 / 500d)
-					value = 1 / 500d;  // At most 500 reads per second
-				if (value > 1 / 10d)
-					value = 1 / 10d;   // At minimum 10 reads per second
-				streamBufferLengthInSeconds = value;
-			}
+			set => streamBufferLengthInSeconds = double.Clamp(value, 1 / 500d, 1 / 10d);  // At most 500 reads per second and at least 10 reads per second
 		}
 
 		/// <summary>

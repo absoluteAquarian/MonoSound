@@ -9,13 +9,17 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace MonoSound {
+	/// <summary>
+	/// The central class for general sound management
+	/// </summary>
 	public static class MonoSoundLibrary {
 		internal static Dictionary<int, Filter> customFilters;
 
+#pragma warning disable CS0618 // Type or member is obsolete
 		internal static Dictionary<string, CustomFileFormat> registeredFormats;
+#pragma warning restore CS0618 // Type or member is obsolete
 
 		internal static Dictionary<string, CustomAudioFormat> customAudioFormats;
 
@@ -43,7 +47,7 @@ namespace MonoSound {
 		/// <summary>
 		/// The version for MonoSound
 		/// </summary>
-		public static readonly string Version = "1.7.1.1";
+		public static readonly string Version = "1.7.2";
 
 		/// <inheritdoc cref="Init(Game)"/>
 		[Obsolete("Use the overload with the Game parameter instead", error: true)]
@@ -64,12 +68,12 @@ namespace MonoSound {
 			SoundFilterManager.Init();
 			StreamManager.Initialize();
 
-			customFilters = new Dictionary<int, Filter>();
-			registeredFormats = new Dictionary<string, CustomFileFormat>();
-			customAudioFormats = new Dictionary<string, CustomAudioFormat>();
-			waveBanks = new Dictionary<string, MonoWaveBank>();
-			streamedWaveBanks = new Dictionary<string, MonoWaveBank>();
-			soundBanks = new Dictionary<string, MonoSoundBank>();
+			customFilters = [];
+			registeredFormats = [];
+			customAudioFormats = [];
+			waveBanks = [];
+			streamedWaveBanks = [];
+			soundBanks = [];
 
 			NextFilterID = 0;
 

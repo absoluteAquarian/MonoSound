@@ -3,3 +3,16 @@
 - Low Pass filters can, for no reason, cause sound samples to be either 0 or +/-max.  Investigate
 - Implement the rest of SoLoud's sound filters
 - Implement the Filter/FilterInstance design from SoLoud (since it would make replacing/using filters be significantly easier)
+
+Filter Testing:
+- test low pass filter with various frequencies and resonance values
+
+Feature Requests:
+- native control over SubmitBuffer in StreamPackage (method for handling the call?)
+  - necessitates making the StreamedSoundEffectInstance public
+- ReadWav alternative for creating PCM data instead of WAVE data
+- empty controllable StreamPackage creation
+  - DynamicStreamPackage perhaps?
+  - would have Func fields for handling the stream (DynamicStreamPackageBuilder for handling creation?)
+- native support for ".pcm" files
+  - might need a CustomAudioFormat since the sample metrics can't be in the file/stream

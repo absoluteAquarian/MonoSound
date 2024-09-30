@@ -7,6 +7,9 @@ namespace MonoSound.Audio {
 	public class SoundMetrics {
 		private readonly SoundEffectInstance _source;
 
+		/// <summary>
+		/// Creates a new instance of <see cref="SoundMetrics"/>
+		/// </summary>
 		public SoundMetrics(SoundEffectInstance source) {
 			_source = source;
 		}

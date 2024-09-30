@@ -1,4 +1,27 @@
-﻿## v1.7.1.1
+﻿## v1.7.2
+**Fixes:**
+- Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object and only updating it when new streams are added
+- Fixed `FormatWav` not implementing the `IDisposable` interface correctly
+
+**API Changes:**
+- Added two types representing sample data:  `struct PCM16Bit` and `struct PCM24Bit`
+- Completely reworked how `WavSample` is structured
+  - The `WavSample(short, data[])` constructor has been removed
+  - Added new constructors: `WavSample(PCM16Bit)`, `WavSample(PCM24Bit)`, `WavSample(byte[])`, `WavSample(ReadOnlySpan<byte>)`
+  - `short SampleSize` has been replaced with `int SampleSize { get; }`
+  - `byte[] Data { get; set; }` has been replaced with `PCM16Bit Sample16Bit { get; set; }` and `PCM24Bit Sample24Bit { get; set; }`
+- `FormatWav`
+  - `byte[] Data { get; }` has been removed
+- `StreamedSoundEffectInstance`
+  - Class is now `public`
+- `StreamPackage`
+  - `StreamedSoundEffectInstance PlayingSound { get; }` is now `public`
+
+**Miscellaneous:**
+- Updated the library to .NET 8.0
+- Added missing XML summaries
+
+## v1.7.1.1
 **Fixes:**
 - Added an exception handler to audio stream loading to prevent the worker thread from stopping if an exception is thrown
 - Fixed an oversight where `MonoSoundLibrary.DeInit()` would softlock

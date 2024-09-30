@@ -5,14 +5,15 @@ using MonoSound.Audio;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace MonoSound.Streaming {
 	internal static class StreamManager {
 		private static ConcurrentDictionary<string, StreamPackage> streams;
+		private static IEnumerator<KeyValuePair<string, StreamPackage>> _streamEnumerator;
 
 		private static int StreamSourceCreationIndex;
 
@@ -115,6 +116,7 @@ namespace MonoSound.Streaming {
 			package.IsLooping = loopedSound;
 
 			streams.AddOrUpdate(packageName, package, (k, s) => s);
+			_streamEnumerator = streams.GetEnumerator();
 		}
 
 		public static StreamPackage InitializeXWBStream(string soundBankPath, string waveBankPath, string cueName, bool loopedSound) {
@@ -124,6 +126,7 @@ namespace MonoSound.Streaming {
 
 			string name = GetSafeName(cueName);
 			streams.AddOrUpdate(name, package, (k, s) => s);
+			_streamEnumerator = streams.GetEnumerator();
 
 			return package;
 		}
@@ -135,6 +138,7 @@ namespace MonoSound.Streaming {
 
 			string name = GetSafeName(cueName);
 			streams.AddOrUpdate(name, package, (k, s) => s);
+			_streamEnumerator = streams.GetEnumerator();
 
 			return package;
 		}
@@ -155,8 +159,8 @@ namespace MonoSound.Streaming {
 		}
 
 		public static bool IsStreamActive(StreamPackage package) {
-			foreach (var (_, stream) in streams) {
-				if (object.ReferenceEquals(package, stream))
+			while (_streamEnumerator.MoveNext()) {
+				if (object.ReferenceEquals(package, _streamEnumerator.Current.Value))
 					return true;
 			}
 
@@ -172,11 +176,13 @@ namespace MonoSound.Streaming {
 				return;
 			}
 
-			foreach (var (key, stream) in streams) {
+			while (_streamEnumerator.MoveNext()) {
+				var (key, stream) = _streamEnumerator.Current;
 				if (object.ReferenceEquals(instance, stream.PlayingSound)) {
 					stream.PlayingSound.Stop();
 					stream.Dispose();
 					streams.TryRemove(key, out _);
+					_streamEnumerator = streams.GetEnumerator();
 					instance = null;
 					return;
 				}
@@ -195,9 +201,11 @@ namespace MonoSound.Streaming {
 				return;
 			}
 
-			foreach (var (key, stream) in streams) {
+			while (_streamEnumerator.MoveNext()) {
+				var (key, stream) = _streamEnumerator.Current;
 				if (object.ReferenceEquals(instance, stream)) {
 					streams.TryRemove(key, out _);
+					_streamEnumerator = streams.GetEnumerator();
 					break;
 				}
 			}
@@ -209,6 +217,7 @@ namespace MonoSound.Streaming {
 
 		internal static void Initialize() {
 			streams = new ConcurrentDictionary<string, StreamPackage>();
+			_streamEnumerator = streams.GetEnumerator();
 
 			_workToken = MonoSoundLibrary.GetCancellationToken();
 			_workThread = new Task(HandleStreamBuffering, _workToken, TaskCreationOptions.LongRunning);
@@ -216,17 +225,22 @@ namespace MonoSound.Streaming {
 		}
 
 		private static bool _areStreamsDisposed = false;
+		private static StreamingThreadState _threadState;
 
 		internal static void Deinitialize() {
 			_workThread = null;
 
-			// Free the streams
-			lock (streams) {
-				foreach (var stream in streams.Values)
-					stream.Dispose();
+			// Ensure that the thread is not currently enumerating the streams
+			_threadState.WaitToLock();
 
-				_areStreamsDisposed = true;
-			}
+			// Free the streams
+			foreach (var stream in streams.Values)
+				stream.Dispose();
+
+			_areStreamsDisposed = true;
+
+			// Release the lock
+			_threadState.Unlock();
 
 			streams = null;
 		}
@@ -235,34 +249,73 @@ namespace MonoSound.Streaming {
 		private static void HandleStreamBuffering() {
 			// The CancellationToken will automatically force execution out of this loop when a cancellation is requested
 			while (true) {
-				lock (streams) {
-					// Sanity check to ensure that the thread properly exits when the streams are disposed
-					if (_areStreamsDisposed)
-						break;
+				// Wait for any locks to be released
+				_threadState.WaitForUnlock();
 
-					foreach (var (_, stream) in streams) {
-						if (stream?.Metrics?.IsDisposed ?? true)
-							continue;
-
-						// Handle the streaming behavior
-						if (MonoSoundLibrary.Game is Game game && stream.GetActualFocusBehavior() == StreamFocusBehavior.PauseOnLostFocus && stream.Metrics.State != SoundState.Stopped) {
-							if (!game.IsActive) {
-								// Pause the stream and indicate that it's an automatic pause
-								stream.FocusPause();
-							} else {
-								// Resume the stream
-								stream.FocusResume();
-							}
-						}
-
-						if (stream.Metrics.State == SoundState.Playing)
-							stream.PlayingSound.StrobeQueue();
-					}
+				// Sanity check to ensure that the thread properly exits when the streams are disposed
+				if (_areStreamsDisposed) {
+					// Enumerator has to be destroyed here instead of Deinitialize() to avoid race conditions
+					_streamEnumerator = null;
+					break;
 				}
+
+				// Copy the object to a local in case the enumerator is recalculated during enumeration
+				var enumerator = _streamEnumerator;
+				Thread.MemoryBarrier();
+
+				while (enumerator.MoveNext()) {
+					var stream = enumerator.Current.Value;
+
+					if (stream?.Metrics?.IsDisposed ?? true)
+						continue;
+
+					// Handle the streaming behavior
+					if (MonoSoundLibrary.Game is Game game && stream.GetActualFocusBehavior() == StreamFocusBehavior.PauseOnLostFocus && stream.Metrics.State != SoundState.Stopped) {
+						if (!game.IsActive) {
+							// Pause the stream and indicate that it's an automatic pause
+							stream.FocusPause();
+						} else {
+							// Resume the stream
+							stream.FocusResume();
+						}
+					}
+
+					if (stream.Metrics.State == SoundState.Playing)
+						stream.PlayingSound.StrobeQueue();
+				}
+
+				// Release the lock
+				_threadState.FreeToLock();
 
 				// After the streams are processed, free the thread time for use by other threads
 				Thread.Yield();
 			}
+		}
+
+		private struct StreamingThreadState {
+			private int _state;
+
+			private const int WAITING = 0;
+			private const int PROCESSING = 1;
+			private const int LOCKED = 2;
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void WaitForUnlock() {
+				while (Interlocked.CompareExchange(ref _state, PROCESSING, WAITING) == LOCKED)
+					Thread.Yield();
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void FreeToLock() => Interlocked.Exchange(ref _state, WAITING);
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void WaitToLock() {
+				while (Interlocked.CompareExchange(ref _state, LOCKED, WAITING) == PROCESSING)
+					Thread.Yield();
+			}
+
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			public void Unlock() => Interlocked.Exchange(ref _state, WAITING);
 		}
 	}
 }

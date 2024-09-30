@@ -9,7 +9,7 @@ namespace MonoSound.Audio {
 	/// <summary>
 	/// A <see cref="SoundEffectInstance"/> whose audio data is streamed by a worker thread
 	/// </summary>
-	internal sealed partial class StreamedSoundEffectInstance : SoundEffectInstance {
+	public sealed partial class StreamedSoundEffectInstance : SoundEffectInstance {
 		private const int TargetPendingBufferCount = 3;
 		private int _buffersNeeded;
 		private int _sampleRate;
@@ -29,6 +29,7 @@ namespace MonoSound.Audio {
 			}
 		}
 
+		/// <inheritdoc cref="SoundEffectInstance.State"/>
 		public override SoundState State {
 			get {
 				AssertNotDisposed();
@@ -83,7 +84,7 @@ namespace MonoSound.Audio {
 		}
 
 		/// <summary>
-		/// Plays or resumes the DynamicSoundEffectInstance.
+		/// Plays or resumes the StreamedSoundEffectInstance.
 		/// </summary>
 		public override void Play() {
 			AssertNotDisposed();
@@ -105,7 +106,7 @@ namespace MonoSound.Audio {
 		}
 
 		/// <summary>
-		/// Pauses playback of the DynamicSoundEffectInstance.
+		/// Pauses playback of the StreamedSoundEffectInstance.
 		/// </summary>
 		public override void Pause() {
 			AssertNotDisposed();
@@ -114,7 +115,7 @@ namespace MonoSound.Audio {
 		}
 
 		/// <summary>
-		/// Resumes playback of the DynamicSoundEffectInstance.
+		/// Resumes playback of the StreamedSoundEffectInstance.
 		/// </summary>
 		public override void Resume() {
 			AssertNotDisposed();
@@ -133,7 +134,7 @@ namespace MonoSound.Audio {
 		}
 
 		/// <summary>
-		/// Immediately stops playing the DynamicSoundEffectInstance.
+		/// Immediately stops playing the StreamedSoundEffectInstance.
 		/// </summary>
 		/// <remarks>
 		/// Calling this also releases all queued buffers.
@@ -174,6 +175,7 @@ namespace MonoSound.Audio {
 				throw new ObjectDisposedException(null);
 		}
 
+		/// <inheritdoc cref="SoundEffectInstance.Dispose(bool)"/>
 		protected override void Dispose(bool disposing) {
 			PlatformDispose(disposing);
 			base.Dispose(disposing);

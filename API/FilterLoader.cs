@@ -95,7 +95,7 @@ namespace MonoSound {
 			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out var filter))
 				throw new ArgumentException("Filter ID does not exist: " + filterID, nameof(filterID));
 
-			if (!(filter is BiquadResonantFilter))
+			if (filter is not BiquadResonantFilter)
 				throw new ArgumentException($"Filter {filterID} is not a Biquad Resonant filter", nameof(filterID));
 
 			// Update the parameters
@@ -134,7 +134,7 @@ namespace MonoSound {
 			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out var filter))
 				throw new ArgumentException("Filter ID does not exist: " + filterID, nameof(filterID));
 
-			if (!(filter is EchoFilter))
+			if (filter is not EchoFilter)
 				throw new ArgumentException($"Filter {filterID} is not an Echo filter", nameof(filterID));
 
 			// Update the parameters
@@ -177,7 +177,7 @@ namespace MonoSound {
 			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out var filter))
 				throw new ArgumentException("Filter ID does not exist: " + filterID, nameof(filterID));
 
-			if (!(filter is FreeverbFilter))
+			if (filter is not FreeverbFilter)
 				throw new ArgumentException($"Filter {filterID} is not a Reverb filter", nameof(filterID));
 
 			// Update the parameters

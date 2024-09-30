@@ -1,7 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using MonoSound.Audio;
 using MonoSound.Filters;
-using MonoSound.Filters.Instances;
 using System;
 using System.IO;
 

@@ -13,7 +13,10 @@ namespace MonoSound.Streaming {
 	/// An object representing streamed audio from a data stream
 	/// </summary>
 	public abstract class StreamPackage : IDisposable {
-		internal StreamedSoundEffectInstance PlayingSound { get; private set; }
+		/// <summary>
+		/// The instance responsible for dynamically playing streamed audio
+		/// </summary>
+		public StreamedSoundEffectInstance PlayingSound { get; private set; }
 
 		/// <summary>
 		/// The parameters for the sound played by this instance
@@ -21,17 +24,41 @@ namespace MonoSound.Streaming {
 		public SoundMetrics Metrics { get; private set; }
 
 		//Useless, but helps in clarifying what package is from what type of file
+		/// <summary>
+		/// The type of audio file this stream package is from.  This is mainly used for debugging purposes.
+		/// </summary>
 		public readonly AudioType type;
 
 		//Each stream package keeps track of a separate instance of a "reader" to allow reading of the same file
+		/// <summary>
+		/// The underlying stream that this package reads from
+		/// </summary>
 		protected Stream underlyingStream;
 
+		/// <summary>
+		/// Whether the stream has finished streaming all of its audio data
+		/// </summary>
 		public bool FinishedStreaming { get; private set; }
 
+		/// <summary>
+		/// The sample rate of the audio data
+		/// </summary>
 		public int SampleRate { get; protected set; }
+		/// <summary>
+		/// Whether the audio data is mono or stereo
+		/// </summary>
 		public AudioChannels Channels { get; protected set; }
+		/// <summary>
+		/// The size of each sample in bits PER CHANNEL
+		/// </summary>
 		public short BitsPerSample { get; protected set; }
+		/// <summary>
+		/// The total number of bytes in the audio data
+		/// </summary>
 		public long TotalBytes { get; protected set; }
+		/// <summary>
+		/// The number of bytes read from the audio data
+		/// </summary>
 		public long ReadBytes { get; protected set; }
 
 		/// <summary>
@@ -81,11 +108,18 @@ namespace MonoSound.Streaming {
 
 		private readonly ConcurrentQueue<byte[]> _queuedReads = new ConcurrentQueue<byte[]>();
 
+		/// <summary>
+		/// Creates a new instance of <see cref="StreamPackage"/><br/>
+		/// This constructor does not call <see cref="Initialize"/>
+		/// </summary>
 		protected StreamPackage(AudioType type) {
 			//This constructor is mainly for the OGG streams, which would need to set "underlyingStream" to null anyway
 			this.type = type;
 		}
 
+		/// <summary>
+		/// Creates a new instance of <see cref="StreamPackage"/> with a stream to read from
+		/// </summary>
 		protected StreamPackage(Stream stream, AudioType type) {
 			underlyingStream = stream;
 			this.type = type;
@@ -111,7 +145,7 @@ namespace MonoSound.Streaming {
 
 		private void UpdatePlayTime(double time) {
 			if (disposed)
-				throw new ObjectDisposedException("this");
+				throw new ObjectDisposedException(null);
 			
 			if (PlayingSound.State != SoundState.Playing)
 				return;
@@ -132,30 +166,34 @@ namespace MonoSound.Streaming {
 			_hasActiveJump = true;
 		}
 
+		/// <inheritdoc cref="StreamedSoundEffectInstance.Play"/>
 		public void Play() {
 			if (disposed)
-				throw new ObjectDisposedException("this");
+				throw new ObjectDisposedException(null);
 
 			PlayingSound.Play();
 		}
 
+		/// <inheritdoc cref="StreamedSoundEffectInstance.Pause"/>
 		public void Pause() {
 			if (disposed)
-				throw new ObjectDisposedException("this");
+				throw new ObjectDisposedException(null);
 
 			PlayingSound.Pause();
 		}
 
+		/// <inheritdoc cref="StreamedSoundEffectInstance.Resume"/>
 		public void Resume() {
 			if (disposed)
-				throw new ObjectDisposedException("this");
+				throw new ObjectDisposedException(null);
 
 			PlayingSound.Resume();
 		}
 
+		/// <inheritdoc cref="StreamedSoundEffectInstance.Stop"/>
 		public void Stop() {
 			if (disposed)
-				throw new ObjectDisposedException("this");
+				throw new ObjectDisposedException(null);
 
 			PlayingSound.Stop();
 			Reset_Impl(true);
@@ -205,6 +243,10 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		public void ClearAudioQueue() => _queuedReads.Clear();
 
+		/// <summary>
+		/// Converts the given byte count to a duration in seconds
+		/// </summary>
+		/// <param name="byteSampleCount">The amount of bytes of sample data</param>
 		public virtual double GetSecondDuration(long byteSampleCount) {
 			// sample count = seconds * BitsPerSample / 8 * SampleRate * Channels
 			return byteSampleCount / (float)BitsPerSample * 8f / SampleRate / (int)Channels;
@@ -214,16 +256,12 @@ namespace MonoSound.Streaming {
 		/// Adjust where the audio stream will reset to when looping here.
 		/// </summary>
 		/// <param name="byteOffset">The offset in the data stream.  Defaults to the start of sample data.</param>
-		protected virtual long ModifyResetOffset(long byteOffset) {
-			return byteOffset;
-		}
+		protected virtual long ModifyResetOffset(long byteOffset) => byteOffset;
 
 		/// <summary>
 		/// Initialize information about the stream here.  <see cref="underlyingStream"/> has been initialized by the time this method is invoked.
 		/// </summary>
-		protected virtual void Initialize() {
-			InitSound();
-		}
+		protected virtual void Initialize() => InitSound();
 
 		private void QueueBuffers(object sender, EventArgs e) {
 			double currentDuration = CalculateBufferTime();
@@ -344,6 +382,7 @@ namespace MonoSound.Streaming {
 		/// <summary>
 		/// Sets the starting location of the next batch of samples to read from the underlying stream, in seconds
 		/// </summary>
+		/// <exception cref="ArgumentOutOfRangeException"/>
 		public virtual void SetStreamPosition(double seconds) {
 			if (seconds < 0)
 				throw new ArgumentOutOfRangeException(nameof(seconds), "Position must be a positive number");
@@ -366,17 +405,13 @@ namespace MonoSound.Streaming {
 				throw new InvalidOperationException("Effect data had an invalid BitsPerSample value: " + BitsPerSample);
 			
 			// Convert the byte samples to float samples
-			int size = 2;
-			int length = data.Length / size;
+			const int SIZE = 2;
+			int length = data.Length / SIZE;
 			float[] filterSamples = new float[length];
 
-			for (int i = 0; i < data.Length; i += size) {
-				byte[] pass = new byte[size];
-				Array.Copy(data, i, pass, 0, size);
-				
-				WavSample sample = new WavSample((short)size, pass);
-				filterSamples[i / size] = sample.ToFloatSample();
-				FormatWav.ClampSample(ref filterSamples[i / size]);
+			for (int i = 0; i < data.Length; i += SIZE) {
+				filterSamples[i / SIZE] = new PCM16Bit(data, i).ToFloatSample();
+				FormatWav.ClampSample(ref filterSamples[i / SIZE]);
 			}
 
 			// Apply the filters
@@ -384,15 +419,11 @@ namespace MonoSound.Streaming {
 				FilterSimulations.ApplyFilterTo(ref filterObjects[i], filterIDs[i], filterSamples, SampleRate);
 
 			// Convert the float samples back to byte samples
-			data = new byte[length * size];
+			data = new byte[length * SIZE];
 
 			for (int i = 0; i < filterSamples.Length; i++) {
 				FormatWav.ClampSample(ref filterSamples[i]);
-
-				short convert = (short)(filterSamples[i] * short.MaxValue);
-				byte[] temp = BitConverter.GetBytes(convert);
-				data[2 * i] = temp[0];
-				data[2 * i + 1] = temp[1];
+				new PCM16Bit(filterSamples[i]).WriteToStream(data, i * SIZE);
 			}
 		}
 
@@ -442,18 +473,30 @@ namespace MonoSound.Streaming {
 		}
 
 		private bool disposed;
+		/// <summary>
+		/// Whether this stream package has been disposed
+		/// </summary>
 		public bool Disposed => disposed;
 
+		/// <summary>
+		/// The finalizer for this object
+		/// </summary>
 		~StreamPackage() => Dispose_Inner(false);
 
+		/// <inheritdoc cref="IDisposable.Dispose"/>
 		public void Dispose() {
 			Dispose_Inner(true);
 			GC.SuppressFinalize(this);
 		}
 
+		/// <inheritdoc cref="Dispose(bool)"/>
 		[Obsolete("Use the Dispose method instead", error: true)]
 		protected virtual void ChildDispose(bool disposing) => Dispose(disposing);
 
+		/// <summary>
+		/// Free resources used by this stream package here
+		/// </summary>
+		/// <param name="disposing"><see langword="true"/> if this method is running from the <see cref="Dispose()"/> call or <see langword="false"/> if it's running from the finalizer instead.</param>
 		protected virtual void Dispose(bool disposing) { }
 
 		private void Dispose_Inner(bool disposing) {

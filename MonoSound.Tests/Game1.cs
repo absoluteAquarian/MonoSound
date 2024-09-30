@@ -103,7 +103,7 @@ namespace MonoSound.Tests {
 
 		static int timer;
 
-		static readonly List<Keys> currentSequence = new List<Keys>();
+		static readonly List<Keys> currentSequence = [];
 
 		protected override void OnExiting(object sender, EventArgs args) {
 			MonoSoundLibrary.DeInit();

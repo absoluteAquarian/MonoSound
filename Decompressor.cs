@@ -18,7 +18,7 @@ namespace MonoSound{
 		const byte ContentCompressedLzx = 0x80;
 		const byte ContentCompressedLz4 = 0x40;
 
-		private static readonly List<char> targetPlatformIdentifiers = new List<char>(){
+		private static readonly List<char> targetPlatformIdentifiers = [
 			'w', // Windows (XNA & DirectX)
 			'x', // Xbox360 (XNA)
 			'm', // WindowsPhone7.0 (XNA)
@@ -48,7 +48,7 @@ namespace MonoSound{
 			'p', // PlayStationMobile
 			'g', // Windows (OpenGL)
 			'l', // Linux
-		};
+		];
 
 		private static readonly Dictionary<Type, ContentTypeReader> _contentReadersCache;
 
@@ -56,7 +56,7 @@ namespace MonoSound{
 
 		private static readonly string _assemblyName;
 
-		private static readonly Dictionary<string, Func<ContentTypeReader>> typeCreators = new Dictionary<string, Func<ContentTypeReader>>();
+		private static readonly Dictionary<string, Func<ContentTypeReader>> typeCreators = [];
 
 		static Decompressor(){
 			_contentReadersCache = new Dictionary<Type, ContentTypeReader>(255);

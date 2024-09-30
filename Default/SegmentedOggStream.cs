@@ -7,24 +7,43 @@ namespace MonoSound.Default {
 	/// An extension of the OGG format used by <see cref="SegmentedOggFormat"/> to facilitate segmented looping
 	/// </summary>
 	public sealed class SegmentedOggStream : OggStream {
+		/// <summary>
+		/// A tracker for the current segment of the audio stream
+		/// </summary>
 		public class SegmentTracker {
 			private readonly IAudioSegment[] _segments;
 
 			private int _targetSegment;
+			/// <summary>
+			/// The index of the current segment of the audio stream
+			/// </summary>
 			public int TargetSegment {
 				get => _targetSegment;
 				set => _targetSegment = Math.Clamp(value, 0, _segments.Length - 1);
 			}
 
+			/// <summary>
+			/// The number of segments in the audio stream
+			/// </summary>
 			public int Count => _segments.Length;
 
+			/// <summary>
+			/// Gets or sets the segment at the given index
+			/// </summary>
 			public IAudioSegment this[int index] {
 				get => _segments[index];
 				set => _segments[index] = value;
 			}
 
+			/// <summary>
+			/// The current segment of the audio stream
+			/// </summary>
 			public IAudioSegment CurrentSegment => _segments[_targetSegment];
 
+			/// <summary>
+			/// Creates a new instance of <see cref="SegmentTracker"/> with the given segments
+			/// </summary>
+			/// <exception cref="ArgumentException"/>
 			public SegmentTracker(IAudioSegment[] segments) {
 				if (segments is null || segments.Length == 0)
 					throw new ArgumentException("Invalid segment array provided", nameof(segments));
@@ -32,6 +51,9 @@ namespace MonoSound.Default {
 				_segments = segments;
 			}
 
+			/// <summary>
+			/// Gets the times of the start and loop points of the current segment
+			/// </summary>
 			public void GetLoopBounds(out TimeSpan start, out TimeSpan loop) {
 				var checkpoint = _segments[_targetSegment];
 
@@ -39,6 +61,10 @@ namespace MonoSound.Default {
 				loop = checkpoint.End;
 			}
 
+			/// <summary>
+			/// Gets the times of the start and loop points of the given segment
+			/// </summary>
+			/// <exception cref="ArgumentOutOfRangeException"/>
 			public void GetLoopBounds(int section, out TimeSpan start, out TimeSpan loop) {
 				if (section < 0 || section > _segments.Length)
 					throw new ArgumentOutOfRangeException(nameof(section));
@@ -50,17 +76,29 @@ namespace MonoSound.Default {
 			}
 		}
 
+		/// <summary>
+		/// The tracker for the current segment of the audio stream
+		/// </summary>
 		public readonly SegmentTracker tracker;
 		private int _delayedJumpTarget;
 
+		/// <summary>
+		/// An event that is called when the audio stream is about to jump to a delayed section
+		/// </summary>
 		public event Action<StreamPackage> OnDelayedSectionStart;
 
+		/// <summary>
+		/// Creates a new instance of <see cref="SegmentedOggStream"/> with the given file and audio segment checkpoints
+		/// </summary>
 		public SegmentedOggStream(string file, IAudioSegment[] checkpoints) : base(file) {
 			tracker = new SegmentTracker(checkpoints);
 			_delayedJumpTarget = -1;
 			ModifyTracker();
 		}
 
+		/// <summary>
+		/// Creates a new instance of <see cref="SegmentedOggStream"/> with the given stream and audio segment checkpoints
+		/// </summary>
 		public SegmentedOggStream(Stream stream, IAudioSegment[] checkpoints) : base(stream) {
 			tracker = new SegmentTracker(checkpoints);
 			_delayedJumpTarget = -1;
@@ -132,6 +170,7 @@ namespace MonoSound.Default {
 
 		private bool _delayedForcedLoopCheck;
 
+		/// <inheritdoc cref="StreamPackage.ModifyReadSeconds"/>
 		protected override void ModifyReadSeconds(ref double seconds) {
 			// If the next read would bleed across the loop boundary, cut it short
 			tracker.GetLoopBounds(out TimeSpan start, out TimeSpan loop);
@@ -161,6 +200,7 @@ namespace MonoSound.Default {
 			}
 		}
 
+		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			base.ReadSamples(seconds, out samples, out bytesRead, out checkLooping);
 
@@ -170,6 +210,7 @@ namespace MonoSound.Default {
 			}
 		}
 
+		/// <inheritdoc cref="StreamPackage.SetStreamPosition"/>
 		public override void SetStreamPosition(double seconds) {
 			// Assume callee wanted to jump to the section that contains the timestamp
 			FindValidTrackerSegment(TimeSpan.FromSeconds(seconds));
@@ -187,6 +228,7 @@ namespace MonoSound.Default {
 			}
 		}
 
+		/// <inheritdoc cref="StreamPackage.Reset"/>
 		public override void Reset() {
 			// If the audio stream was stopped, reset the loop info to the start of the audio
 			if (PlayingSound.State == Microsoft.Xna.Framework.Audio.SoundState.Stopped) {
@@ -200,6 +242,7 @@ namespace MonoSound.Default {
 			base.Reset();
 		}
 
+		/// <inheritdoc cref="StreamPackage.HandleLooping"/>
 		protected override void HandleLooping() {
 			// If the tracker is at any segment except the last one, force looping to occur
 			if (tracker.TargetSegment < tracker.Count - 1) {

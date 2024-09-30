@@ -35,6 +35,7 @@ namespace MonoSound.Streaming {
 		/// <param name="typeOverride">Which type of audio stream should be used</param>
 		protected WavStream(Stream stream, AudioType typeOverride) : base(stream, typeOverride) { }
 
+		/// <inheritdoc cref="StreamPackage.Initialize"/>
 		protected override void Initialize() {
 			//Read the header
 			byte[] header = new byte[44];
@@ -47,6 +48,7 @@ namespace MonoSound.Streaming {
 			sampleReadStart = underlyingStream.Position;
 		}
 
+		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			int samplesToRead = (int)(seconds * BitsPerSample / 8 * SampleRate * (short)Channels);
 
@@ -80,6 +82,7 @@ namespace MonoSound.Streaming {
 		/// <param name="stream">The data stream to read from</param>
 		public XnbStream(Stream stream) : base(stream, AudioType.XNB) { }
 
+		/// <inheritdoc cref="StreamPackage.Initialize"/>
 		protected override void Initialize() {
 			byte[] read = new byte[4];
 			underlyingStream.Read(read, 0, 4);
@@ -100,6 +103,9 @@ namespace MonoSound.Streaming {
 	/// </summary>
 	public class Mp3Stream : WavStream {
 		// MP3Sharp doesn't have a defined way to get the audio duration without reading the entire file, which defeats the purpose of streaming
+		/// <summary>
+		/// Ignored.  Stream duration cannot be determined for .mp3 streams.
+		/// </summary>
 		public sealed override TimeSpan MaxDuration => throw new NotImplementedException("MP3Sharp cannot determine the audio duration without reading the entire file");
 
 		/// <summary>
@@ -114,6 +120,10 @@ namespace MonoSound.Streaming {
 		/// <param name="stream">The data stream to read from</param>
 		public Mp3Stream(Stream stream) : base(new MP3Sharp.MP3Stream(stream), AudioType.MP3) { }
 
+		/// <summary>
+		/// Initialize information about the stream here.  This class does not initialize <see cref="StreamPackage.underlyingStream"/> due to it using a custom decoder.
+		/// </summary>
+		/// <exception cref="ArgumentException"/>
 		protected override void Initialize() {
 			MP3Sharp.MP3Stream mp3Stream = underlyingStream as MP3Sharp.MP3Stream;
 
@@ -126,6 +136,7 @@ namespace MonoSound.Streaming {
 				throw new ArgumentException("Stream format is not supported: " + mp3Stream.Format);
 		}
 
+		/// <inheritdoc cref="StreamPackage.SetStreamPosition"/>
 		public sealed override void SetStreamPosition(double seconds) {
 			// MP3Sharp doesn't have a defined way to arbitrarily set the position
 			throw new NotImplementedException("MP3Sharp cannot seek to a specific position without reading from the start of the stream");
@@ -136,9 +147,16 @@ namespace MonoSound.Streaming {
 	/// An object representing audio streaming from an Ogg Vorbis (.ogg) data stream
 	/// </summary>
 	public class OggStream : StreamPackage {
+		/// <summary>
+		/// The sample decoder for the .ogg stream
+		/// </summary>
 		protected NVorbis.VorbisReader vorbisStream;
+		/// <summary>
+		/// The time to jump to when the stream loops
+		/// </summary>
 		protected TimeSpan loopTargetTime;
 
+		/// <inheritdoc cref="StreamPackage.MaxDuration"/>
 		public sealed override TimeSpan MaxDuration => vorbisStream.TotalTime;
 
 		/// <summary>
@@ -162,6 +180,7 @@ namespace MonoSound.Streaming {
 			Initialize();
 		}
 
+		/// <inheritdoc cref="StreamPackage.Initialize"/>
 		protected override void Initialize() {
 			Channels = (AudioChannels)vorbisStream.Channels;
 			SampleRate = vorbisStream.SampleRate;
@@ -173,10 +192,10 @@ namespace MonoSound.Streaming {
 			base.Initialize();
 		}
 
-		public sealed override double GetSecondDuration(long byteSampleCount) {
-			return 0;
-		}
+		/// <inheritdoc cref="StreamPackage.GetSecondDuration"/>
+		public sealed override double GetSecondDuration(long byteSampleCount) => 0;
 
+		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			//Float samples = 2 bytes per sample (converted to short samples)
 			int samplesToRead = (int)(seconds * SampleRate * (short)Channels);
@@ -207,6 +226,7 @@ namespace MonoSound.Streaming {
 			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;
 		}
 
+		/// <inheritdoc cref="StreamPackage.SetStreamPosition"/>
 		public override void SetStreamPosition(double seconds) {
 			if (seconds < 0)
 				throw new ArgumentOutOfRangeException(nameof(seconds), "Position must be a positive number");
@@ -216,6 +236,9 @@ namespace MonoSound.Streaming {
 			ApplyImmediateJump(seconds);
 		}
 
+		/// <summary>
+		/// Reset the stream here.  By default, this sets the next audio buffer to read to the point in the stream set by <see cref="loopTargetTime"/>
+		/// </summary>
 		public override void Reset() {
 			vorbisStream.DecodedTime = loopTargetTime;
 
@@ -226,6 +249,7 @@ namespace MonoSound.Streaming {
 			ApplyImmediateJump(vorbisStream.DecodedTime.TotalSeconds);
 		}
 
+		/// <inheritdoc cref="StreamPackage.Dispose(bool)"/>
 		protected override void Dispose(bool disposing) {
 			if (disposing)
 				vorbisStream?.Dispose();
@@ -300,6 +324,7 @@ namespace MonoSound.Streaming {
 			sampleReadStart = underlyingStream.Position;
 		}
 
+		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			int samplesToRead = (int)(seconds * BitsPerSample / 8 * SampleRate * (short)Channels);
 
