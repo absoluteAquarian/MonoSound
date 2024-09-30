@@ -72,7 +72,7 @@ namespace MonoSound{
 		/// <returns></returns>
 		public static byte[] DecompressSoundEffectXNB(string path, out PCMData pcmData, out byte[] header){
 			if(Path.GetExtension(path) != ".xnb")
-				throw new ArgumentException("File must be an XNB file.", "path");
+				throw new ArgumentException("File must be an XNB file.", nameof(path));
 			
 			Stream stream = TitleContainer.OpenStream(path);
 			byte[] data;

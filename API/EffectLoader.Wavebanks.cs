@@ -9,9 +9,9 @@ namespace MonoSound {
 	partial class EffectLoader {
 		internal static void VerifyThatBanksExistInDictionary(string soundBankFile, string waveBankFile, out string soundBank, out string waveBank, bool setStreaming = false) {
 			if (Path.GetExtension(soundBankFile) != ".xsb")
-				throw new ArgumentException($"Path provided was invalid: {soundBankFile}", "soundBankFile");
+				throw new ArgumentException($"Path provided was invalid: {soundBankFile}", nameof(soundBankFile));
 			if (Path.GetExtension(waveBankFile) != ".xwb")
-				throw new ArgumentException($"Path provided was invalid: {waveBankFile}", "waveBankFile");
+				throw new ArgumentException($"Path provided was invalid: {waveBankFile}", nameof(waveBankFile));
 
 			//Get the file names without the extensions
 			soundBank = Path.ChangeExtension(Path.GetFileName(soundBankFile), null);
@@ -27,9 +27,9 @@ namespace MonoSound {
 
 		internal static void VerifyThatBanksExistInDictionary(Stream soundBank, string soundBankIdentifier, Stream waveBank, string waveBankIdentifier, out string soundBankName, out string waveBankName, bool setStreaming = false) {
 			if (Path.GetExtension(soundBankIdentifier) != ".xsb")
-				throw new ArgumentException($"Path provided was invalid: {soundBankIdentifier}", "soundBankIdentifier");
+				throw new ArgumentException($"Path provided was invalid: {soundBankIdentifier}", nameof(soundBankIdentifier));
 			if (Path.GetExtension(waveBankIdentifier) != ".xwb")
-				throw new ArgumentException($"Path provided was invalid: {waveBankIdentifier}", "waveBankIdentifier");
+				throw new ArgumentException($"Path provided was invalid: {waveBankIdentifier}", nameof(waveBankIdentifier));
 
 			//Get the file names without the extensions
 			soundBankName = Path.ChangeExtension(Path.GetFileName(soundBankIdentifier), null);

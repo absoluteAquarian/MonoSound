@@ -12,9 +12,9 @@ namespace MonoSound.Filters {
 		public static int Max_Filters_Loaded = 200;
 		private static List<FilterPackage> filters;
 
-		private static readonly string[] validExtensions = new string[] { ".xnb", ".wav", ".ogg", ".mp3" };
+		private static readonly string[] validExtensions = [ ".xnb", ".wav", ".ogg", ".mp3" ];
 
-		internal static List<string> AllValidExtensions = new List<string>(validExtensions);
+		internal static List<string> AllValidExtensions = [ .. validExtensions ];
 
 		public static void Init() {
 			filters = [];
@@ -65,7 +65,7 @@ namespace MonoSound.Filters {
 			}
 
 			//If we've reached this line, either the file had an extension and it wasn't a valid one or the file didn't have an extension
-			throw new ArgumentException($"The given path did not contain a valid extension: {extension}", "path");
+			throw new ArgumentException($"The given path did not contain a valid extension: {extension}", nameof(path));
 		}
 
 		internal static void GetWavAndMetadata(string path, out FormatWav wav, out PCMData metaData) {
@@ -117,8 +117,7 @@ namespace MonoSound.Filters {
 					break;
 				case AudioType.WAV:
 					//Could've jumped here from the OGG or MP3 cases.  Don't try and set the 'wav' variable if it was already set
-					if (wav is null)
-						wav = FormatWav.FromFileWAV(stream);
+					wav ??= FormatWav.FromFileWAV(stream);
 
 					float duration = (int)((float)wav.DataLength / wav.ByteRate);
 
@@ -167,7 +166,7 @@ namespace MonoSound.Filters {
 
 		public static SoundEffect CreateFilteredSFX(string path, params Filter[] filtersToApply) {
 			if (filtersToApply.Length == 0)
-				throw new ArgumentException("Filters list was empty.", "filtersToApply");
+				throw new ArgumentException("Filters list was empty.", nameof(filtersToApply));
 
 			if (HasFilteredSFX(path, out FilterPackage package, filtersToApply))
 				return package.effect;
@@ -179,7 +178,7 @@ namespace MonoSound.Filters {
 
 		public static SoundEffect CreateFilteredSFX(FormatWav wav, string name, params Filter[] filtersToApply) {
 			if (filtersToApply.Length == 0)
-				throw new ArgumentException("Filters list was empty.", "filtersToApply");
+				throw new ArgumentException("Filters list was empty.", nameof(filtersToApply));
 
 			if (HasFilteredSFX(name, out FilterPackage package, filtersToApply))
 				return package.effect;

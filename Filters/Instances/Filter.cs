@@ -73,7 +73,7 @@ namespace MonoSound.Filters.Instances {
 		/// <param name="strength">How strong or weak the filter should be.  Ranges from 0 to 1.</param>
 		public void SetStrength(float strength) {
 			if (strength < 0 || strength > 1)
-				throw new ArgumentException("Value provided was outside the range of valid values.", "strength");
+				throw new ArgumentException("Value provided was outside the range of valid values.", nameof(strength));
 
 			mParam[FLOAT_PARAM] = strength;
 		}

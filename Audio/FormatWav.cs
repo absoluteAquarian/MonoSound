@@ -127,7 +127,7 @@ namespace MonoSound.Audio {
 		/// <exception cref="ArgumentException"/>
 		public static FormatWav FromFileWAV(string file) {
 			if (Path.GetExtension(file) != ".wav")
-				throw new ArgumentException("File must be a .wav file", "file");
+				throw new ArgumentException("File must be a .wav file", nameof(file));
 
 			return FromFileWAV(TitleContainer.OpenStream(file));
 		}
@@ -148,7 +148,7 @@ namespace MonoSound.Audio {
 		/// <exception cref="ArgumentException"/>
 		public static FormatWav FromFileOGG(string file) {
 			if (Path.GetExtension(file) != ".ogg")
-				throw new ArgumentException("File must be an .ogg file", "file");
+				throw new ArgumentException("File must be an .ogg file", nameof(file));
 
 			return FromFileOGG(TitleContainer.OpenStream(file));
 		}
@@ -313,7 +313,7 @@ namespace MonoSound.Audio {
 		/// <exception cref="ArgumentException"/>
 		public static FormatWav FromFileMP3(string file) {
 			if (Path.GetExtension(file) != ".mp3")
-				throw new ArgumentException("File must be an .mp3 file", "file");
+				throw new ArgumentException("File must be an .mp3 file", nameof(file));
 
 			return FromFileMP3(TitleContainer.OpenStream(file));
 		}
@@ -393,7 +393,7 @@ namespace MonoSound.Audio {
 		/// </summary>
 		public static FormatWav FromBytes(byte[] data) {
 			if (data.Length < 44)
-				throw new ArgumentException("Data was too short to contain a header.", "data");
+				throw new ArgumentException("Data was too short to contain a header.", nameof(data));
 
 			FormatWav wav = new FormatWav() {
 				data = data
@@ -446,7 +446,7 @@ HeaderCheckStart:
 				if (sampleRate < 8000 || sampleRate > 48000)
 					throw new Exception("Sample rate was outside the range of valid values.");
 			} catch (Exception ex) {
-				throw new ArgumentException("Data was invalid for the WAV format.", "data", ex);
+				throw new ArgumentException("Data was invalid for the WAV format.", nameof(data), ex);
 			}
 
 			return wav;
@@ -490,7 +490,7 @@ HeaderCheckStart:
 		/// <exception cref="ArgumentException"/>
 		public void SaveToFile(string file) {
 			if (Path.GetExtension(file) != ".wav")
-				throw new ArgumentException("Destination file must be a .wav file", "file");
+				throw new ArgumentException("Destination file must be a .wav file", nameof(file));
 
 			Directory.CreateDirectory(Path.GetDirectoryName(file));
 
@@ -514,7 +514,7 @@ HeaderCheckStart:
 
 		internal void ReconstructFromFloatSamples(float[] allSamples) {
 			if (allSamples is not { Length: > 0 })
-				throw new ArgumentException("No samples were provided", "allSamples");
+				throw new ArgumentException("No samples were provided", nameof(allSamples));
 			
 			byte[] newData;
 

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using MonoSound.Audio;
 using MonoSound.Filters;
+using MonoSound.Filters.Instances;
 using System;
 using System.IO;
 
@@ -40,10 +41,10 @@ namespace MonoSound {
 		public static SoundEffect GetFilteredEffect(string file, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			if (!MonoSoundLibrary.customFilters.ContainsKey(filterID))
-				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", "filterID");
+			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out Filter value))
+				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", nameof(filterID));
 
-			return SoundFilterManager.CreateFilteredSFX(file, MonoSoundLibrary.customFilters[filterID]);
+			return SoundFilterManager.CreateFilteredSFX(file, value);
 		}
 		
 		/// <summary>
@@ -55,11 +56,11 @@ namespace MonoSound {
 		public static SoundEffect GetFilteredEffect(string file, CustomAudioFormat format, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			if (!MonoSoundLibrary.customFilters.ContainsKey(filterID))
-				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", "filterID");
+			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out Filter value))
+				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", nameof(filterID));
 
 			var wav = format.ReadWav(file);
-			return SoundFilterManager.ApplyFilters(wav, file, wav.GetMetadata(), MonoSoundLibrary.customFilters[filterID]);
+			return SoundFilterManager.ApplyFilters(wav, file, wav.GetMetadata(), value);
 		}
 
 		/// <summary>
@@ -71,7 +72,7 @@ namespace MonoSound {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			if (!MonoSoundLibrary.AllFiltersIDsExist(filterIDs))
-				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", "filterIDs");
+				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", nameof(filterIDs));
 
 			return SoundFilterManager.CreateFilteredSFX(file, MonoSoundLibrary.GetFiltersFromIDs(filterIDs));
 		}
@@ -86,7 +87,7 @@ namespace MonoSound {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			if (!MonoSoundLibrary.AllFiltersIDsExist(filterIDs))
-				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", "filterIDs");
+				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", nameof(filterIDs));
 
 			var wav = format.ReadWav(file);
 			return SoundFilterManager.ApplyFilters(wav, file, wav.GetMetadata(), MonoSoundLibrary.GetFiltersFromIDs(filterIDs));
@@ -126,11 +127,11 @@ namespace MonoSound {
 		public static SoundEffect GetFilteredEffect(Stream stream, AudioType type, string nameIndicator, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			if (!MonoSoundLibrary.customFilters.ContainsKey(filterID))
-				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", "filterID");
+			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out Filter value))
+				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", nameof(filterID));
 
 			SoundFilterManager.GetWavAndMetadata(stream, type, out var wav, out _);
-			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, MonoSoundLibrary.customFilters[filterID]);
+			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, value);
 		}
 
 		/// <summary>
@@ -143,11 +144,11 @@ namespace MonoSound {
 		public static SoundEffect GetFilteredEffect(Stream stream, CustomAudioFormat format, string nameIndicator, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			if (!MonoSoundLibrary.customFilters.ContainsKey(filterID))
-				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", "filterID");
+			if (!MonoSoundLibrary.customFilters.TryGetValue(filterID, out Filter value))
+				throw new ArgumentException("Given Filter ID does not correspond to a registered sound filter.", nameof(filterID));
 
 			var wav = format.ReadWav(stream);
-			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, MonoSoundLibrary.customFilters[filterID]);
+			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, value);
 		}
 
 		/// <summary>
@@ -161,7 +162,7 @@ namespace MonoSound {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			if (!MonoSoundLibrary.AllFiltersIDsExist(filterIDs))
-				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", "filterIDs");
+				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", nameof(filterIDs));
 
 			SoundFilterManager.GetWavAndMetadata(stream, type, out var wav, out _);
 			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, MonoSoundLibrary.GetFiltersFromIDs(filterIDs));
@@ -178,7 +179,7 @@ namespace MonoSound {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			if (!MonoSoundLibrary.AllFiltersIDsExist(filterIDs))
-				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", "filterIDs");
+				throw new ArgumentException("One of the given Filter IDs does not correspond to a registered sound filter.", nameof(filterIDs));
 
 			var wav = format.ReadWav(stream);
 			return SoundFilterManager.CreateFilteredSFX(wav, nameIndicator, MonoSoundLibrary.GetFiltersFromIDs(filterIDs));

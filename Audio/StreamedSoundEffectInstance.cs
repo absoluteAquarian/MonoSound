@@ -12,8 +12,8 @@ namespace MonoSound.Audio {
 	public sealed partial class StreamedSoundEffectInstance : SoundEffectInstance {
 		private const int TargetPendingBufferCount = 3;
 		private int _buffersNeeded;
-		private int _sampleRate;
-		private AudioChannels _channels;
+		private readonly int _sampleRate;
+		private readonly AudioChannels _channels;
 		private SoundState _state;
 
 		/// <summary>
@@ -68,9 +68,9 @@ namespace MonoSound.Audio {
 				throw new NoAudioHardwareException("Audio has failed to initialize. Call SoundEffect.Initialize() before sound operation to get more specific errors.");
 
 			if ((sampleRate < 8000) || (sampleRate > 48000))
-				throw new ArgumentOutOfRangeException("sampleRate");
+				throw new ArgumentOutOfRangeException(nameof(sampleRate));
 			if ((channels != AudioChannels.Mono) && (channels != AudioChannels.Stereo))
-				throw new ArgumentOutOfRangeException("channels");
+				throw new ArgumentOutOfRangeException(nameof(channels));
 
 			_sampleRate = sampleRate;
 			_channels = channels;

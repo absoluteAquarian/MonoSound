@@ -114,7 +114,7 @@ namespace MonoSound.Default {
 		}
 
 		/// <inheritdoc cref="IAudioSegment.Loop"/>
-		public bool Loop(out TimeSpan loopTarget) {
+		public readonly bool Loop(out TimeSpan loopTarget) {
 			// Jump to the start of the audio file or segment
 			loopTarget = LoopToStartOfAudio ? TimeSpan.Zero : Start;
 			return true;

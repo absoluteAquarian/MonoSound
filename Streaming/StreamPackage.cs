@@ -106,7 +106,7 @@ namespace MonoSound.Streaming {
 		private int[] filterIDs;
 		private Filter[] filterObjects;  // Used to speed up filter applications
 
-		private readonly ConcurrentQueue<byte[]> _queuedReads = new ConcurrentQueue<byte[]>();
+		private readonly ConcurrentQueue<byte[]> _queuedReads = [];
 
 		/// <summary>
 		/// Creates a new instance of <see cref="StreamPackage"/><br/>
@@ -344,7 +344,7 @@ namespace MonoSound.Streaming {
 					int length = read.Length - read.Length % requiredSampleSize;
 					if (length <= 0) {
 						// Just set it to an empty array
-						read = Array.Empty<byte>();
+						read = [];
 					} else {
 						// Resize the array.  Some samples at the end will be trimmed off, but that's fine
 						Array.Resize(ref read, length);

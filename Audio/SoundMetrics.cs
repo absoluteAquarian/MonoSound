@@ -4,15 +4,8 @@ namespace MonoSound.Audio {
 	/// <summary>
 	/// An object representing the metrics from a <see cref="SoundEffectInstance"/>
 	/// </summary>
-	public class SoundMetrics {
-		private readonly SoundEffectInstance _source;
-
-		/// <summary>
-		/// Creates a new instance of <see cref="SoundMetrics"/>
-		/// </summary>
-		public SoundMetrics(SoundEffectInstance source) {
-			_source = source;
-		}
+	public class SoundMetrics(SoundEffectInstance source) {
+		private readonly SoundEffectInstance _source = source;
 
 		/// <inheritdoc cref="SoundEffectInstance.Volume"/>
 		public float Volume {

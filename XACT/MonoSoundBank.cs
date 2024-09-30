@@ -47,7 +47,7 @@ namespace MonoSound.XACT {
 
 		public static MonoSoundBank FromXNA(string file) {
 			if (string.IsNullOrWhiteSpace(file))
-				throw new ArgumentNullException("file");
+				throw new ArgumentNullException(nameof(file));
 
 			return FromXNA(TitleContainer.OpenStream(file));
 		}
@@ -152,20 +152,20 @@ namespace MonoSound.XACT {
 
 		public FormatWav GetAudio(string name) {
 			if (string.IsNullOrWhiteSpace(name))
-				throw new ArgumentNullException("name");
+				throw new ArgumentNullException(nameof(name));
 
 			if (!_sounds.TryGetValue(name, out MonoXactSound sound))
-				throw new ArgumentException($"The sound bank did not contain a cue named \"{name}\"", "name");
+				throw new ArgumentException($"The sound bank did not contain a cue named \"{name}\"", nameof(name));
 
 			return sound.GetAudio();
 		}
 
 		public void GetInfo(string cueName, out int waveBankIndex, out int trackIndex) {
 			if (string.IsNullOrWhiteSpace(cueName))
-				throw new ArgumentNullException("cueName");
+				throw new ArgumentNullException(nameof(cueName));
 
 			if (!_sounds.TryGetValue(cueName, out MonoXactSound sound))
-				throw new ArgumentException($"The sound bank did not contain a cue named \"{cueName}\"", "cueName");
+				throw new ArgumentException($"The sound bank did not contain a cue named \"{cueName}\"", nameof(cueName));
 
 			waveBankIndex = sound._waveBankIndex;
 			trackIndex = sound._trackIndex;

@@ -147,7 +147,7 @@ namespace MonoSound {
 		public static void RegisterFormat(CustomAudioFormat format) {
 			ThrowIfNotInitialized();
 
-			foreach (string ext in SoundFilterManager.AllValidExtensions.Concat(new string[] { ".xsb", ".xwb" })) {
+			foreach (string ext in SoundFilterManager.AllValidExtensions.Concat([ ".xsb", ".xwb" ])) {
 				if (format.DoesExtensionApply(ext))
 					throw new ArgumentException($"The audio format \"{ext}\" was already supported, cannot add another format that accepts it");
 			}
@@ -167,9 +167,9 @@ namespace MonoSound {
 			ThrowIfNotInitialized();
 
 			if (count < 50)
-				throw new ArgumentException("Value was too small.", "count");
+				throw new ArgumentException("Value was too small.", nameof(count));
 			if (count > 32000)
-				throw new ArgumentException("Value was too large.", "count");
+				throw new ArgumentException("Value was too large.", nameof(count));
 
 			SoundFilterManager.Max_Filters_Loaded = count;
 		}

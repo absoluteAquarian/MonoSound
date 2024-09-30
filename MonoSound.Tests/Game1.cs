@@ -14,7 +14,7 @@ using System.Linq;
 
 namespace MonoSound.Tests {
 	public class Game1 : Game {
-		private GraphicsDeviceManager _graphics;
+		private readonly GraphicsDeviceManager _graphics;
 		private SpriteBatch _spriteBatch;
 
 		private TestStateMachine machine;
@@ -452,7 +452,7 @@ namespace MonoSound.Tests {
 		}
 
 		private static string ByteCountToLargeRepresentation(long bytes) {
-			string[] storageSizes = new string[] { "B", "kB", "MB", "GB" };
+			string[] storageSizes = [ "B", "kB", "MB", "GB" ];
 			int sizeLog = (int)Math.Log(bytes, 1000);
 			double sizePow = (long)Math.Pow(1000, sizeLog);
 			string size = storageSizes[sizeLog];

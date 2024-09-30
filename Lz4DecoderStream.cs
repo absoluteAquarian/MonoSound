@@ -84,7 +84,7 @@ namespace MonoSound{
 		{
 #if CHECK_ARGS
 			if( buffer == null )
-				throw new ArgumentNullException( "buffer" );
+				throw new ArgumentNullException( nameof(buffer));
 			if( offset < 0 || count < 0 || buffer.Length - count < offset )
 				throw new ArgumentOutOfRangeException();
 
