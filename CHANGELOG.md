@@ -8,6 +8,9 @@
 - Added two types representing sample data:  `struct PCM16Bit` and `struct PCM24Bit`
 - Added `PcmFormat` and `PcmStream` for handling reading/streaming from `.pcm` files
   - It is automatically registered, but requires a `PcmFormatSettings` object to be loaded or streamed
+- Added `DynamicStreamPackage`
+  - Contains various events which mirror existing `virtual` methods in `StreamPackage`
+  - Any methods that don't have an event are `sealed` and throw errors when called due to them not being relevant anymore
 - Completely reworked how `WavSample` is structured
   - The `WavSample(short, data[])` constructor has been removed
   - Added new constructors: `WavSample(PCM16Bit)`, `WavSample(PCM24Bit)`, `WavSample(byte[])`, `WavSample(ReadOnlySpan<byte>)`
@@ -31,6 +34,10 @@
 - `StreamPackage`
   - `StreamedSoundEffectInstance PlayingSound { get; }` is now `public`
   - `void InitSound()` is now `protected`
+  - 24-bit PCM sample data is now supported
+  - Added `void PreQueueBuffers(ref StreamPackage.SubmitBufferControls)` for modifying hidden controls used while queuing and submitting audio data buffers
+    - Also added `void PreSubmitBuffer(ref byte[])` and `void PreSubmitBuffer(ref WavSample[])` for modifying the audio data before it is submitted
+    - Whichever method of the two is called depends on the state of the control object from `PreQueueBuffers`
 
 **Miscellaneous:**
 - Updated the library to .NET 8.0

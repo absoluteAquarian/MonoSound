@@ -29,6 +29,30 @@ namespace MonoSound.Audio {
 			}
 		}
 
+		/// <summary>
+		/// Splits a byte array into individual WAVE samples.  The byte array must be a multiple of the sample size.
+		/// </summary>
+		/// <param name="data">The sample data</param>
+		/// <param name="bitsPerSample">The size of each sample in bits.  Must be either 16 or 24.</param>
+		/// <exception cref="ArgumentException"/>
+		/// <exception cref="InvalidOperationException"/>
+		public static WavSample[] SpliceSampleData(byte[] data, int bitsPerSample) {
+			if (bitsPerSample != 16 && bitsPerSample != 24)
+				throw new ArgumentException("Sample bit depth must be 16-bit or 24-bit PCM.", nameof(bitsPerSample));
+
+			int bytesPerSample = bitsPerSample / 8;
+			if (data.Length % bytesPerSample != 0)
+				throw new ArgumentException($"Data length ({data.Length}) was not a multiple of PCM format size ({bytesPerSample})", nameof(data));
+
+			ReadOnlySpan<byte> dataSpan = data;
+
+			WavSample[] samples = new WavSample[data.Length / bytesPerSample];
+			for (int i = 0, j = 0; i < data.Length; i += bytesPerSample, j++)
+				samples[j] = new WavSample(dataSpan.Slice(i, bytesPerSample));
+
+			return samples;
+		}
+
 		internal const byte SAMPLESIZE_16BIT = 2;
 		internal const byte SAMPLESIZE_24BIT = 3;
 
@@ -324,7 +348,7 @@ namespace MonoSound.Audio {
 		/// <summary>
 		/// Converts the sample to a float value between -1 and 1
 		/// </summary>
-		public readonly float ToFloatSample() => Sample >= MinValue ? Sample / (float)MinValue : Sample / (float)MaxValue;
+		public readonly float ToFloatSample() => Sample >= MinValue ? -1 * Sample / (float)MinValue : Sample / (float)MaxValue;
 
 		/// <summary>
 		/// Converts the sample to a byte array

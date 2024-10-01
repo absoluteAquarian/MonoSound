@@ -44,18 +44,31 @@ namespace MonoSound.Streaming {
 		/// The sample rate of the audio data
 		/// </summary>
 		public int SampleRate { get; protected set; }
+
 		/// <summary>
 		/// Whether the audio data is mono or stereo
 		/// </summary>
 		public AudioChannels Channels { get; protected set; }
+
+		private short _bitsPerSample;
 		/// <summary>
 		/// The size of each sample in bits PER CHANNEL
 		/// </summary>
-		public short BitsPerSample { get; protected set; }
+		public short BitsPerSample {
+			get => _bitsPerSample;
+			protected set {
+				if (value != 16 && value != 24)
+					throw new ArgumentException("Bits per sample must be 16-bit or 24-bit PCM", nameof(value));
+
+				_bitsPerSample = value;
+			}
+		}
+
 		/// <summary>
 		/// The total number of bytes in the audio data
 		/// </summary>
 		public long TotalBytes { get; protected set; }
+
 		/// <summary>
 		/// The number of bytes read from the audio data
 		/// </summary>
@@ -157,11 +170,10 @@ namespace MonoSound.Streaming {
 		private bool _hasActiveJump;
 
 		/// <summary>
-		/// Sets <see cref="SecondsRead"/> to <paramref name="seconds"/>, and sets a hidden variable used to track <see cref="CurrentDuration"/><br/>
+		/// Sets a hidden variable used to track <see cref="CurrentDuration"/><br/>
 		/// This method is automatically called by <see cref="SetStreamPosition"/>
 		/// </summary>
 		protected void ApplyImmediateJump(double seconds) {
-			SecondsRead = seconds;
 			_jumpReadStart = seconds;
 			_hasActiveJump = true;
 		}
@@ -268,6 +280,9 @@ namespace MonoSound.Streaming {
 		protected virtual void Initialize() => InitSound();
 
 		private void QueueBuffers(object sender, EventArgs e) {
+			SubmitBufferControls controls = SubmitBufferControls.Create();
+			PreQueueBuffers(ref controls);
+
 			double currentDuration = CalculateBufferTime();
 
 			// Stopwatch usage is unreliable for tracking time
@@ -276,7 +291,7 @@ namespace MonoSound.Streaming {
 			if (deltaTime > 0)
 				UpdatePlayTime(deltaTime);
 
-			if (_hasActiveJump) {
+			if (controls.permitAudioJumps && _hasActiveJump) {
 				if (PlayingSound.PendingBufferCount > 0) {
 					// Don't submit new buffers until the current buffers have been exhaused
 					_lastBufferDuration = CalculateBufferTime();
@@ -285,8 +300,13 @@ namespace MonoSound.Streaming {
 
 				// Forcibly set CurrentDuration to where the jump started at
 				Interlocked.Exchange(ref _playTime, TimeSpan.FromSeconds(_jumpReadStart).Ticks);
+				SecondsRead = _jumpReadStart;
 				_jumpReadStart = 0;
 				_hasActiveJump = false;
+			} else {
+				// Reset the related variables
+				_hasActiveJump = false;
+				_jumpReadStart = 0;
 			}
 
 			if (PlayingSound.State != SoundState.Playing)
@@ -295,11 +315,83 @@ namespace MonoSound.Streaming {
 			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
 
 			var sfx = sender as StreamedSoundEffectInstance;
-			while (_queuedReads.TryDequeue(out byte[] read))
+			while (_queuedReads.TryDequeue(out byte[] read)) {
+				if (controls.requestPCMSamplesForEvent) {
+					if (read.Length % (BitsPerSample / 8) != 0)
+						throw new ArgumentException("Buffer length does not match PCM format alignment.");
+
+					WavSample[] pcmSamples = WavSample.SpliceSampleData(read, BitsPerSample);
+					int bitsPerSample = BitsPerSample;  // Prevent hijinks from modifying this as well
+
+					PreSubmitBuffer(ref pcmSamples);
+
+					// Convert the samples back to byte data
+					for (int i = 0; i < pcmSamples.Length; i++) {
+						WavSample sample = pcmSamples[i];
+						if (sample.SampleSize != bitsPerSample)
+							throw new ArgumentException("Sample size does not match PCM format alignment.");
+
+						sample.WriteToStream(read, i * (BitsPerSample / 8));
+					}
+				} else {
+					// No conversions needed
+					PreSubmitBuffer(ref read);
+				}
+
+				// 24-bit PCM must be converted to 16-bit PCM for SubmitBuffer to accept it
+				// This incurs a loss of quality, but it shouldn't be too much of a loss
+				if (BitsPerSample == 24) {
+					byte[] converted = new byte[read.Length / 3 * 2];
+					
+					for (int i = 0; i < read.Length; i += 3)
+						new PCM16Bit(new PCM24Bit(read, i).ToFloatSample()).WriteToStream(converted, i / 3 * 2);
+
+					read = converted;
+				}
+
 				sfx.SubmitBuffer(read);
+			}
 
 			_lastBufferDuration = CalculateBufferTime();
 		}
+
+		/// <summary>
+		/// A structure containing hidden controls for this package.
+		/// </summary>
+		protected ref struct SubmitBufferControls {
+			/// <summary>
+			/// Whether <see cref="ApplyImmediateJump"/> should have any effect.  Defaults to <see langword="true"/>.
+			/// </summary>
+			public bool permitAudioJumps;
+			/// <summary>
+			/// <see langword="true"/> to invoke <see cref="PreSubmitBuffer(ref WavSample[])"/><br/>
+			/// <see langword="false"/> to invoke <see cref="PreSubmitBuffer(ref byte[])"/><br/>
+			/// Defaults to <see langword="false"/> due to better performance.
+			/// </summary>
+			public bool requestPCMSamplesForEvent;
+
+			internal static SubmitBufferControls Create() {
+				return new SubmitBufferControls() {
+					permitAudioJumps = true,
+					requestPCMSamplesForEvent = false
+				};
+			}
+		}
+
+		/// <summary>
+		/// Execute logic before audio buffers are queued here.  The parameter mirrors hidden controls for this package.
+		/// </summary>
+		/// <param name="controls">The controls for this package</param>
+		protected virtual void PreQueueBuffers(ref SubmitBufferControls controls) { }
+
+		/// <summary>
+		/// Modify the audio data before it is submitted to the sound queue here.
+		/// </summary>
+		/// <param name="buffer">The buffer of sound data.</param>
+		protected virtual void PreSubmitBuffer(ref byte[] buffer) { }
+
+		/// <inheritdoc cref="PreSubmitBuffer(ref byte[])"/>
+		protected virtual void PreSubmitBuffer(ref WavSample[] buffer) { }
 
 		internal void FillQueue(int max) {
 			if (_queuedReads.Count < max - PlayingSound.PendingBufferCount)
@@ -342,7 +434,7 @@ namespace MonoSound.Streaming {
 				//Read "seconds" amount of data from the stream, then send it to "sfx"
 				ReadSamples(seconds, out byte[] read, out int bytesRead, out bool checkLooping);
 
-				// Ensure that the buffer meets the requirement for the DynamicSoundEffectInstance
+				// Ensure that the buffer meets the requirement for the StreamedSoundEffectInstance
 				int requiredSampleSize = 2 * (int)Channels;
 				if (read.Length % requiredSampleSize != 0) {
 					int length = read.Length - read.Length % requiredSampleSize;
@@ -404,18 +496,15 @@ namespace MonoSound.Streaming {
 		private void ProcessFilters(ref byte[] data) {
 			if (filterIDs is null)
 				return;
-
-			if (BitsPerSample != 16)
-				throw new InvalidOperationException("Effect data had an invalid BitsPerSample value: " + BitsPerSample);
 			
 			// Convert the byte samples to float samples
-			const int SIZE = 2;
-			int length = data.Length / SIZE;
+			int size = BitsPerSample == 16 ? 2 : 3;
+			int length = data.Length / size;
 			float[] filterSamples = new float[length];
 
-			for (int i = 0; i < data.Length; i += SIZE) {
-				filterSamples[i / SIZE] = new PCM16Bit(data, i).ToFloatSample();
-				FormatWav.ClampSample(ref filterSamples[i / SIZE]);
+			for (int i = 0; i < data.Length; i += size) {
+				filterSamples[i / size] = size == 2 ? new PCM16Bit(data, i).ToFloatSample() : new PCM24Bit(data, i).ToFloatSample();
+				FormatWav.ClampSample(ref filterSamples[i / size]);
 			}
 
 			// Apply the filters
@@ -423,11 +512,14 @@ namespace MonoSound.Streaming {
 				FilterSimulations.ApplyFilterTo(ref filterObjects[i], filterIDs[i], filterSamples, SampleRate);
 
 			// Convert the float samples back to byte samples
-			data = new byte[length * SIZE];
+			data = new byte[length * size];
 
 			for (int i = 0; i < filterSamples.Length; i++) {
 				FormatWav.ClampSample(ref filterSamples[i]);
-				new PCM16Bit(filterSamples[i]).WriteToStream(data, i * SIZE);
+				if (size == 2)
+					new PCM16Bit(filterSamples[i]).WriteToStream(data, i * size);
+				else
+					new PCM24Bit(filterSamples[i]).WriteToStream(data, i * size);
 			}
 		}
 
