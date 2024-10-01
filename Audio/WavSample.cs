@@ -241,6 +241,8 @@ namespace MonoSound.Audio {
 		/// </summary>
 		public const int MinValue = 0x800000;
 
+		private const int VALUE_MASK = 0xFFFFFF;
+
 		private int _sample;
 		/// <summary>
 		/// The sample represented as an integer
@@ -248,8 +250,8 @@ namespace MonoSound.Audio {
 		public int Sample {
 			readonly get => _sample >> 8;
 			set {
-				if (value < MinValue || value > MaxValue)
-					throw new ArgumentOutOfRangeException(nameof(value), value, "Sample value was outside the range of a 24-bit PCM sample");
+				if (unchecked((uint)value) > VALUE_MASK)
+					throw new ArgumentOutOfRangeException(nameof(value), $"0x{value:X08}", "Sample value was outside the range of a 24-bit PCM sample");
 
 				_sample = (value << 8) | WavSample.SAMPLESIZE_24BIT;
 			}

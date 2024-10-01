@@ -14,5 +14,3 @@ Feature Requests:
 - empty controllable StreamPackage creation
   - DynamicStreamPackage perhaps?
   - would have Func fields for handling the stream (DynamicStreamPackageBuilder for handling creation?)
-- native support for ".pcm" files
-  - might need a CustomAudioFormat since the sample metrics can't be in the file/stream
