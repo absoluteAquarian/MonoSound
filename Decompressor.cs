@@ -58,7 +58,7 @@ namespace MonoSound{
 
 		private static readonly Dictionary<string, Func<ContentTypeReader>> typeCreators = [];
 
-		static Decompressor(){
+		static Decompressor() {
 			_contentReadersCache = new Dictionary<Type, ContentTypeReader>(255);
 			_assemblyName = ReflectionHelpers.GetAssembly(typeof(ContentTypeReaderManager)).FullName;
 		}
@@ -68,9 +68,9 @@ namespace MonoSound{
 		/// </summary>
 		/// <param name="path">The path to the file</param>
 		/// <param name="pcmData">The PCM data from the extracted sound, including things like channel count and sample rate</param>
-		/// <param name="header">The extracted header data from the XNB file</param>
+		/// <param name="fmtChunk">The extracted "fmt " chunk data from the XNB file</param>
 		/// <returns></returns>
-		public static byte[] DecompressSoundEffectXNB(string path, out PCMData pcmData, out byte[] header){
+		public static byte[] DecompressSoundEffectXNB(string path, out PCMData pcmData, out byte[] fmtChunk){
 			if(Path.GetExtension(path) != ".xnb")
 				throw new ArgumentException("File must be an XNB file.", nameof(path));
 			
@@ -82,7 +82,7 @@ namespace MonoSound{
 				
 				using BinaryReader decompressedReader = new BinaryReader(decompressedStream);
 				
-				data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out header);
+				data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out fmtChunk);
 			}
 
 			return data;
@@ -93,9 +93,9 @@ namespace MonoSound{
 		/// </summary>
 		/// <param name="stream">The stream to retrieve the audio data from</param>
 		/// <param name="pcmData">The PCM data from the extracted sound, including things like channel count and sample rate</param>
-		/// <param name="header">The extracted header data from the XNB file</param>
+		/// <param name="fmtChunk">The extracted "fmt " chunk data from the XNB file</param>
 		/// <returns></returns>
-		public static byte[] DecompressSoundEffectXNB(Stream stream, out PCMData pcmData, out byte[] header){
+		public static byte[] DecompressSoundEffectXNB(Stream stream, out PCMData pcmData, out byte[] fmtChunk){
 			byte[] data;
 
 			using(BinaryReader reader = new BinaryReader(stream)){
@@ -103,7 +103,7 @@ namespace MonoSound{
 				
 				using BinaryReader decompressedReader = new BinaryReader(decompressedStream);
 				
-				data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out header);
+				data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out fmtChunk);
 			}
 
 			return data;

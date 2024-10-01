@@ -81,7 +81,7 @@ namespace MonoSound.Filters {
 					wav = FormatWav.FromDecompressorData(data, header);
 					break;
 				case ".wav":
-					//Could've jumped here from the ".ogg" case.  Don't try and set the 'wav' variable if it was already set
+					//Could've jumped here from the other case.  Don't try and set the 'wav' variable if it was already set
 					wav ??= FormatWav.FromFileWAV(path);
 					metaData = wav.GetMetadata();
 					break;

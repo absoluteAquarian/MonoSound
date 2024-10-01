@@ -13,12 +13,12 @@ namespace MonoSound {
 		public static bool AllowEchoOversampling { get; set; }
 
 		/// <summary>
-		/// If enabled, this folder path will be where filtered sounds are saved to. This property should be set after <seealso cref="MonoSoundLibrary.Init(Game)"/> is called.
+		/// If enabled, this folder path will be where filtered sounds are saved to. This property should be set after <see cref="MonoSoundLibrary.Init(Game)"/> is called.
 		/// </summary>
 		public static string LogDirectory { get; set; }
 
 		/// <summary>
-		/// Enables or disables the saving of filtered sounds.  Set <seealso cref="LogDirectory"/> to where the filtered sounds will be saved to
+		/// Enables or disables the saving of filtered sounds.  Set <see cref="LogDirectory"/> to where the filtered sounds will be saved to
 		/// </summary>
 		public static bool LogFilters { get; set; }
 

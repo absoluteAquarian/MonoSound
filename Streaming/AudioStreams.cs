@@ -46,6 +46,8 @@ namespace MonoSound.Streaming {
 			TotalBytes = BitConverter.ToInt32(header, 40);
 
 			sampleReadStart = underlyingStream.Position;
+
+			InitSound();  // REQUIRED!  This initializes PlayingSound and Metrics
 		}
 
 		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
@@ -95,6 +97,8 @@ namespace MonoSound.Streaming {
 
 			underlyingStream.Read(read, 0, 4);
 			TotalBytes = BitConverter.ToInt32(read, 0);
+
+			InitSound();  // REQUIRED!  This initializes PlayingSound and Metrics
 		}
 	}
 
@@ -134,6 +138,8 @@ namespace MonoSound.Streaming {
 
 			if (BitsPerSample != 16)
 				throw new ArgumentException("Stream format is not supported: " + mp3Stream.Format);
+
+			InitSound();  // REQUIRED!  This initializes PlayingSound and Metrics
 		}
 
 		/// <inheritdoc cref="StreamPackage.SetStreamPosition"/>
@@ -189,7 +195,7 @@ namespace MonoSound.Streaming {
 
 			loopTargetTime = TimeSpan.Zero;
 
-			base.Initialize();
+			InitSound();  // REQUIRED!  This initializes PlayingSound and Metrics
 		}
 
 		/// <inheritdoc cref="StreamPackage.GetSecondDuration"/>
@@ -199,6 +205,11 @@ namespace MonoSound.Streaming {
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
 			//Float samples = 2 bytes per sample (converted to short samples)
 			int samplesToRead = (int)(seconds * SampleRate * (short)Channels);
+
+			if (samplesToRead == 0) {
+				throw new InvalidOperationException("MonoSound internals error: Streamed audio requested an invalid amount of samples to read" +
+					$"\nObject state: {SampleRate}Hz | {Channels} | {ReadBytes / BitsPerSample * 8 / (int)Channels} samples read");
+			}
 
 			float[] vorbisRead = new float[samplesToRead];
 			int readOggSamples = vorbisStream.ReadSamples(vorbisRead, 0, vorbisRead.Length);

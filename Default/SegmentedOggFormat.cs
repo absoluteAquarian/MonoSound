@@ -38,13 +38,23 @@ namespace MonoSound.Default {
 		}
 
 		/// <summary>
-		/// Ignored.  This format is not intended to be registered.
+		/// Ignored.  This format is only intended to be used with audio streaming.
 		/// </summary>
 		public override FormatWav ReadWav(string filePath) => throw new NotImplementedException();
 
 		/// <summary>
-		/// Ignored.  This format is not intended to be registered.
+		/// Ignored.  This format is only intended to be used with audio streaming.
+		/// </summary>
+		public override FormatWav ReadWav(string filePath, object state) => throw new NotImplementedException();
+
+		/// <summary>
+		/// Ignored.  This format is only intended to be used with audio streaming.
 		/// </summary>
 		public override FormatWav ReadWav(Stream dataStream) => throw new NotImplementedException();
+
+		/// <summary>
+		/// Ignored.  This format is only intended to be used with audio streaming.
+		/// </summary>
+		public override FormatWav ReadWav(Stream dataStream, object state) => throw new NotImplementedException();
 	}
 }

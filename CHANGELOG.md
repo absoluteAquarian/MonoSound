@@ -2,20 +2,35 @@
 **Fixes:**
 - Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object and only updating it when new streams are added
 - Fixed `FormatWav` not implementing the `IDisposable` interface correctly
+- Fixed an oversight where `WavStream`, `XnbStream` and `MP3Stream` would not initialize `SteamPackage.PlayingSound` nor `StreamPackage.Metrics`
 
 **API Changes:**
 - Added two types representing sample data:  `struct PCM16Bit` and `struct PCM24Bit`
+- Added `PcmFormat` and `PcmStream` for handling reading/streaming from `.pcm` files
+  - It is automatically registered, but requires a `PcmFormatSettings` object to be loaded or streamed
 - Completely reworked how `WavSample` is structured
   - The `WavSample(short, data[])` constructor has been removed
   - Added new constructors: `WavSample(PCM16Bit)`, `WavSample(PCM24Bit)`, `WavSample(byte[])`, `WavSample(ReadOnlySpan<byte>)`
   - `short SampleSize` has been replaced with `int SampleSize { get; }`
   - `byte[] Data { get; set; }` has been replaced with `PCM16Bit Sample16Bit { get; set; }` and `PCM24Bit Sample24Bit { get; set; }`
+- `CustomAudioFormat`
+  - Added new methods for reading WAVE data: `FormatWav ReadWav(string, object)` and `FormatWav ReadWav(Stream, object)`
+- `EffectLoader`
+  - Added new methods to account for the changes to `CustomAudioFormat`:
+    - `SoundEffect GetEffect(string, CustomAudioFormat, object)`
+    - `SoundEffect GetFilteredEffect(string, CustomAudioFormat, object, int)`
+    - `SoundEffect GetMultiFilteredEffect(string, CustomAudioFormat, object, params int[])`
+    - `SoundEffect GetEffect(Stream, CustomAudioFormat, object)`
+    - `SoundEffect GetFilteredEffect(Stream, CustomAudioFormat, object, string, int)`
+    - `SoundEffect GetMultiFilteredEffect(Stream, CustomAudioFormat, object, string, params int[])`
 - `FormatWav`
   - `byte[] Data { get; }` has been removed
+  - Added `FormatWav FromSampleDataAndSettings(byte[], AudioChannels, int, int)` for creating a `FormatWav` from sample data and WAVE settings
 - `StreamedSoundEffectInstance`
   - Class is now `public`
 - `StreamPackage`
   - `StreamedSoundEffectInstance PlayingSound { get; }` is now `public`
+  - `void InitSound()` is now `protected`
 
 **Miscellaneous:**
 - Updated the library to .NET 8.0

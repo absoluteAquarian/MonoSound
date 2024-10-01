@@ -28,11 +28,27 @@ namespace MonoSound.Audio {
 		public abstract FormatWav ReadWav(string filePath);
 
 		/// <summary>
+		/// Read the contents of the file and convert the audio data to the WAVE format here
+		/// </summary>
+		/// <param name="filePath">The path to the file</param>
+		/// <param name="state">Extra data provided by the caller</param>
+		/// <returns>An object representing the converted WAVE data for the audio</returns>
+		public abstract FormatWav ReadWav(string filePath, object state);
+
+		/// <summary>
 		/// Read the contents of the data stream and convert the audio data to the WAVE format here
 		/// </summary>
 		/// <param name="dataStream">The data stream</param>
 		/// <returns>An object representing the converted WAVE data for the audio, or <see langword="null"/> if the stream isn't in the correct format</returns>
 		public abstract FormatWav ReadWav(Stream dataStream);
+
+		/// <summary>
+		/// Read the contents of the data stream and convert the audio data to the WAVE format here
+		/// </summary>
+		/// <param name="dataStream">The data stream</param>
+		/// <param name="state">Extra data provided by the caller</param>
+		/// <returns>An object representing the converted WAVE data for the audio, or <see langword="null"/> if the stream isn't in the correct format</returns>
+		public abstract FormatWav ReadWav(Stream dataStream, object state);
 
 		/// <summary>
 		/// Create an object for streaming this audio format from a given file

@@ -136,10 +136,9 @@ namespace MonoSound.Audio {
 		/// Loads a <see cref="FormatWav"/> from a .wav stream
 		/// </summary>
 		public static FormatWav FromFileWAV(Stream readStream) {
-			using BinaryReader reader = new BinaryReader(readStream);
 			using MemoryStream stream = new MemoryStream();
-			reader.BaseStream.CopyTo(stream);
-			return FromBytes(stream.GetBuffer());
+			readStream.CopyTo(stream);
+			return FromBytes(stream.ToArray());
 		}
 
 		/// <summary>
@@ -199,39 +198,39 @@ namespace MonoSound.Audio {
 
 			using VorbisReader reader = new VorbisReader(readStream, closeStreamOnDispose: true);
 
-			byte[] header = new byte[16];
+			byte[] fmtChunk = new byte[16];
 
 			//Type of Format
-			header[0] = 0x01;
+			fmtChunk[0] = 0x01;
 
 			//Number of Channels
 			byte[] arr = BitConverter.GetBytes((short)reader.Channels);
-			header[2] = arr[0];
-			header[3] = arr[1];
+			fmtChunk[2] = arr[0];
+			fmtChunk[3] = arr[1];
 
 			//Samples per Second
 			arr = BitConverter.GetBytes(reader.SampleRate);
-			header[4] = arr[0];
-			header[5] = arr[1];
-			header[6] = arr[2];
-			header[7] = arr[3];
+			fmtChunk[4] = arr[0];
+			fmtChunk[5] = arr[1];
+			fmtChunk[6] = arr[2];
+			fmtChunk[7] = arr[3];
 
 			//Bytes per Second
 			arr = BitConverter.GetBytes(reader.SampleRate * reader.Channels * 2);
-			header[8] = arr[0];
-			header[9] = arr[1];
-			header[10] = arr[2];
-			header[11] = arr[3];
+			fmtChunk[8] = arr[0];
+			fmtChunk[9] = arr[1];
+			fmtChunk[10] = arr[2];
+			fmtChunk[11] = arr[3];
 
 			//Block Align
 			arr = BitConverter.GetBytes((short)(reader.Channels * 2));
-			header[12] = arr[0];
-			header[13] = arr[1];
+			fmtChunk[12] = arr[0];
+			fmtChunk[13] = arr[1];
 
 			//Bits per Sample
 			arr = BitConverter.GetBytes((short)16);
-			header[14] = arr[0];
-			header[15] = arr[1];
+			fmtChunk[14] = arr[0];
+			fmtChunk[15] = arr[1];
 
 			//Read the samples
 			float[] buffer = new float[reader.SampleRate / 10 * reader.Channels];
@@ -253,10 +252,61 @@ namespace MonoSound.Audio {
 				}
 			}
 
-			return FromDecompressorData([.. samples], header);
+			return FromDecompressorData([.. samples], fmtChunk);
 		}
 
-		internal static FormatWav FromDecompressorData(byte[] sampleData, byte[] header) {
+		/// <summary>
+		/// Creates a <see cref="FormatWav"/> from the given sample data and WAVE settings
+		/// </summary>
+		/// <param name="sampleData">The sample data</param>
+		/// <param name="channels">Mono or Stereo</param>
+		/// <param name="sampleRate">How many samples PER CHANNEL are read per second (the frequency of the audio)</param>
+		/// <param name="bitsPerSample">The PCM format of each sample</param>
+		/// <exception cref="ArgumentOutOfRangeException"/>
+		/// <exception cref="ArgumentException"/>
+		public static FormatWav FromSampleDataAndSettings(byte[] sampleData, AudioChannels channels, int sampleRate, int bitsPerSample) {
+			if (sampleData is not { Length: > 0 })
+				throw new ArgumentException("No samples were provided", nameof(sampleData));
+			if (channels != AudioChannels.Mono && channels != AudioChannels.Stereo)
+				throw new ArgumentException("Audio data must be Mono or Stereo", nameof(channels));
+			if (sampleRate < 0)
+				throw new ArgumentOutOfRangeException(nameof(sampleRate), "Sample rate must be a positive number");
+			if (bitsPerSample != 16 && bitsPerSample != 24)
+				throw new ArgumentException("Sample bit depth must be 16-bit or 24-bit PCM", nameof(bitsPerSample));
+
+			int bytesPerSample = bitsPerSample / 8;
+
+			byte[] header = [
+				.. AsBytes("RIFF"),
+				.. BitConverter.GetBytes(44 + sampleData.Length),  // Total file size = header + sample data length
+				.. AsBytes("WAVE"),
+				.. AsBytes("fmt "),
+				0x10, 0x00, 0x00, 0x00,  // Length of format chunk = 16 bytes
+				0x01, 0x00,  // Type of format, PCM = 1
+				.. BitConverter.GetBytes((short)channels),
+				.. BitConverter.GetBytes(sampleRate),
+				.. BitConverter.GetBytes(sampleRate * (int)channels * bytesPerSample),  // Bytes per second
+				.. BitConverter.GetBytes((short)((int)channels * bytesPerSample)),  // Block align
+				.. BitConverter.GetBytes((short)bitsPerSample),
+				.. AsBytes("data"),
+				.. BitConverter.GetBytes(sampleData.Length)  // Sample data length
+			];
+
+			byte[] actualStream = new byte[header.Length + sampleData.Length];
+
+			// Copy the data
+			Buffer.BlockCopy(header, 0, actualStream, 0, header.Length);
+			Buffer.BlockCopy(sampleData, 0, actualStream, header.Length, sampleData.Length);
+
+			return FromBytes(actualStream);
+		}
+
+		private static IEnumerable<byte> AsBytes(string word) {
+			foreach (char c in word)
+				yield return (byte)c;
+		}
+
+		internal static FormatWav FromDecompressorData(byte[] sampleData, byte[] fmtChunk) {
 			byte[] addon = new byte[44];
 			addon[0] = (byte)'R';
 			addon[1] = (byte)'I';
@@ -279,7 +329,7 @@ namespace MonoSound.Audio {
 			addon[16] = 16;
 
 			//Type of Format, Number of Channels, Samples per Second, Bytes per Second, Block Align, Bits per Sample
-			Buffer.BlockCopy(header, 0, addon, 20, 16);
+			Buffer.BlockCopy(fmtChunk, 0, addon, 20, 16);
 
 			addon[36] = (byte)'d';
 			addon[37] = (byte)'a';
@@ -329,39 +379,39 @@ namespace MonoSound.Audio {
 			try {
 				using MP3Stream stream = new MP3Stream(readStream);
 
-				byte[] header = new byte[16];
+				byte[] fmtChunk = new byte[16];
 
 				//Type of Format
-				header[0] = 0x01;
+				fmtChunk[0] = 0x01;
 
 				//Number of Channels
 				byte[] arr = BitConverter.GetBytes((short)AudioChannels.Stereo);  //MP3 decoder forces the samples to align to stereo
-				header[2] = arr[0];
-				header[3] = arr[1];
+				fmtChunk[2] = arr[0];
+				fmtChunk[3] = arr[1];
 
 				//Samples per Second
 				arr = BitConverter.GetBytes(stream.Frequency);
-				header[4] = arr[0];
-				header[5] = arr[1];
-				header[6] = arr[2];
-				header[7] = arr[3];
+				fmtChunk[4] = arr[0];
+				fmtChunk[5] = arr[1];
+				fmtChunk[6] = arr[2];
+				fmtChunk[7] = arr[3];
 
 				//Bytes per Second
 				arr = BitConverter.GetBytes(stream.Frequency * 4);
-				header[8] = arr[0];
-				header[9] = arr[1];
-				header[10] = arr[2];
-				header[11] = arr[3];
+				fmtChunk[8] = arr[0];
+				fmtChunk[9] = arr[1];
+				fmtChunk[10] = arr[2];
+				fmtChunk[11] = arr[3];
 
 				//Block Align
 				arr = BitConverter.GetBytes((short)4);
-				header[12] = arr[0];
-				header[13] = arr[1];
+				fmtChunk[12] = arr[0];
+				fmtChunk[13] = arr[1];
 
 				//Bits per Sample
 				arr = BitConverter.GetBytes((short)16);
-				header[14] = arr[0];
-				header[15] = arr[1];
+				fmtChunk[14] = arr[0];
+				fmtChunk[15] = arr[1];
 
 				//Read the samples
 				byte[] sampleWrite = new byte[1024];
@@ -375,7 +425,7 @@ namespace MonoSound.Audio {
 					samples.AddRange(read);
 				}
 
-				return FromDecompressorData([.. samples], header);
+				return FromDecompressorData([.. samples], fmtChunk);
 			} catch (BitstreamException) {
 				// Try again
 				attempts++;
@@ -456,31 +506,31 @@ HeaderCheckStart:
 			//WaveBank sounds always have 16 bits/sample for some reason
 			const int bitsPerSample = 16;
 
-			byte[] header = new byte[16];
+			byte[] fmtChunk = new byte[16];
 			var bytes = BitConverter.GetBytes((short)1);    //Force the PCM encoding... Others aren't allowed
-			header[0] = bytes[0];
-			header[1] = bytes[1];
+			fmtChunk[0] = bytes[0];
+			fmtChunk[1] = bytes[1];
 			bytes = BitConverter.GetBytes((short)channels);
-			header[2] = bytes[0];
-			header[3] = bytes[1];
+			fmtChunk[2] = bytes[0];
+			fmtChunk[3] = bytes[1];
 			bytes = BitConverter.GetBytes(sampleRate);
-			header[4] = bytes[0];
-			header[5] = bytes[1];
-			header[6] = bytes[2];
-			header[7] = bytes[3];
+			fmtChunk[4] = bytes[0];
+			fmtChunk[5] = bytes[1];
+			fmtChunk[6] = bytes[2];
+			fmtChunk[7] = bytes[3];
 			bytes = BitConverter.GetBytes(sampleRate * channels * bitsPerSample / 8);
-			header[8] = bytes[0];
-			header[9] = bytes[1];
-			header[10] = bytes[2];
-			header[11] = bytes[3];
+			fmtChunk[8] = bytes[0];
+			fmtChunk[9] = bytes[1];
+			fmtChunk[10] = bytes[2];
+			fmtChunk[11] = bytes[3];
 			bytes = BitConverter.GetBytes((short)blockAlignment);
-			header[12] = bytes[0];
-			header[13] = bytes[1];
+			fmtChunk[12] = bytes[0];
+			fmtChunk[13] = bytes[1];
 			bytes = BitConverter.GetBytes((short)bitsPerSample);
-			header[14] = bytes[0];
-			header[15] = bytes[1];
+			fmtChunk[14] = bytes[0];
+			fmtChunk[15] = bytes[1];
 
-			return FromDecompressorData(buffer, header);
+			return FromDecompressorData(buffer, fmtChunk);
 		}
 
 		/// <summary>

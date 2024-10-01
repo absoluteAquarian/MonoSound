@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using MonoSound.Audio;
+using MonoSound.Default;
 using MonoSound.Filters;
 using MonoSound.Filters.Instances;
 using MonoSound.Streaming;
@@ -78,6 +79,9 @@ namespace MonoSound {
 			NextFilterID = 0;
 
 			initialized = true;
+
+			// Built-in custom formats
+			RegisterFormat(new PcmFormat());
 
 			try {
 				if (Directory.Exists(Controls.LogDirectory))

@@ -76,7 +76,7 @@ namespace MonoSound {
 		/// Gets a streamed sound effect
 		/// </summary>
 		/// <param name="sampleSource">The stream where the samples will be read from. It is expected to contain a full audio file's data</param>
-		/// <param name="fileIdentifier">An enumeration value indicating what type of audio <paramref name="sampleSource"/> contains.  Cannot be <seealso cref="AudioType.XWB"/> nor <see cref="AudioType.Custom"/></param>
+		/// <param name="fileIdentifier">An enumeration value indicating what type of audio <paramref name="sampleSource"/> contains.  Cannot be <see cref="AudioType.XWB"/> nor <see cref="AudioType.Custom"/></param>
 		/// <param name="looping">Whether the sound should loop</param>
 		public static StreamPackage GetStreamedSound(Stream sampleSource, AudioType fileIdentifier, bool looping) {
 			MonoSoundLibrary.ThrowIfNotInitialized();

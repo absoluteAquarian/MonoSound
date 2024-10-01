@@ -11,7 +11,7 @@ namespace MonoSound {
 		/// <summary>
 		/// Registers a Biquad Resonant filter.
 		/// </summary>
-		/// <param name="type">The filter type to use. Must either be <seealso cref="SoundFilterType.LowPass"/>, <seealso cref="SoundFilterType.BandPass"/> or <seealso cref="SoundFilterType.HighPass"/></param>
+		/// <param name="type">The filter type to use. Must either be <see cref="SoundFilterType.LowPass"/>, <see cref="SoundFilterType.BandPass"/> or <see cref="SoundFilterType.HighPass"/></param>
 		/// <param name="strength">How strong the filter effect is. 0 = no effect, 1 = full effect</param>
 		/// <param name="frequencyCap">The frequency parameter. Expected values are between 1000 and 8000</param>
 		/// <param name="resonance">The resonance parameter. Expected values are between 2 and 20</param>

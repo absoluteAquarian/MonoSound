@@ -6,7 +6,7 @@ namespace MonoSound{
 	/// </summary>
 	public enum AudioType{
 		/// <summary>
-		/// Compiled <seealso cref="SoundEffect"/> files
+		/// Compiled <see cref="SoundEffect"/> files
 		/// </summary>
 		XNB,
 		/// <summary>

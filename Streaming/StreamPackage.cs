@@ -199,7 +199,11 @@ namespace MonoSound.Streaming {
 			Reset_Impl(true);
 		}
 
-		private void InitSound() {
+		/// <summary>
+		/// Initializes <see cref="PlayingSound"/> and <see cref="Metrics"/><br/>
+		/// <see cref="SampleRate"/> and <see cref="Channels"/> <b>must</b> be set before calling this method!
+		/// </summary>
+		protected void InitSound() {
 			//Initialize the instance
 			PlayingSound?.Dispose();
 			PlayingSound = new StreamedSoundEffectInstance(SampleRate, Channels);
