@@ -194,6 +194,6 @@ namespace MonoSound {
 
 		internal static Filter[] GetFiltersFromIDs(int[] ids) => ids.Select(i => customFilters[i]).ToArray();
 
-		internal static bool AllFiltersIDsExist(int[] ids) => ids.AsParallel().All(i => customFilters.ContainsKey(i));
+		internal static bool AllFiltersIDsExist(int[] ids) => ids.AsParallel().All(customFilters.ContainsKey);
 	}
 }
