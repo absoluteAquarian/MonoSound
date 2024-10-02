@@ -5,22 +5,28 @@
 - Fixed an oversight where `WavStream`, `XnbStream` and `MP3Stream` would not initialize `SteamPackage.PlayingSound` nor `StreamPackage.Metrics`
 
 **API Changes:**
-- Added two types representing sample data:  `struct PCM16Bit` and `struct PCM24Bit`
-- Added `PcmFormat` and `PcmStream` for handling reading/streaming from `.pcm` files
-  - It is automatically registered, but requires a `PcmFormatSettings` object to be loaded or streamed
-- Added `DynamicStreamPackage`
-  - Contains various events which mirror existing `virtual` methods in `StreamPackage`
-  - Any methods that don't have an event are `sealed` and throw errors when called due to them not being relevant anymore
-- Completely reworked how `WavSample` is structured
-  - The `WavSample(short, data[])` constructor has been removed
-  - Added new constructors: `WavSample(PCM16Bit)`, `WavSample(PCM24Bit)`, `WavSample(byte[])`, `WavSample(ReadOnlySpan<byte>)`
-  - `short SampleSize` has been replaced with `int SampleSize { get; }`
-  - `byte[] Data { get; set; }` has been replaced with `PCM16Bit Sample16Bit { get; set; }` and `PCM24Bit Sample24Bit { get; set; }`
-  - Added `byte[] ToByteArray(WavSample[])` for converting sample data to a byte array
+- New types:
+  - `class DynamicStreamPackage`
+  - `struct PCM16Bit`
+  - `struct PCM24Bit`
+  - `class PcmFormat`
+  - `class PcmStream`
 - `CustomAudioFormat`
-  - Added new methods for reading WAVE data: `FormatWav ReadWav(string, object)` and `FormatWav ReadWav(Stream, object)`
+  - New members:
+    - `FormatWav ReadWav(string, object)`
+    - `FormatWav ReadWav(Stream, object)`
+- `DynamicStreamPackage`
+  - An empty, customizable `StreamPackage`
+  - Events:
+    - `event Action<DynamicStreamPackage> OnReset`
+    - `event DynamicStreamPackage.ModifySamplesDelegate OnSamplesRead`
+    - `event DynamicStreamPackage.ModifyReadSecondsDelegate OnModifyReadSeconds`
+    - `event DynamicStreamPackage.ModifyByteSamplesDelegate OnPreSubmitByteBuffer`
+    - `event DynamicStreamPackage.ModifyWaveSamplesDelegate OnPreSubmitWaveBuffer`
+  - Methods:
+    - `virtual byte[] ReadSamples(double)`
 - `EffectLoader`
-  - Added new methods to account for the changes to `CustomAudioFormat`:
+  - New members:
     - `SoundEffect GetEffect(string, CustomAudioFormat, object)`
     - `SoundEffect GetFilteredEffect(string, CustomAudioFormat, object, int)`
     - `SoundEffect GetMultiFilteredEffect(string, CustomAudioFormat, object, params int[])`
@@ -28,17 +34,43 @@
     - `SoundEffect GetFilteredEffect(Stream, CustomAudioFormat, object, string, int)`
     - `SoundEffect GetMultiFilteredEffect(Stream, CustomAudioFormat, object, string, params int[])`
 - `FormatWav`
-  - `byte[] Data { get; }` has been removed
-  - Added `FormatWav FromSampleDataAndSettings(byte[], AudioChannels, int, int)` for creating a `FormatWav` from sample data and WAVE settings
+  - Removed members:
+    - `byte[] Data { get; }`
+  - New members:
+    - `static FormatWav FromSampleDataAndSettings(WavSample[], AudioChannels, int, int)`
+- `PcmFormat`, `PcmStream`
+  - Used to handle reading/streaming from `.pcm` files
+  - Automatically registered, but requires a `PcmFormatSettings` object to be loaded or streamed
 - `StreamedSoundEffectInstance`
   - Class is now `public`
 - `StreamPackage`
   - `StreamedSoundEffectInstance PlayingSound { get; }` is now `public`
   - `void InitSound()` is now `protected`
   - 24-bit PCM sample data is now supported
-  - Added `void PreQueueBuffers(ref StreamPackage.SubmitBufferControls)` for modifying hidden controls used while queuing and submitting audio data buffers
-    - Also added `void PreSubmitBuffer(ref byte[])` and `void PreSubmitBuffer(ref WavSample[])` for modifying the audio data before it is submitted
-    - Whichever method of the two is called depends on the state of the control object from `PreQueueBuffers`
+  - New members:
+    - `struct SubmitBufferControls`
+      - Interface for setting hidden controls used while queuing and submitting audio data buffers
+    - `void PreQueueBuffers(ref StreamPackage.SubmitBufferControls)`
+    - `void PreSubmitBuffer(ref byte[])`
+      - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = false;`
+    - `void PreSubmitBuffer(ref WavSample[])`
+	  - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = true;`
+- `WavSample`
+  - Internal structure has been completely reworked to be more efficient and easier to work with
+  - Removed members:
+    - `WavSample..ctor(short, data[])`
+  - New members:
+	- `WavSample..ctor(PCM16Bit)`
+	- `WavSample..ctor(PCM24Bit)`
+	- `WavSample..ctor(byte[])`
+	- `WavSample..ctor(ReadOnlySpan<byte>)`
+	- `int SampleSize { get; }`
+	- `PCM16Bit Sample16Bit { get; set; }`
+	- `PCM24Bit Sample24Bit { get; set; }`
+	- `static byte[] ToByteArray(WavSample[])`
+  - Replaced members:
+    - `short SampleSize` with `int SampleSize { get; }`
+	- `byte[] Data { get; set; }` with `PCM16Bit Sample16Bit { get; set; }` and `PCM24Bit Sample24Bit { get; set; }`
 
 **Miscellaneous:**
 - Updated the library to .NET 8.0
