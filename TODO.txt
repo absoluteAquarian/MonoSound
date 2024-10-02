@@ -8,9 +8,4 @@ Filter Testing:
 - test low pass filter with various frequencies and resonance values
 
 Feature Requests:
-- native control over SubmitBuffer in StreamPackage (method for handling the call?)
-  - necessitates making the StreamedSoundEffectInstance public
-- ReadWav alternative for creating PCM data instead of WAVE data
-- empty controllable StreamPackage creation
-  - DynamicStreamPackage perhaps?
-  - would have Func fields for handling the stream (DynamicStreamPackageBuilder for handling creation?)
+- none

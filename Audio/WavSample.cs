@@ -152,6 +152,30 @@ namespace MonoSound.Audio {
 					throw new InvalidOperationException("Sample size was invalid.  Expected either 16-bit or 24-bit PCM.");
 			}
 		}
+
+		/// <summary>
+		/// Converts an array of WAVE samples to a byte array
+		/// </summary>
+		/// <param name="samples">The samples.  The PCM bit depth must be the same for all samples, or an exception is thrown.</param>
+		/// <exception cref="ArgumentException"/>
+		public static byte[] ToByteArray(WavSample[] samples) {
+			if (samples is not { Length: >0 })
+				throw new ArgumentException("Sample array was empty", nameof(samples));
+
+			int size = samples[0]._sample.size;
+
+			byte[] data = new byte[samples.Length * size];
+			for (int i = 0, j = 0; i < samples.Length; i++, j += size) {
+				WavSample sample = samples[i];
+
+				if (sample._sample.size != size)
+					throw new ArgumentException("Sample sizes were not consistent", nameof(samples));
+
+				sample.WriteToStream(data, j);
+			}
+
+			return data;
+		}
 	}
 
 	/// <summary>

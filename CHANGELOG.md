@@ -16,6 +16,7 @@
   - Added new constructors: `WavSample(PCM16Bit)`, `WavSample(PCM24Bit)`, `WavSample(byte[])`, `WavSample(ReadOnlySpan<byte>)`
   - `short SampleSize` has been replaced with `int SampleSize { get; }`
   - `byte[] Data { get; set; }` has been replaced with `PCM16Bit Sample16Bit { get; set; }` and `PCM24Bit Sample24Bit { get; set; }`
+  - Added `byte[] ToByteArray(WavSample[])` for converting sample data to a byte array
 - `CustomAudioFormat`
   - Added new methods for reading WAVE data: `FormatWav ReadWav(string, object)` and `FormatWav ReadWav(Stream, object)`
 - `EffectLoader`
