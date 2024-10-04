@@ -120,6 +120,9 @@ Furthermore, the parameter fading feature from SoLoud is how present in MonoSoun
       - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = false;`
     - `void PreSubmitBuffer(ref WavSample[])`
 	  - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = true;`
+    - `void ApplyFilters(params SoLoudFilterInstance[])`
+      - Alternative for applying instances directly
+      - Provided instances cannot be a filter singleton
 - `WavSample`
   - Internal structure has been completely reworked to be more efficient and easier to work with
   - Removed members:

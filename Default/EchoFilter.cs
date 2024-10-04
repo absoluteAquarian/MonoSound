@@ -35,8 +35,8 @@ namespace MonoSound.Default {
 		/// </summary>
 		/// <param name="strength">The strength of the filter, with a minimum of 0% and a maximum of 100%.  Default is 100%.</param>
 		/// <param name="delay">The delay of the echo in seconds, with a minimum of 0.0001 seconds.  Default is 0.3 seconds.</param>
-		/// <param name="decay">The decay factor of the echo, with a minimum of 0x and a maximum of 1x.  Default is 0.7x.</param>
-		/// <param name="bias">The influence of earlier samples on the echo, with a minimum of 0% and a maximum of 100%.  Default is 0%.</param>
+		/// <param name="decay">The decay factor of the echo, with a minimum of 0% and a maximum of 100%.  Default is 70%.</param>
+		/// <param name="bias">The influence of earlier echo samples on the resulting echo, with a minimum of 0% and a maximum of 100%.  Default is 0%.</param>
 		public EchoFilter(float strength, float delay, float decay, float bias) : base(strength) {
 			EchoFilterInstance singleton = Singleton;
 			singleton.paramDelay.Value = delay;
@@ -65,11 +65,11 @@ namespace MonoSound.Default {
 		/// </summary>
 		public readonly SoLoudFilter.Parameter<float> paramDelay;  // SoLoud::EchoFilter::DELAY, mDelay
 		/// <summary>
-		/// The decay factor of the echo, with a minimum of 0x and a maximum of 1x.  Default is 0.7x.
+		/// The decay factor of the echo, with a minimum of 0% and a maximum of 100%.  Default is 70%.
 		/// </summary>
 		public readonly SoLoudFilter.Parameter<float> paramDecay;  // SoLoud::EchoFilter::DECAY, mDecay
 		/// <summary>
-		/// The influence of earlier samples on the echo, with a minimum of 0% and a maximum of 100%.  Default is 0%.
+		/// The influence of earlier echo samples on the resulting echo, with a minimum of 0% and a maximum of 100%.  Default is 0%.
 		/// </summary>
 		public readonly SoLoudFilter.Parameter<float> paramBias;  // SoLoud::EchoFilter::FILTER, mFilter
 

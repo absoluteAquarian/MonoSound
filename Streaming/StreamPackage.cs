@@ -556,7 +556,7 @@ namespace MonoSound.Streaming {
 		protected virtual void OnLooping() { }
 
 		/// <summary>
-		/// Applies a set of filters to any audio data streamed by this package.  Only certain filter types are supported, however.
+		/// Applies a set of filters to any audio data streamed by this package.
 		/// </summary>
 		/// <param name="ids">The list of filters to use, or <see langword="null"/> if no filters should be used.</param>
 		public void ApplyFilters(params int[] ids) {
@@ -574,6 +574,36 @@ namespace MonoSound.Streaming {
 					_activeFilters = new SoLoudFilterInstance[ids.Length];
 					for (int i = 0; i < ids.Length; i++)
 						_activeFilters[i] = FilterLoader.GetRegisteredFilter(ids[i]).CreateInstance();
+				}
+			}
+		}
+
+		/// <summary>
+		/// Applies a set of filters to any audio data streamed by this package.
+		/// </summary>
+		/// <param name="instances">
+		/// The list of filter instances to use, or <see langword="null"/> if no filters should be used.<br/>
+		/// (<c><see cref="SoLoudFilterInstance.IsSingleton"/> == <see langword="true"/></c>) filter instances <b>cannot</b> be used here due to possible side-effects.
+		/// </param>
+		public void ApplyFilters(params SoLoudFilterInstance[] instances) {
+			lock (_filterLock) {
+				if (instances is not { Length: > 0 }) {
+					// Disable filtering
+					if (_activeFilters is not null) {
+						foreach (var filter in _activeFilters)
+							filter.Dispose();
+
+						_activeFilters = null;
+					}
+				} else {
+					// Make sure that they're INSTANCED filters (streams cannot use the singletons!)
+					_activeFilters = new SoLoudFilterInstance[instances.Length];
+					for (int i = 0; i < instances.Length; i++) {
+						if (instances[i].IsSingleton)
+							throw new InvalidOperationException("Cannot use a filter's singleton instance for streaming audio");
+
+						_activeFilters[i] = instances[i];
+					}
 				}
 			}
 		}
