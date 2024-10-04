@@ -129,6 +129,7 @@ namespace MonoSound.Filters {
 					// Time has looped back around, so the fader can be reused
 					_expired = false;
 					Current = from;
+					return true;
 				} else {
 					// Fader has finished fading
 					enabled = false;
