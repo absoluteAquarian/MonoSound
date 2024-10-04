@@ -608,6 +608,24 @@ namespace MonoSound.Streaming {
 			}
 		}
 
+		/// <summary>
+		/// Gets the first filter instance whose parent's ID is equal to <paramref name="filterID"/>, or <see langword="null"/> if a filter couldn't be found.
+		/// </summary>
+		/// <param name="filterID">The ID of the filter instance to get</param>
+		public SoLoudFilterInstance GetFilterInstance(int filterID) {
+			lock (_filterLock) {
+				if (_activeFilters is null)
+					return null;
+
+				foreach (SoLoudFilterInstance instance in _activeFilters) {
+					if (instance.Parent.ID == filterID)
+						return instance;
+				}
+
+				return null;
+			}
+		}
+
 		private bool disposed;
 		/// <summary>
 		/// Whether this stream package has been disposed

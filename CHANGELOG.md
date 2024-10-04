@@ -115,14 +115,16 @@ Furthermore, the parameter fading feature from SoLoud is how present in MonoSoun
   - New members:
     - `struct SubmitBufferControls`
       - Interface for setting hidden controls used while queuing and submitting audio data buffers
+    - `void ApplyFilters(params SoLoudFilterInstance[])`
+      - Alternative for applying instances directly
+      - Provided instances cannot be a filter singleton
+    - `SoLoudFilterInstance GetFilterInstance(int)
+      - Returns the first filter instance whose parent's ID matches the provided filter ID or `null` if no filter instance is found
     - `void PreQueueBuffers(ref StreamPackage.SubmitBufferControls)`
     - `void PreSubmitBuffer(ref byte[])`
       - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = false;`
     - `void PreSubmitBuffer(ref WavSample[])`
 	  - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = true;`
-    - `void ApplyFilters(params SoLoudFilterInstance[])`
-      - Alternative for applying instances directly
-      - Provided instances cannot be a filter singleton
 - `WavSample`
   - Internal structure has been completely reworked to be more efficient and easier to work with
   - Removed members:
