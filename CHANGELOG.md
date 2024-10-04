@@ -90,7 +90,7 @@ Furthermore, the parameter fading feature from SoLoud is how present in MonoSoun
     - `EchoFilterInstance GetEchoFilterSingleton(int)`
     - `FreeverbFilterInstance GetReverbFilterSingleton(int)`
   - Changed members:
-    - The parameters for `int RegisterReverbFilter(float, float, float, float)` were renamed to fit the proper parameter names
+    - The parameters for most of the methods were renamed to fit the constructors of the new `SoLoudFilter`-deriving types
   - Obsolte members:
     - `void UpdateBiquadResonantFilter(int, SoundFilterType?, float?, float?, float?)`
     - `void UpdateEchoFilter(int, float?, float?, float?, float?)`

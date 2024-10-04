@@ -34,9 +34,7 @@ namespace MonoSound.Default {
 		/// <summary>
 		/// Creates a new <see cref="FreeverbFilter"/> filter with the specified parameters
 		/// </summary>
-		/// <param name="strength">
-		/// The strength of the filter, with a minimum of 0% and a maximum of 100%.  Default is 100%.
-		/// </param>
+		/// <param name="strength">The strength of the filter, with a minimum of 0% and a maximum of 100%.  Default is 100%.</param>
 		/// <param name="feedback">
 		/// The room size of the reverb, with larger values creating a longer reverb time.<br/>
 		/// Range is 0 to 1, with a default of 0.5.

@@ -47,12 +47,16 @@ namespace MonoSound.Default {
 		/// </param>
 		/// <param name="type">
 		/// The type of Biquad Resonant filter to use: Low Pass, High Pass, or Band Pass.<br/>
-		/// Low Pass reduces the amplitude of higher frequencies than the set frequency, High Pass reduces the amplitude of lower frequencies than the set frequency, and Band Pass reduces the amplitude of frequencies not within close proximity to the set frequency.<br/>
+		/// <i>Low Pass</i> reduces the amplitude of higher frequencies than the set frequency.<br/>
+		/// <i>High Pass</i> reduces the amplitude of lower frequencies than the set frequency.<br/>
+		/// <i>Band Pass</i> reduces the amplitude of frequencies not within close proximity to the set frequency.<br/>
 		/// Defaults to Low Pass.
 		/// </param>
 		/// <param name="frequency">
-		/// The frequency cutoff for the filter.  For Low Pass, frequencies above this value are attenuated.<br/>
-		/// For High Pass, frequencies below this value are attenuated.  For Band Pass, frequencies not within close proximity to this value are attenuated.<br/>
+		/// The frequency cutoff for the filter.<br/>
+		/// <i>Low Pass</i>: frequencies above this value are attenuated.<br/>
+		/// <i>High Pass</i>: frequencies below this value are attenuated.<br/>
+		/// <i>Band Pass</i>: frequencies not within close proximity to this value are attenuated.<br/>
 		/// Range is 10 to 8000 Hz, with a default of 2000 Hz.
 		/// </param>
 		/// <param name="resonance">
@@ -91,13 +95,17 @@ namespace MonoSound.Default {
 
 		/// <summary>
 		/// The type of Biquad Resonant filter to use: Low Pass, High Pass, or Band Pass.<br/>
-		/// Low Pass reduces the amplitude of higher frequencies than the set frequency, High Pass reduces the amplitude of lower frequencies than the set frequency, and Band Pass reduces the amplitude of frequencies not within close proximity to the set frequency.<br/>
+		/// <i>Low Pass</i> reduces the amplitude of higher frequencies than the set frequency.<br/>
+		/// <i>High Pass</i>  reduces the amplitude of lower frequencies than the set frequency.<br/>
+		/// <i>Band Pass</i>  reduces the amplitude of frequencies not within close proximity to the set frequency.<br/>
 		/// Defaults to Low Pass.
 		/// </summary>
 		public readonly SoLoudFilter.Parameter<int> paramType;  // SoLoud::BiquadResonantFilter::TYPE, mFilterType
 		/// <summary>
-		/// The frequency cutoff for the filter.  For Low Pass, frequencies above this value are attenuated.<br/>
-		/// For High Pass, frequencies below this value are attenuated.  For Band Pass, frequencies not within close proximity to this value are attenuated.<br/>
+		/// The frequency cutoff for the filter.<br/>
+		/// <i>Low Pass</i>: frequencies above this value are attenuated.<br/>
+		/// <i>High Pass</i>: frequencies below this value are attenuated.<br/>
+		/// <i>Band Pass</i>: frequencies not within close proximity to this value are attenuated.<br/>
 		/// Range is 10 to 8000 Hz, with a default of 2000 Hz.
 		/// </summary>
 		public readonly SoLoudFilter.Parameter<float> paramFrequency;  // SoLoud::BiquadResonantFilter::FREQUENCY, mFrequency

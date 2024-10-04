@@ -37,12 +37,9 @@ namespace MonoSound {
 		/// <summary>
 		/// Registers a Biquad Resonant filter.
 		/// </summary>
-		/// <param name="type">The filter type to use. Must either be <see cref="SoundFilterType.LowPass"/>, <see cref="SoundFilterType.BandPass"/> or <see cref="SoundFilterType.HighPass"/></param>
-		/// <param name="strength">How strong the filter effect is. 0 = no effect, 1 = full effect</param>
-		/// <param name="frequencyCap">The frequency parameter. Expected values are between 1000 and 8000</param>
-		/// <param name="resonance">The resonance parameter. Expected values are between 2 and 20</param>
+		/// <inheritdoc cref="BiquadResonantFilter(float, int, float, float)"/>
 		/// <returns>The registered filter's ID</returns>
-		public static int RegisterBiquadResonantFilter(SoundFilterType type, float strength, float frequencyCap, float resonance) {
+		public static int RegisterBiquadResonantFilter(SoundFilterType type, float strength, float frequency, float resonance) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			var filterType = type switch {
@@ -52,7 +49,7 @@ namespace MonoSound {
 				_ => throw new ArgumentException("Given type wasn't a valid Biquad Resonant Filter type.", nameof(type))
 			};
 
-			BiquadResonantFilter bqf = new(strength, filterType, frequencyCap, resonance) {
+			BiquadResonantFilter bqf = new(strength, filterType, frequency, resonance) {
 				ID = MonoSoundLibrary.NextFilterID++
 			};
 
@@ -80,15 +77,12 @@ namespace MonoSound {
 		/// <summary>
 		/// Registers an Echo filter.
 		/// </summary>
-		/// <param name="strength">How strong the filter effect is. 0 = no effect, 1 = full effect</param>
-		/// <param name="delay">The initial delay in seconds before each echo starts</param>
-		/// <param name="decayFactor">The factor applied to the volume of each successive echo.  Expected values are between 0 and 1</param>
-		/// <param name="filterStrength">How strongly this filter will prefer using old samples over new samples when processing the sound.  Expected values are between 0 (no effect) and 1 (full effect)</param>
+		/// <inheritdoc cref="EchoFilter(float, float, float, float)"/>
 		/// <returns>The registered filter's ID</returns>
-		public static int RegisterEchoFilter(float strength, float delay, float decayFactor, float filterStrength) {
+		public static int RegisterEchoFilter(float strength, float delay, float decay, float bias) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			EchoFilter ech = new(strength, delay, decayFactor, filterStrength) {
+			EchoFilter ech = new(strength, delay, decay, bias) {
 				ID = MonoSoundLibrary.NextFilterID++
 			};
 
@@ -116,12 +110,7 @@ namespace MonoSound {
 		/// <summary>
 		/// Registers a Reverb filter
 		/// </summary>
-		/// <param name="strength">
-		/// <seealso cref="SoLoudFilterInstance.paramStrength"/>
-		/// </param>
-		/// <param name="feedback">How much the filter affects low frequencies. 0 = fast decaying, 1 = slow decaying. Defaults to 0.5</param>
-		/// <param name="dampness">How much the filter affects high frequencies. 0 = fast decaying, 1 = slow decaying. Defaults to 0.5</param>
-		/// <param name="stereoWidth">How strong the reverb effect is. Expected values are between 0 and 1. Defaults to 1</param>
+		/// <inheritdoc cref="FreeverbFilter(float, float, float, float)"/>
 		/// <returns>The registered filter's ID</returns>
 		public static int RegisterReverbFilter(float strength, float feedback, float dampness, float stereoWidth) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
@@ -153,16 +142,31 @@ namespace MonoSound {
 
 		/// <summary>
 		/// Updates an already-existing Biquad Resonant filter's parameters.<br/>
+		/// If a parameter is <see langword="null"/>, then the corresponding filter parameter will not be updated.<br/>
 		/// This will affect all audio streams currently using the given filter, and any new <see cref="SoundEffect"/> objects returned by <see cref="EffectLoader"/>
 		/// </summary>
 		/// <param name="filterID">The registered filter ID</param>
-		/// <param name="type">The new type.  If not <see langword="null"/>, it must be <see cref="SoundFilterType.LowPass"/>, <see cref="SoundFilterType.BandPass"/> or <see cref="SoundFilterType.HighPass"/></param>
-		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
-		/// <param name="frequencyCap">The new frequency parameter.  If not <see langword="null"/>, it is expected to be between 1000 and 8000.</param>
-		/// <param name="resonance">The new resonance.  If not <see langword="null"/>, it is expected to be between 2 and 20.</param>
+		/// <param name="type">
+		/// The type of Biquad Resonant filter to use: Low Pass, High Pass, or Band Pass.<br/>
+		/// <i>Low Pass</i> reduces the amplitude of higher frequencies than the set frequency.<br/>
+		/// <i>High Pass</i> reduces the amplitude of lower frequencies than the set frequency.<br/>
+		/// <i>Band Pass</i> reduces the amplitude of frequencies not within close proximity to the set frequency.
+		/// </param>
+		/// <param name="strength">The strength of the filter, with a minimum of 0% and a maximum of 100%.</param>
+		/// <param name="frequency">
+		/// The frequency cutoff for the filter.<br/>
+		/// <i>Low Pass</i>: frequencies above this value are attenuated.<br/>
+		/// <i>High Pass</i>: frequencies below this value are attenuated.<br/>
+		/// <i>Band Pass</i>: frequencies not within close proximity to this value are attenuated.<br/>
+		/// Range is 10 to 8000 Hz.
+		/// </param>
+		/// <param name="resonance">
+		/// The resonance of the filter.  Low resonance results in a smoother attenuation and more subtle filtering, whereas high resonance results in more aggressive filtering.<br/>
+		/// Range is 0.1 to 20.
+		/// </param>
 		/// <exception cref="ArgumentException"/>
 		[Obsolete("Parameters should be accessed via the filter's singleton instead.  Call GetBiquadResonantFilterSingleton() to get the instance.", error: true)]
-		public static void UpdateBiquadResonantFilter(int filterID, SoundFilterType? type = null, float? strength = null, float? frequencyCap = null, float? resonance = null) {
+		public static void UpdateBiquadResonantFilter(int filterID, SoundFilterType? type = null, float? strength = null, float? frequency = null, float? resonance = null) {
 			if (!MonoSoundLibrary.singletonFilters.TryGetValue(filterID, out var filter))
 				throw new ArgumentException("Filter ID does not exist: " + filterID, nameof(filterID));
 
@@ -186,7 +190,7 @@ namespace MonoSound {
 				singleton.paramType.Value = filterType;
 			}
 
-			if (frequencyCap is float f)
+			if (frequency is float f)
 				singleton.paramFrequency.Value = f;
 
 			if (resonance is float r)
@@ -195,16 +199,17 @@ namespace MonoSound {
 
 		/// <summary>
 		/// Updates an already-existing Echo filter's parameters.<br/>
+		/// If a parameter is <see langword="null"/>, then the corresponding filter parameter will not be updated.<br/>
 		/// This will affect all audio streams currently using the given filter, and any new <see cref="SoundEffect"/> objects returned by <see cref="EffectLoader"/>
 		/// </summary>
 		/// <param name="filterID">The registered filter ID</param>
-		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
-		/// <param name="delay">The new delay in seconds.  If not <see langword="null"/>, it must be greater than zero.</param>
-		/// <param name="decayFactor">The new decay factor applied to successive echoes.  If not <see langword="null"/>, it must be between 0 and 1.</param>
-		/// <param name="filterStrength">The new preference strength for old samples.  If not <see langword="null"/>, it must be greater than or equal to zero and less than one.</param>
+		/// <param name="strength">The strength of the filter, with a minimum of 0% and a maximum of 100%.  Default is 100%.</param>
+		/// <param name="delay">The delay of the echo in seconds, with a minimum of 0.0001 seconds.  Default is 0.3 seconds.</param>
+		/// <param name="decay">The decay factor of the echo, with a minimum of 0x and a maximum of 1x.  Default is 0.7x.</param>
+		/// <param name="bias">The influence of earlier samples on the echo, with a minimum of 0% and a maximum of 100%.  Default is 0%.</param>
 		/// <exception cref="ArgumentException"/>
 		[Obsolete("Parameters should be accessed via the filter's singleton instead.  Call GetEchoFilterSingleton() to get the instance.", error: true)]
-		public static void UpdateEchoFilter(int filterID, float? strength = null, float? delay = null, float? decayFactor = null, float? filterStrength = null) {
+		public static void UpdateEchoFilter(int filterID, float? strength = null, float? delay = null, float? decay = null, float? bias = null) {
 			if (!MonoSoundLibrary.singletonFilters.TryGetValue(filterID, out var filter))
 				throw new ArgumentException("Filter ID does not exist: " + filterID, nameof(filterID));
 
@@ -224,18 +229,18 @@ namespace MonoSound {
 				singleton.paramDelay.Value = dy;
 			}
 
-			if (decayFactor is float dc) {
+			if (decay is float dc) {
 				if (dc <= 0)
 					throw new ArgumentException("Decay factor must be positive", nameof(delay));
 
 				singleton.paramDecay.Value = dc;
 			}
 
-			if (filterStrength is float f) {
-				if (f < 0 || f >= 1.0f)
+			if (bias is float b) {
+				if (b < 0 || b >= 1.0f)
 					throw new ArgumentException("Filter strength must be zero or a positive number less than one");
 
-				singleton.paramBias.Value = f;
+				singleton.paramBias.Value = b;
 			}
 		}
 
@@ -244,13 +249,22 @@ namespace MonoSound {
 		/// This will affect all audio streams currently using the given filter, and any new <see cref="SoundEffect"/> objects returned by <see cref="EffectLoader"/>
 		/// </summary>
 		/// <param name="filterID">The registered filter ID</param>
-		/// <param name="strength">The new strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
-		/// <param name="lowFrequencyReverbStrength">The new low frequency modifier strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
-		/// <param name="highFrequencyReverbStrength">The new high frequency modifier strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
-		/// <param name="reverbStrength">The new reverb modifier strength.  If not <see langword="null"/>, it must be between 0 and 1.</param>
+		/// <param name="strength">The strength of the filter, with a minimum of 0% and a maximum of 100%.  Default is 100%.</param>
+		/// <param name="feedback">
+		/// The room size of the reverb, with larger values creating a longer reverb time.<br/>
+		/// Range is 0 to 1, with a default of 0.5.
+		/// </param>
+		/// <param name="dampness">
+		/// The damping factor of the reverb.  High damping results in reduced sharpness of the reverb and a more muted sound, whereas low damping results in a sharper and more aggressive reverb.<br/>
+		/// Range is 0 to 1, with a default of 0.5.
+		/// </param>
+		/// <param name="stereoWidth">
+		/// The width of the stereo reverb.  A value of 0 is mono reverb, 1 is full stereo reverb.<br/>
+		/// The default is 1.
+		/// </param>
 		/// <exception cref="ArgumentException"></exception>
 		[Obsolete("Parameters should be accessed via the filter's singleton instead.  Call GetReverbFilterSingleton() to get the instance.", error: true)]
-		public static void UpdateReverbFilter(int filterID, float? strength = null, float? lowFrequencyReverbStrength = null, float? highFrequencyReverbStrength = null, float? reverbStrength = null) {
+		public static void UpdateReverbFilter(int filterID, float? strength = null, float? feedback = null, float? dampness = null, float? stereoWidth = null) {
 			if (!MonoSoundLibrary.singletonFilters.TryGetValue(filterID, out var filter))
 				throw new ArgumentException("Filter ID does not exist: " + filterID, nameof(filterID));
 
@@ -263,25 +277,25 @@ namespace MonoSound {
 			if (strength is float s)
 				singleton.paramStrength.Value = s;
 
-			if (lowFrequencyReverbStrength is float lf) {
-				if (lf < 0 || lf > 1)
-					throw new ArgumentException("Low frequency modifier must be between 0 and 1", nameof(lowFrequencyReverbStrength));
+			if (feedback is float f) {
+				if (f < 0 || f > 1)
+					throw new ArgumentException("Feedback modifier must be between 0 and 1", nameof(feedback));
 
-				singleton.paramFeeback.Value = lf;
+				singleton.paramFeeback.Value = f;
 			}
 
-			if (highFrequencyReverbStrength is float hf) {
-				if (hf < 0 || hf > 1)
-					throw new ArgumentException("High frequency modifier must be between 0 and 1", nameof(highFrequencyReverbStrength));
+			if (dampness is float d) {
+				if (d < 0 || d > 1)
+					throw new ArgumentException("Dampness modifier must be between 0 and 1", nameof(dampness));
 
-				singleton.paramDampness.Value = hf;
+				singleton.paramDampness.Value = d;
 			}
 
-			if (reverbStrength is float r) {
-				if (r < 0 || r > 1)
-					throw new ArgumentException("Reverb modifier strength must be between 0 and 1", nameof(reverbStrength));
+			if (stereoWidth is float w) {
+				if (w < 0 || w > 1)
+					throw new ArgumentException("Stereo width must be between 0 and 1", nameof(stereoWidth));
 
-				singleton.paramStereoWidth.Value = r;
+				singleton.paramStereoWidth.Value = w;
 			}
 		}
 	}
