@@ -42,10 +42,23 @@ namespace MonoSound.Default {
 		/// <summary>
 		/// Creates a new <see cref="BiquadResonantFilter"/> filter with the specified parameters
 		/// </summary>
-		/// <param name="strength"></param>
-		/// <param name="type"></param>
-		/// <param name="frequency"></param>
-		/// <param name="resonance"></param>
+		/// <param name="strength">
+		/// The strength of the filter, with a minimum of 0% and a maximum of 100%.  Default is 100%.
+		/// </param>
+		/// <param name="type">
+		/// The type of Biquad Resonant filter to use: Low Pass, High Pass, or Band Pass.<br/>
+		/// Low Pass reduces the amplitude of higher frequencies than the set frequency, High Pass reduces the amplitude of lower frequencies than the set frequency, and Band Pass reduces the amplitude of frequencies not within close proximity to the set frequency.<br/>
+		/// Defaults to Low Pass.
+		/// </param>
+		/// <param name="frequency">
+		/// The frequency cutoff for the filter.  For Low Pass, frequencies above this value are attenuated.<br/>
+		/// For High Pass, frequencies below this value are attenuated.  For Band Pass, frequencies not within close proximity to this value are attenuated.<br/>
+		/// Range is 10 to 8000 Hz, with a default of 2000 Hz.
+		/// </param>
+		/// <param name="resonance">
+		/// The resonance of the filter.  Low resonance results in a smoother attenuation and more subtle filtering, whereas high resonance results in more aggressive filtering.<br/>
+		/// Range is 0.1 to 20, with a default of 2.
+		/// </param>
 		public BiquadResonantFilter(float strength, int type, float frequency, float resonance) : base(strength) {
 			BiquadResonantFilterInstance singleton = Singleton;
 			singleton.paramType.Value = type;

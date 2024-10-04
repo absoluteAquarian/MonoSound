@@ -228,6 +228,9 @@ namespace MonoSound.Filters {
 		/// <summary>
 		/// Creates a new <see cref="SoLoudFilter"/> instance
 		/// </summary>
+		/// <param name="strength">
+		/// The strength of the filter, with a minimum of 0% and a maximum of 100%.  Default is 100%.
+		/// </param>
 		protected SoLoudFilter(float strength) {
 			Singleton = NewInstance();
 			Singleton.IsSingleton = true;
