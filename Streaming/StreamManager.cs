@@ -83,8 +83,8 @@ namespace MonoSound.Streaming {
 		}
 
 		public static StreamPackage TryInitializeCustomStream(Stream stream, bool loopedSound, object state) {
-			return GetCustomAudioPackage(stream, loopedSound, state, MonoSoundLibrary.customAudioFormats, fmt => fmt.CreateStream)
-				?? GetCustomAudioPackage(stream, loopedSound, state, MonoSoundLibrary.registeredFormats, fmt => fmt.RedirectReadStreamed)  // Legacy API
+			return GetCustomAudioPackage(stream, loopedSound, state, MonoSoundLibrary.customAudioFormats, static fmt => fmt.CreateStream)
+				?? GetCustomAudioPackage(stream, loopedSound, state, MonoSoundLibrary.registeredFormats, static fmt => fmt.RedirectReadStreamed)  // Legacy API
 				?? throw new InvalidOperationException("Audio stream was not recognized by any custom audio formats");
 		}
 

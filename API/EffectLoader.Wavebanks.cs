@@ -70,7 +70,7 @@ namespace MonoSound {
 
 			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
 
-			return SoundFilterManager.CreateFilteredSFX(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, MonoSoundLibrary.customFilters[filterID]);
+			return FilterSimulations.ApplyFilterTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, GetSingleton(filterID));
 		}
 
 		/// <summary>
@@ -85,7 +85,7 @@ namespace MonoSound {
 
 			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
 
-			return SoundFilterManager.CreateFilteredSFX(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, MonoSoundLibrary.GetFiltersFromIDs(filterIDs));
+			return FilterSimulations.ApplyFiltersTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, GetSingletons(filterIDs));
 		}
 
 		/// <summary>
@@ -119,7 +119,7 @@ namespace MonoSound {
 
 			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
 
-			return SoundFilterManager.CreateFilteredSFX(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, MonoSoundLibrary.customFilters[filterID]);
+			return FilterSimulations.ApplyFilterTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, GetSingleton(filterID));
 		}
 
 		/// <summary>
@@ -136,7 +136,7 @@ namespace MonoSound {
 
 			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
 
-			return SoundFilterManager.CreateFilteredSFX(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, MonoSoundLibrary.GetFiltersFromIDs(filterIDs));
+			return FilterSimulations.ApplyFiltersTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, GetSingletons(filterIDs));
 		}
 	}
 }

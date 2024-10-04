@@ -90,13 +90,13 @@ namespace MonoSound.Audio {
 		public WavSample[] GetSamples() {
 			byte[] audioData = GetSoundBytes();
 
-			List<WavSample> samples = [];
 			int size = BitsPerSample / 8;
+			WavSample[] samples = new WavSample[audioData.Length / size];
 
-			for (int i = 0; i < audioData.Length; i += size)
-				samples.Add(new WavSample(audioData.AsSpan().Slice(i, size)));
+			for (int i = 0, j = 0; i < audioData.Length; i += size, j++)
+				samples[j] = new WavSample(audioData.AsSpan().Slice(i, size));
 
-			return [.. samples];
+			return samples;
 		}
 
 		/// <summary>
@@ -120,6 +120,77 @@ namespace MonoSound.Audio {
 		}
 
 		private FormatWav() { }
+
+		/// <summary>
+		/// Attempts to load a <see cref="FormatWav"/> from the given file path.<br/>
+		/// If the file extension refers to a custom format and no format could parse the file, an exception is thrown.
+		/// </summary>
+		/// <exception cref="ArgumentException"/>
+		public static FormatWav FromFile(string path) {
+			string extension = Path.GetExtension(path);
+			if (!MonoSoundLibrary.AllValidExtensions.Contains(extension))
+				throw new ArgumentException($"The given path did not contain a valid extension: {extension}", nameof(path));
+
+			switch (extension) {
+				case ".xnb":
+					byte[] data = Decompressor.DecompressSoundEffectXNB(path, out _, out byte[] header);
+					return FromDecompressorData(data, header);
+				case ".wav":
+					return FromFileWAV(path);
+				case ".ogg":
+					return FromFileOGG(path);
+				case ".mp3":
+					return FromFileMP3(path);
+				default:
+					return (MonoSoundLibrary.customAudioFormats.TryGetValue(extension, out var audioFormat)
+						? audioFormat.ReadWav(path)
+						: MonoSoundLibrary.registeredFormats.TryGetValue(extension, out var format)
+							? format.read(TitleContainer.OpenStream(path))
+							: throw new ArgumentException("File extension was not supported: " + extension))
+						?? throw new ArgumentException($"Registered format for file extension \"{extension}\" could not read file \"{path}\"");
+			}
+		}
+
+		/// <summary>
+		/// Attempts to load a <see cref="FormatWav"/> from the given stream.<br/>
+		/// If <see cref="AudioType.Custom"/> is specified and no custom format could parse the stream, an exception is thrown.
+		/// </summary>
+		/// <exception cref="InvalidOperationException"/>
+		public static FormatWav FromStream(Stream stream, AudioType type) {
+			switch (type) {
+				case AudioType.XNB:
+					byte[] data = Decompressor.DecompressSoundEffectXNB(stream, out _, out byte[] header);
+
+					return FromDecompressorData(data, header);
+				case AudioType.WAV:
+					return FromFileWAV(stream);
+				case AudioType.OGG:
+					return FromFileOGG(stream);
+				case AudioType.MP3:
+					return FromFileMP3(stream);
+				case AudioType.Custom:
+					return AttemptCustomLoad(stream, MonoSoundLibrary.customAudioFormats, static (fmt, stream) => fmt.ReadWav(stream))
+						?? AttemptCustomLoad(stream, MonoSoundLibrary.registeredFormats, static (fmt, stream) => fmt.read(stream))  // Legacy API
+						?? throw new InvalidOperationException("Audio stream is not supported by any of the registered custom formats");
+				default:
+					throw new InvalidOperationException("Audio type is not supported: " + type);
+			}
+		}
+
+		private static FormatWav AttemptCustomLoad<T>(Stream stream, Dictionary<string, T> formats, Func<T, Stream, FormatWav> wavFactory) {
+			foreach (var format in formats.Values) {
+				long pos = stream.Position;
+
+				FormatWav wav = wavFactory(format, stream);
+
+				if (wav is not null)
+					return wav;
+
+				stream.Position = pos;
+			}
+
+			return null;
+		}
 
 		/// <summary>
 		/// Loads a <see cref="FormatWav"/> from a .wav file
@@ -548,36 +619,100 @@ HeaderCheckStart:
 			writer.Write(data);
 		}
 
-		internal void DeconstructToFloatSamples(out float[] allSamples) {
-			int length = DataLength / 2;
-
+		internal float[] DeconstructToFloatSamples() {
 			WavSample[] samples = GetSamples();
-
-			//All of the data goes to one "channel" since it's processed in pairs anyway
-			allSamples = new float[length];
+			float[] allSamples = new float[samples.Length];
 
 			for (int i = 0; i < samples.Length; i++) {
-				allSamples[i] = samples[i].ToFloatSample();
-				ClampSample(ref allSamples[i]);
+				float sample = samples[i].ToFloatSample();
+				ClampSample(ref sample);
+				allSamples[i] = sample;
 			}
+
+			return allSamples;
 		}
 
-		internal void ReconstructFromFloatSamples(float[] allSamples) {
-			if (allSamples is not { Length: > 0 })
-				throw new ArgumentException("No samples were provided", nameof(allSamples));
-			
+		internal static float[] UninterleaveSamples(float[] samples, int channelCount) {
+			if (channelCount != 1) {
+				if (samples.Length % channelCount != 0)
+					throw new ArgumentException("The number of samples provided was not divisible by the number of channels", nameof(samples));
+
+				float[] newSamples = new float[samples.Length];
+				int channelSize = samples.Length / channelCount;
+
+				for (int i = 0; i < samples.Length; i += channelCount) {
+					for (int c = 0; c < channelCount; c++)
+						newSamples[i / channelCount + c * channelSize] = samples[i + c];
+				}
+
+				samples = newSamples;
+			}
+
+			return samples;
+		}
+
+		internal float[] DeconstructAndUninterleaveSamples() {
+			WavSample[] samples = GetSamples();
+			float[] allSamples = new float[samples.Length];
+			int channelCount = ChannelCount;
+
+			if (channelCount != 1) {
+				if (allSamples.Length % channelCount != 0)
+					throw new ArgumentException("WAVE data was malformed; the number of samples was not divisible by the number of channels", nameof(data));
+
+				int channelSize = samples.Length / channelCount;
+
+				for (int i = 0; i < samples.Length; i += channelCount) {
+					for (int c = 0; c < channelCount; c++) {
+						float sample = samples[i + c].ToFloatSample();
+						ClampSample(ref sample);
+						allSamples[i / channelCount + c * channelSize] = sample;
+					}
+				}
+			} else {
+				// Samples don't need to be uninterleaved if there's only one channel
+				for (int i = 0; i < samples.Length; i++) {
+					float sample = samples[i].ToFloatSample();
+					ClampSample(ref sample);
+					allSamples[i] = sample;
+				}
+			}
+
+			return allSamples;
+		}
+
+		internal static float[] InterleaveSamples(float[] samples, int channelCount) {
+			if (channelCount != 1) {
+				if (samples.Length % channelCount != 0)
+					throw new ArgumentException("The number of samples provided was not divisible by the number of channels", nameof(samples));
+
+				float[] newSamples = new float[samples.Length];
+				int channelSize = samples.Length / channelCount;
+
+				for (int i = 0; i < samples.Length; i += channelCount) {
+					for (int c = 0; c < channelCount; c++)
+						newSamples[i + c] = samples[i / channelCount + c * channelSize];
+				}
+
+				samples = newSamples;
+			}
+
+			return samples;
+		}
+
+		internal void ReconstructFromSamples(float[] samples) {
 			byte[] newData;
 
 			if (BitsPerSample == 16) {
-				newData = new byte[allSamples.Length * 2];
+				newData = new byte[samples.Length * 2];
 
-				for (int i = 0; i < allSamples.Length; i++)
-					new PCM16Bit(allSamples[i]).WriteToStream(newData, i * 2);
+				for (int i = 0; i < samples.Length; i++)
+					new PCM16Bit(samples[i]).WriteToStream(newData, i * 2);
 			} else if (BitsPerSample == 24) {
-				newData = new byte[allSamples.Length * 3];
+				newData = new byte[samples.Length * 3];
 
-				for (int i = 0; i < allSamples.Length; i++)
-					new PCM24Bit(allSamples[i]).WriteToStream(newData, i * 3);
+				for (int i = 0; i < samples.Length; i++)
+					new PCM24Bit(samples[i]).WriteToStream(newData, i * 3);
 			} else
 				throw new InvalidOperationException("Attempted to process data for a bit depth that's not supported.  WAV files must use 16-bit or 24-bit PCM data");
 

@@ -39,7 +39,7 @@ namespace MonoSound {
 				case ".xwb":
 					throw new ArgumentException("XWB streams must be created via StreamLoader.GetStreamedXACTSound()");
 				default:
-					if (SoundFilterManager.AllValidExtensions.Contains(extension))
+					if (MonoSoundLibrary.AllValidExtensions.Contains(extension))
 						throw new ArgumentException("Custom streams should be created via StreamLoader.GetStreamedSound(Stream, object)");
 					throw new ArgumentException($"Extension \"{extension}\" was not recognized by any known format");
 			}

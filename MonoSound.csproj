@@ -6,7 +6,7 @@
     <TieredCompilation>false</TieredCompilation>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	<Version>1.7.2</Version>
+	<Version>1.8</Version>
 	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	<Authors>John Baglio</Authors>
 	<Description>A library built for use with MonoGame DesktopGL projects.
@@ -18,7 +18,8 @@ The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGam
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<RepositoryUrl>https://github.com/absoluteAquarian/MonoSound</RepositoryUrl>
 	<PackageTags>monogame;sound;sound-filters;filters;xact;audio</PackageTags>
-	<PackageReleaseNotes>Version 1.7 included a major codebase overhaul.  This version adds some bug fixes and small API changes.</PackageReleaseNotes>
+	<PackageReleaseNotes>Version 1.8 includes an overhaul of the sound filtering system, some bug fixes and improvements to FormatWav handling.
+Check CHANGELOG.md for the full list of changes.</PackageReleaseNotes>
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -49,5 +50,11 @@ The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGam
   <ItemGroup>
 	<Compile Remove="MonoSound.Tests/**" />
 	<Content Remove="MonoSound.Tests/**" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="LICENSE.txt" />
   </ItemGroup>
 </Project>

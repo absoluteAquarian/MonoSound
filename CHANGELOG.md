@@ -1,21 +1,27 @@
-﻿## v1.7.2
+﻿## v1.8
+This version introduces some bug fixes, improvements to `FormatWav` and a complete overhaul of the sound filtering system.
+In the new system, filters are applied through instances rather than only the singleton from registering the filter to `FilterLoader`.
+Furthermore, the parameter fading feature from SoLoud is how present in MonoSound's sound filters.
+
 **Fixes:**
 - Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object and only updating it when new streams are added
 - Fixed `FormatWav` not implementing the `IDisposable` interface correctly
-- Fixed an oversight where `WavStream`, `XnbStream` and `MP3Stream` would not initialize `SteamPackage.PlayingSound` nor `StreamPackage.Metrics`
+- Fixed a few oversights that caused only `.ogg` files could be streamed
+- Fixed the Freeverb filter not processing the Right speaker for whatever reason (I had commented out the code for it???)
 
-**API Changes:**
-- New types:
-  - `class DynamicStreamPackage`
-  - `struct PCM16Bit`
-  - `struct PCM24Bit`
-  - `class PcmFormat`
-  - `class PcmStream`
-- `CustomAudioFormat`
-  - New members:
-    - `FormatWav ReadWav(string, object)`
-    - `FormatWav ReadWav(Stream, object)`
-- `DynamicStreamPackage`
+**New Types:**
+- `class BiquadResonantFilter`, `class BiquadResonantFilterInstance`
+  - Represents a biquad resonant filter, i.e. Low Pass, High Pass and Band Pass
+  - Parameters:
+    - `float paramStrength` (inherited)
+    - `int paramType`
+    - `float paramFrequency`
+    - `float paramResonance`
+  - Read [Sound Filtering | Biquad Resonant](https://github.com/absoluteAquarian/MonoSound/wiki/Sound-Filtering#biquad-resonant) for more info
+- `struct ConstrainedValue<T>`
+  - A structure that automatically constricts a value between a minimum and maximum value
+  - Used by filter parameters
+- `class DynamicStreamPackage`
   - An empty, customizable `StreamPackage`
   - Events:
     - `event Action<DynamicStreamPackage> OnReset`
@@ -23,6 +29,49 @@
     - `event DynamicStreamPackage.ModifyReadSecondsDelegate OnModifyReadSeconds`
     - `event DynamicStreamPackage.ModifyByteSamplesDelegate OnPreSubmitByteBuffer`
     - `event DynamicStreamPackage.ModifyWaveSamplesDelegate OnPreSubmitWaveBuffer`
+- `class EchoFilter`, `class EchoFilterInstance`
+  - Represents an echo filter
+  - Parameters:
+    - `float paramStrength` (inherited)
+    - `float paramDelay`
+    - `float paramDecay`
+    - `float paramBias`
+  - Read [Sound Filtering | Echo](https://github.com/absoluteAquarian/MonoSound/wiki/Sound-Filtering#echo) for more info
+- `class FreeverbFilter`, `class FreeverbFilterInstance`
+  - Represents a filter using the Freeverb algorithm
+  - Parameters:
+    - `float paramStrength` (inherited)
+    - `bool paramFrozen`
+    - `float paramFeedback`
+    - `float paramDampness`
+    - `float paramStereoWidth`
+  - Read [Sound Filtering | Reverb](https://github.com/absoluteAquarian/MonoSound/wiki/Sound-Filtering#reverb) for more info
+- `class SoLoudFader<T>`
+  - A class attached to filter parameters for fading from one value to another over time
+- `class SoLoudFilter`
+  - Base class for all filters
+  - Reponsible for a global singleton and creating new filter instances
+- `class SoLoudFilter.Parameter`, `class SoLoudFilter.Parameter<T>`, `class SoLoudFilter.BoolParameter`
+  - Represents a parameter for a filter instance
+  - Can be created via the `CreateParameter<T>(T, T, T)` and `CreateParameter(bool)` method in `SoLoudFilterInstance`
+- `class SoLoudFilterInstance`
+  - Base class for all filter instances
+  - Contains the parameters for the filter
+  - Responsible for modifying the sample data
+  - Parameters:
+    - `float paramStrength`
+- `struct PCM16Bit`, `struct PCM24Bit`
+  - Structures used by `WavSample` to store 16-bit and 24-bit PCM sample data
+  - Aligned to `int` size
+- `class PcmFormat`, `class PcmStream`
+  - Used to handle reading/streaming from `.pcm` files
+  - Automatically registered, but requires a `PcmFormatSettings` object to be loaded or streamed
+
+**API Changes:**
+- `CustomAudioFormat`
+  - New members:
+    - `FormatWav ReadWav(string, object)`
+    - `FormatWav ReadWav(Stream, object)`
   - Methods:
     - `virtual byte[] ReadSamples(double)`
 - `EffectLoader`
@@ -33,14 +82,30 @@
     - `SoundEffect GetEffect(Stream, CustomAudioFormat, object)`
     - `SoundEffect GetFilteredEffect(Stream, CustomAudioFormat, object, string, int)`
     - `SoundEffect GetMultiFilteredEffect(Stream, CustomAudioFormat, object, string, params int[])`
+- `FilterLoader`
+  - New members:
+    - `int RegisterFilter(SoLoudFilter)`
+    - `SoLoudFilter GetRegisteredFilter(int)`
+    - `BiquadResonantFilterInstance GetBiquadResonantFilterSingleton(int)`
+    - `EchoFilterInstance GetEchoFilterSingleton(int)`
+    - `FreeverbFilterInstance GetReverbFilterSingleton(int)`
+  - Changed members:
+    - The parameters for `int RegisterReverbFilter(float, float, float, float)` were renamed to fit the proper parameter names
+  - Obsolte members:
+    - `void UpdateBiquadResonantFilter(int, SoundFilterType?, float?, float?, float?)`
+    - `void UpdateEchoFilter(int, float?, float?, float?, float?)`
+    - `void UpdateReverbFilter(int, float?, float?, float?, float?)`
 - `FormatWav`
   - Removed members:
     - `byte[] Data { get; }`
   - New members:
     - `static FormatWav FromSampleDataAndSettings(WavSample[], AudioChannels, int, int)`
-- `PcmFormat`, `PcmStream`
-  - Used to handle reading/streaming from `.pcm` files
-  - Automatically registered, but requires a `PcmFormatSettings` object to be loaded or streamed
+- `MonoSoundLibrary`
+  - New members:
+    - `const string VersionLiteral`
+  - Obsolete members:
+    - `void SetFilterMaxCount(int)`
+    - `void ClearFilters()`
 - `StreamedSoundEffectInstance`
   - Class is now `public`
 - `StreamPackage`

@@ -2,7 +2,6 @@
 using MonoSound.Audio;
 using MonoSound.Default;
 using MonoSound.Filters;
-using MonoSound.Filters.Instances;
 using MonoSound.Streaming;
 using MonoSound.XACT;
 using System;
@@ -16,7 +15,11 @@ namespace MonoSound {
 	/// The central class for general sound management
 	/// </summary>
 	public static class MonoSoundLibrary {
-		internal static Dictionary<int, Filter> customFilters;
+		private static readonly string[] validExtensions = [ ".xnb", ".wav", ".ogg", ".mp3" ];
+
+		internal static List<string> AllValidExtensions = [ .. validExtensions ];
+
+		internal static Dictionary<int, SoLoudFilter> singletonFilters;
 
 #pragma warning disable CS0618 // Type or member is obsolete
 		internal static Dictionary<string, CustomFileFormat> registeredFormats;
@@ -45,10 +48,15 @@ namespace MonoSound {
 
 		internal static Game Game { get; private set; }
 
+		internal const string VersionLiteral_FilterOverhaul = "1.8";
+
+		/// <inheritdoc cref="Version"/>
+		public const string VersionLiteral = "1.8";
+
 		/// <summary>
 		/// The version for MonoSound
 		/// </summary>
-		public static readonly string Version = "1.7.2";
+		public static readonly string Version = VersionLiteral;
 
 		/// <inheritdoc cref="Init(Game)"/>
 		[Obsolete("Use the overload with the Game parameter instead", error: true)]
@@ -66,10 +74,9 @@ namespace MonoSound {
 
 			cancelSource = new CancellationTokenSource();
 
-			SoundFilterManager.Init();
 			StreamManager.Initialize();
 
-			customFilters = [];
+			singletonFilters = [];
 			registeredFormats = [];
 			customAudioFormats = [];
 			waveBanks = [];
@@ -98,14 +105,9 @@ namespace MonoSound {
 
 			cancelSource.Cancel();
 
-			SoundFilterManager.DeInit();
 			StreamManager.Deinitialize();
 
-			FilterSimulations.bqrFilter?.Free();
-			FilterSimulations.echFilter?.Free();
-			FilterSimulations.revFilter?.Free();
-
-			customFilters = null;
+			singletonFilters = null;
 			registeredFormats = null;
 			customAudioFormats = null;
 			waveBanks = null;
@@ -137,8 +139,8 @@ namespace MonoSound {
 
 			CustomFileFormat format = registeredFormats[extension] = new CustomFileFormat(extension, readFull, readStreamed);
 
-			if (!SoundFilterManager.AllValidExtensions.Contains(extension))
-				SoundFilterManager.AllValidExtensions.Add(extension);
+			if (!AllValidExtensions.Contains(extension))
+				AllValidExtensions.Add(extension);
 
 			return format;
 		}
@@ -151,7 +153,7 @@ namespace MonoSound {
 		public static void RegisterFormat(CustomAudioFormat format) {
 			ThrowIfNotInitialized();
 
-			foreach (string ext in SoundFilterManager.AllValidExtensions.Concat([ ".xsb", ".xwb" ])) {
+			foreach (string ext in AllValidExtensions.Concat([ ".xsb", ".xwb" ])) {
 				if (format.DoesExtensionApply(ext))
 					throw new ArgumentException($"The audio format \"{ext}\" was already supported, cannot add another format that accepts it");
 			}
@@ -159,41 +161,34 @@ namespace MonoSound {
 			foreach (string extension in format.ValidExtensions) {
 				customAudioFormats[extension] = format;
 
-				if (!SoundFilterManager.AllValidExtensions.Contains(extension))
-					SoundFilterManager.AllValidExtensions.Add(extension);
+				if (!AllValidExtensions.Contains(extension))
+					AllValidExtensions.Add(extension);
 			}
 		}
 
 		/// <summary>
 		/// Sets how many filters can be loaded at once
 		/// </summary>
+		[Obsolete("The filter cap has been removed since v" + VersionLiteral_FilterOverhaul, error: true)]
 		public static void SetMaxFilterCount(int count) {
 			ThrowIfNotInitialized();
 
-			if (count < 50)
-				throw new ArgumentException("Value was too small.", nameof(count));
-			if (count > 32000)
-				throw new ArgumentException("Value was too large.", nameof(count));
-
-			SoundFilterManager.Max_Filters_Loaded = count;
+			// No longer does anything
 		}
 
 		/// <summary>
 		/// Clears any stored filters
 		/// </summary>
+		[Obsolete("Filtered effects are no longer cached since v" + VersionLiteral_FilterOverhaul, error: true)]
 		public static void ClearFilters() {
 			ThrowIfNotInitialized();
 
-			SoundFilterManager.Clear();
+			// No longer does anything
 		}
 
 		internal static void ThrowIfNotInitialized() {
 			if (!initialized)
 				throw new InvalidOperationException("MonoSound has not initialized yet!");
 		}
-
-		internal static Filter[] GetFiltersFromIDs(int[] ids) => ids.Select(i => customFilters[i]).ToArray();
-
-		internal static bool AllFiltersIDsExist(int[] ids) => ids.AsParallel().All(customFilters.ContainsKey);
 	}
 }

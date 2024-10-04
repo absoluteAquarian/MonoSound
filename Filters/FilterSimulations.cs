@@ -1,87 +1,130 @@
-﻿using MonoSound.Audio;
-using MonoSound.Filters.Instances;
+﻿using Microsoft.Xna.Framework.Audio;
+using MonoSound.Audio;
+using MonoSound.Default;
 using System;
+using System.IO;
 
 namespace MonoSound.Filters {
 	internal static unsafe class FilterSimulations {
-		public static Filter bqrFilter;
-		public static Filter echFilter;
-		public static Filter revFilter;
+		public static SoundEffect CreateFilteredSFX(string path, SoLoudFilterInstance instance) => ApplyFilterTo(FormatWav.FromFile(path), path, instance);
 
-		public static bool SimulateFilter(FormatWav wav, Filter filter) {
-			wav.DeconstructToFloatSamples(out float[] samples);
+		public static SoundEffect CreateFilteredSFX(string path, params SoLoudFilterInstance[] filters) => ApplyFiltersTo(FormatWav.FromFile(path), path, filters);
 
-			switch (filter.type) {
-				case SoundFilterType.LowPass:
-				case SoundFilterType.BandPass:
-				case SoundFilterType.HighPass:
-					HandleFilter(ref bqrFilter, filter, samples, wav);
-
-					break;
-				case SoundFilterType.Echo:
-					//Due to the echo filter causing repetitions, a buffer of nothing will be used
-					//This will let the full echo sound play
-					double time = EchoTimeStretchFactor(wav, 0.075f, filter);
-					Array.Resize(ref samples, samples.Length + (int)(wav.ByteRate * time + 1d));
-
-					HandleFilter(ref echFilter, filter, samples, wav);
-
-					break;
-				case SoundFilterType.Reverb:
-					HandleFilter(ref revFilter, filter, samples, wav);
-
-					break;
-				default:
-					return false;
+		public static SoundEffect ApplyFilterTo(FormatWav wav, string fileIdentifier, SoLoudFilterInstance instance) {
+			try {
+				SimulateFilter(instance, wav);
+			} catch {
+				// Swallow any exceptions
+				return null;
 			}
 
-			wav.ReconstructFromFloatSamples(samples);
-			return true;
+			if (Controls.LogFilters)
+				LogModifiedAudio(wav, fileIdentifier);
+
+			return new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
 		}
 
-		private static double EchoTimeStretchFactor(FormatWav wav, float targetVolume, Filter filter) {
+		public static SoundEffect ApplyFiltersTo(FormatWav wav, string fileIdentifier, params SoLoudFilterInstance[] filters) {
+			try {
+				foreach (SoLoudFilterInstance filter in filters)
+					SimulateFilter(filter, wav);
+			} catch {
+				// Swallow any exceptions
+				return null;
+			}
+
+			if (Controls.LogFilters)
+				LogModifiedAudio(wav, fileIdentifier);
+
+			return new SoundEffect(wav.GetSoundBytes(), wav.SampleRate, (AudioChannels)wav.ChannelCount);
+		}
+
+		private static void LogModifiedAudio(FormatWav wav, string path) {
+			try {
+				// Check that the path is a valid path
+				string directory = Controls.LogDirectory;
+				string dummy = Path.GetFullPath(directory);
+
+				// Save the file
+				wav.SaveToFile(Path.Combine(directory, Path.GetFileNameWithoutExtension(path) + $"_filtered_{DateTime.Now:yyyy-MM-dd_HH-mm-ss-fff}.wav"));
+			} catch (Exception ex) {
+				throw new InvalidOperationException("Logging directory was set to an invalid path.", ex);
+			}
+		}
+
+		public static void SimulateFilter(SoLoudFilterInstance filter, FormatWav wav) {
+			int channelCount = wav.ChannelCount;
+			int sampleRate = wav.SampleRate;
+
+			float[] samples;
+
+			if (filter is EchoFilterInstance echo) {
+				samples = wav.DeconstructToFloatSamples();
+
+				// Due to the echo filter causing repetitions, a buffer of nothing will be used
+				// This will let the full echo sound play
+				double time = EchoTimeStretchFactor(targetVolume: 0.075f, echo.paramDecay, echo.paramDelay);
+				Array.Resize(ref samples, samples.Length + (int)(wav.ByteRate * time) / wav.ChannelCount * wav.ChannelCount);
+
+				samples = FormatWav.UninterleaveSamples(samples, wav.ChannelCount);
+			} else {
+				// Perform both steps simultaneously
+				samples = wav.DeconstructAndUninterleaveSamples();
+			}
+
+			double currentTime = 0d;
+			SimulateOneFilter(filter, samples, channelCount, sampleRate, ref currentTime);
+
+			wav.ReconstructFromSamples(FormatWav.InterleaveSamples(samples, wav.ChannelCount));
+		}
+
+		public static void SimulateOneFilter(SoLoudFilterInstance filter, ref float[] interleavedSamples, int channelCount, int sampleRate, ref double currentTime) {
+			float[] samples = FormatWav.UninterleaveSamples(interleavedSamples, channelCount);
+
+			SimulateOneFilter(filter, samples, channelCount, sampleRate, ref currentTime);
+
+			interleavedSamples = FormatWav.InterleaveSamples(samples, channelCount);
+		}
+
+		public static void SimulateOneFilter(SoLoudFilterInstance filter, Span<float> uninterleavedSamples, int channelCount, int sampleRate, ref double currentTime) {
+			const double FADER_UPDATE_RATE = 1 / 50d;  // 50 updates per second
+
+			int channelSize = uninterleavedSamples.Length / channelCount;
+
+			int sampleCountForNextUpdate = Math.Min((int)Math.Ceiling(sampleRate * FADER_UPDATE_RATE), channelSize);  // Process at least one update
+
+			filter.BeginFiltering(channelCount, channelSize, sampleRate);
+
+			for (int i = 0; i < channelSize; i += sampleCountForNextUpdate) {
+				// Update the faders
+				filter.UpdateParameterFaders(currentTime);
+
+				// Apply the filter to the samples
+				filter.ApplyFilteringToAllChannels(uninterleavedSamples, i, sampleCountForNextUpdate, channelCount, channelSize, sampleRate);
+
+				double deltaTime = sampleCountForNextUpdate / sampleRate;
+				currentTime += deltaTime;
+				// Adjust the next slice to keep the update rate consistent
+				double timeError = FADER_UPDATE_RATE - currentTime;
+				sampleCountForNextUpdate = (int)Math.Ceiling(sampleRate * (FADER_UPDATE_RATE + timeError));
+
+				// The last iteration may have fewer samples than the rest
+				sampleCountForNextUpdate = Math.Max(1, Math.Min(sampleCountForNextUpdate, channelSize - 1 - i));
+			}
+		}
+
+		private static double EchoTimeStretchFactor(float targetVolume, float decayFactor, float delayFactor) {
 			//Calculate how many iterations it will take to get to the final volume
 			//(decay)^x = (target)     x = log(decay, target)
-			double decayIterations = Math.Log(targetVolume, filter.mParam[EchoFilter.DECAY]);
+			double decayIterations = Math.Log(targetVolume, decayFactor);
 
 			//Then calculate the time it would take based on the above and the (delay) factor
-			double time = decayIterations * filter.mParam[EchoFilter.DELAY];
+			double time = decayIterations * delayFactor;
 
 			if (!Controls.AllowEchoOversampling && time > 30d)
-				throw new Exception("Echo filter contained parameters which would cause MonoSound to generate over 30 seconds' worth of samples." +
-					$"\nDelay: {filter.mParam[EchoFilter.DELAY]:N3}s, Decay: {filter.mParam[EchoFilter.DECAY]:N3}x");
+				throw new Exception($"Echo filter contained parameters which would cause MonoSound to generate over 30 seconds' worth of samples.\nDelay: {delayFactor:N3}s, Decay: {decayFactor:N3}x");
 
 			return time;
-		}
-
-		public static void ApplyFilterTo(ref Filter existingFilterObject, int id, float[] samples, int sampleRate) {
-			Filter filter = MonoSoundLibrary.customFilters[id];
-
-			if (filter.RequiresSampleMemory)
-				throw new NotSupportedException("Provided filter requires sample memory, hence it is not supported by this method call");
-			
-			if (existingFilterObject?.ID != filter.ID || existingFilterObject.type != filter.type) {
-				existingFilterObject?.Reset();
-				existingFilterObject?.Free();
-				existingFilterObject = filter;
-			}
-
-			fixed (float* buffer = samples) {
-				filter.filter(buffer, (uint)samples.Length, 1, sampleRate, 0);
-			}
-		}
-
-		private static void HandleFilter(ref Filter filter, Filter newInstance, float[] samples, FormatWav wav) {
-			//Need to make sure that any old handles don't stick around
-			if (filter?.ID != newInstance.ID || filter.type != newInstance.type) {
-				filter?.Free();
-				filter = newInstance;
-			} else
-				filter.Reset();
-
-			fixed (float* buffer = samples) {
-				filter.filter(buffer, (uint)samples.Length, 1, wav.SampleRate, 0);
-			}
 		}
 	}
 }

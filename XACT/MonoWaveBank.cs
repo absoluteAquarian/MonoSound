@@ -3,6 +3,8 @@ using MonoSound.Audio;
 using System;
 using System.IO;
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
+
 namespace MonoSound.XACT {
 	public enum MiniFormatTag {
 		Pcm = 0x0,

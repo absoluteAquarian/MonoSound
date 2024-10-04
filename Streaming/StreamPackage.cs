@@ -2,7 +2,6 @@
 using MonoSound.API;
 using MonoSound.Audio;
 using MonoSound.Filters;
-using MonoSound.Filters.Instances;
 using System;
 using System.Collections.Concurrent;
 using System.IO;
@@ -116,8 +115,8 @@ namespace MonoSound.Streaming {
 		public StreamFocusBehavior? FocusBehavior { get; set; } = null;
 
 		private readonly object _filterLock = new object();
-		private int[] filterIDs;
-		private Filter[] filterObjects;  // Used to speed up filter applications
+		private SoLoudFilterInstance[] _activeFilters;
+		private double _filterFaderTime;
 
 		private readonly ConcurrentQueue<byte[]> _queuedReads = [];
 
@@ -301,6 +300,7 @@ namespace MonoSound.Streaming {
 				// Forcibly set CurrentDuration to where the jump started at
 				Interlocked.Exchange(ref _playTime, TimeSpan.FromSeconds(_jumpReadStart).Ticks);
 				SecondsRead = _jumpReadStart;
+				_filterFaderTime = _jumpReadStart;
 				_jumpReadStart = 0;
 				_hasActiveJump = false;
 			} else {
@@ -494,7 +494,7 @@ namespace MonoSound.Streaming {
 		}
 
 		private void ProcessFilters(ref byte[] data) {
-			if (filterIDs is null)
+			if (_activeFilters is null)
 				return;
 			
 			// Convert the byte samples to float samples
@@ -507,9 +507,19 @@ namespace MonoSound.Streaming {
 				FormatWav.ClampSample(ref filterSamples[i / size]);
 			}
 
+			filterSamples = FormatWav.UninterleaveSamples(filterSamples, (int)Channels);
+
 			// Apply the filters
-			for (int i = 0; i < filterIDs.Length; i++)
-				FilterSimulations.ApplyFilterTo(ref filterObjects[i], filterIDs[i], filterSamples, SampleRate);
+			for (int i = 0; i < _activeFilters.Length; i++) {
+				var filter = _activeFilters[i];
+				// Using a singleton filter can have bad side-effects
+				if (filter.IsSingleton)
+					throw new InvalidOperationException("Cannot use a filter's singleton instance for streaming audio");
+
+				FilterSimulations.SimulateOneFilter(filter, filterSamples.AsSpan(), (int)Channels, SampleRate, ref _filterFaderTime);
+			}
+
+			filterSamples = FormatWav.InterleaveSamples(filterSamples, (int)Channels);
 
 			// Convert the float samples back to byte samples
 			data = new byte[length * size];
@@ -551,19 +561,19 @@ namespace MonoSound.Streaming {
 		/// <param name="ids">The list of filters to use, or <see langword="null"/> if no filters should be used.</param>
 		public void ApplyFilters(params int[] ids) {
 			lock (_filterLock) {
-				if (ids is null || ids.Length == 0) {
-					filterIDs = null;
-					filterObjects = null;
-				} else {
-					filterIDs = new int[ids.Length];
-					ids.CopyTo(filterIDs, 0);
+				if (ids is not { Length: > 0 }) {
+					// Disable filtering
+					if (_activeFilters is not null) {
+						foreach (var filter in _activeFilters)
+							filter.Dispose();
 
-					if (filterObjects != null) {
-						for (int i = 0; i < filterObjects.Length; i++)
-							filterObjects[i]?.Free();
+						_activeFilters = null;
 					}
-
-					filterObjects = new Filter[ids.Length];
+				} else {
+					// Initialize INSTANCED filters (streams cannot use the singletons!)
+					_activeFilters = new SoLoudFilterInstance[ids.Length];
+					for (int i = 0; i < ids.Length; i++)
+						_activeFilters[i] = FilterLoader.GetRegisteredFilter(ids[i]).CreateInstance();
 				}
 			}
 		}

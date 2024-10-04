@@ -159,7 +159,7 @@ namespace MonoSound.Audio {
 		/// <param name="samples">The samples.  The PCM bit depth must be the same for all samples, or an exception is thrown.</param>
 		/// <exception cref="ArgumentException"/>
 		public static byte[] ToByteArray(WavSample[] samples) {
-			if (samples is not { Length: >0 })
+			if (samples is not { Length: > 0 })
 				throw new ArgumentException("Sample array was empty", nameof(samples));
 
 			int size = samples[0]._sample.size;
