@@ -21,12 +21,13 @@ The `LzxDecoder.cs` file also contains certain licenses.
 
 ### INFORMATION
 
-MonoSound is able to process WAVE data from the following formats:
+MonoSound is able to natively process WAVE data from the following formats:
 - `.wav`: WAV audio
 - `.xnb`: Compiled MonoGame `SoundEffect` files
 - `.xwb`: XACT Wave Banks
 - `.ogg`: OGG Vorbis audio
 - `.mp3`: MPEG Audio Layer III audio
+- `.pcm`: Raw PCM audio
 
 Custom audio formats can also be manually registered.
 
