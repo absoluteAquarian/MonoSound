@@ -35,6 +35,8 @@
     - `event DynamicStreamPackage.ModifyReadSecondsDelegate OnModifyReadSeconds`
     - `event DynamicStreamPackage.ModifyByteSamplesDelegate OnPreSubmitByteBuffer`
     - `event DynamicStreamPackage.ModifyWaveSamplesDelegate OnPreSubmitWaveBuffer`
+  - Methods:
+    - `virtual byte[] ReadSamples(double)`
 - `class EchoFilter`, `class EchoFilterInstance`
   - Represents an echo filter
   - Parameters:
@@ -78,8 +80,6 @@
   - New members:
     - `FormatWav ReadWav(string, object)`
     - `FormatWav ReadWav(Stream, object)`
-  - Methods:
-    - `virtual byte[] ReadSamples(double)`
 - `EffectLoader`
   - New members:
     - `SoundEffect GetBankFilteredEffect(string, string, string, SoLoudFilterInstance)`
