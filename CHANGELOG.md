@@ -1,7 +1,13 @@
 ﻿## v1.8
-This version introduces some bug fixes, improvements to `FormatWav` and a complete overhaul of the sound filtering system.
-In the new system, filters are applied through instances rather than only the singleton from registering the filter to `FilterLoader`.
-Furthermore, the parameter fading feature from SoLoud is how present in MonoSound's sound filters.
+**Summary:**
+- Many bug fixes
+- Complete overhaul of the sound filter system
+  - Filters are now applied through instances rather than only the singleton from registering the filter to `FilterLoader`
+  - Filter parameter fading from SoLoud is now properly implemented
+  - Methods for loading `SoundEffect`s and `StreamPackage`s now have overloads that accept `SoLoudFilterInstance` objects
+  - Previously hidden `class`es for filters are now `public`
+- Improved the performance and API of `FormatWav` and `WavSample`
+- The _Echo_ and _Reverb_ filters can now be applied to audio streams
 
 **Fixes:**
 - Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object and only updating it when new streams are added
