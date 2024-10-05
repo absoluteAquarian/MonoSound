@@ -61,7 +61,9 @@ namespace MonoSound.Default {
 		private int maxEchoBufferLength = -1;  // mBufferMaxLength
 
 		/// <summary>
-		/// The delay of the echo in seconds, with a minimum of 0.0001 seconds.  Default is 0.3 seconds.
+		/// The delay of the echo in seconds, with a minimum of 0.0001 seconds.  Default is 0.3 seconds.<br/>
+		/// Any changes to this parameter that set it to a value larger than the initial value will be ignored.<br/>
+		/// To use a larger delay, resetting this instance via <see cref="SoLoudFilterInstance.Reset"/> is necessary, which has the side effect of clearing the echo buffer.
 		/// </summary>
 		public readonly SoLoudFilter.Parameter<float> paramDelay;  // SoLoud::EchoFilter::DELAY, mDelay
 		/// <summary>

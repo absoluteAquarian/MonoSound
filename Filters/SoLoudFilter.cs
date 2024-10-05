@@ -268,6 +268,9 @@ namespace MonoSound.Filters {
 
 		private readonly SoLoudFilter.Parameter[] _parameters = new SoLoudFilter.Parameter[64];
 
+		internal object audioSource;
+		internal bool pendingReset;
+
 		/// <summary>
 		/// The filter that created this instance
 		/// </summary>
@@ -495,11 +498,21 @@ namespace MonoSound.Filters {
 		/// </summary>
 		protected internal abstract void ResetFilterState();
 
+		/// <summary>
+		/// Sets this filter instance to an uninitialized state.  Invoking this method may be necessary to update certain parameters.<br/>
+		/// Does nothing if this filter instance is a singleton (<c><see cref="IsSingleton"/> == <see langword="true"/></c>).
+		/// </summary>
+		public void Reset() {
+			if (!IsSingleton)
+				pendingReset = true;
+		}
+
 		/// <inheritdoc cref="IDisposable.Dispose"/>
 		public void Dispose() {
 			Dispose(true);
 			paramStrength.Dispose();
 			Parent = null;
+			audioSource = null;
 			GC.SuppressFinalize(this);
 		}
 
@@ -511,6 +524,7 @@ namespace MonoSound.Filters {
 		~SoLoudFilterInstance() {
 			Dispose(false);
 			Parent = null;
+			audioSource = null;
 		}
 	}
 }

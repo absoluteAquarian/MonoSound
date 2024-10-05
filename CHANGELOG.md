@@ -134,6 +134,8 @@
       - Provided instances cannot be a filter singleton
     - `SoLoudFilterInstance GetFilterInstance(int)
       - Returns the first filter instance whose parent's ID matches the provided filter ID or `null` if no filter instance is found
+    - `ReadOnlySpan<SoLoudFilterInstance> GetFilterInstances()`
+      - Returns a read-only collection of the currently active filter instances
     - `void PreQueueBuffers(ref StreamPackage.SubmitBufferControls)`
     - `void PreSubmitBuffer(ref byte[])`
       - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = false;`

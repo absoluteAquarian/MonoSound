@@ -515,6 +515,8 @@ namespace MonoSound.Streaming {
 				// Using a singleton filter can have bad side-effects
 				if (filter.IsSingleton)
 					throw new InvalidOperationException("Cannot use a filter's singleton instance for streaming audio");
+				else if (!object.ReferenceEquals(filter.audioSource, this))
+					throw new InvalidOperationException("Cannot use a filter instance that is not attached to this instance");
 
 				FilterSimulations.SimulateOneFilter(filter, filterSamples.AsSpan(), (int)Channels, SampleRate, ref _filterFaderTime);
 			}
@@ -564,16 +566,22 @@ namespace MonoSound.Streaming {
 				if (ids is not { Length: > 0 }) {
 					// Disable filtering
 					if (_activeFilters is not null) {
-						foreach (var filter in _activeFilters)
-							filter.Dispose();
+						foreach (var filter in _activeFilters) {
+							// NOTE: disposing isn't neccessary; allow the filter to be re-used by another audio source
+							filter.ResetFilterState();
+							filter.audioSource = null;
+						}
 
 						_activeFilters = null;
 					}
 				} else {
 					// Initialize INSTANCED filters (streams cannot use the singletons!)
 					_activeFilters = new SoLoudFilterInstance[ids.Length];
-					for (int i = 0; i < ids.Length; i++)
-						_activeFilters[i] = FilterLoader.GetRegisteredFilter(ids[i]).CreateInstance();
+					for (int i = 0; i < ids.Length; i++) {
+						var instance = FilterLoader.GetRegisteredFilter(ids[i]).CreateInstance();
+						instance.audioSource = this;
+						_activeFilters[i] = instance;
+					}
 				}
 			}
 		}
@@ -582,16 +590,20 @@ namespace MonoSound.Streaming {
 		/// Applies a set of filters to any audio data streamed by this package.
 		/// </summary>
 		/// <param name="instances">
-		/// The list of filter instances to use, or <see langword="null"/> if no filters should be used.<br/>
-		/// (<c><see cref="SoLoudFilterInstance.IsSingleton"/> == <see langword="true"/></c>) filter instances <b>cannot</b> be used here due to possible side-effects.
+		/// The list of filter instances to use, or <see langword="null"/> if no filters should be used.  In that case, any active filters are detached from this instance.<br/>
+		/// (<c><see cref="SoLoudFilterInstance.IsSingleton"/> == <see langword="true"/></c>) filter instances <b>cannot</b> be used here due to possible side-effects.<br/>
+		/// If a filter instance is already being used by something else, an exception will be thrown.
 		/// </param>
 		public void ApplyFilters(params SoLoudFilterInstance[] instances) {
 			lock (_filterLock) {
 				if (instances is not { Length: > 0 }) {
 					// Disable filtering
 					if (_activeFilters is not null) {
-						foreach (var filter in _activeFilters)
-							filter.Dispose();
+						foreach (var filter in _activeFilters) {
+							// NOTE: disposing isn't neccessary; allow the filter to be re-used by another audio source
+							filter.ResetFilterState();
+							filter.audioSource = null;
+						}
 
 						_activeFilters = null;
 					}
@@ -599,10 +611,17 @@ namespace MonoSound.Streaming {
 					// Make sure that they're INSTANCED filters (streams cannot use the singletons!)
 					_activeFilters = new SoLoudFilterInstance[instances.Length];
 					for (int i = 0; i < instances.Length; i++) {
-						if (instances[i].IsSingleton)
-							throw new InvalidOperationException("Cannot use a filter's singleton instance for streaming audio");
+						var instance = instances[i];
 
-						_activeFilters[i] = instances[i];
+						if (instance.IsSingleton)
+							throw new InvalidOperationException("Cannot use a filter's singleton instance for streaming audio");
+						else if (instance.audioSource is not null)
+							throw new InvalidOperationException("Cannot use a filter instance that is already attached to an audio source");
+
+						// Ensure that the filter instance is in an uninitialized state
+						instance.ResetFilterState();
+						instance.audioSource = this;
+						_activeFilters[i] = instance;
 					}
 				}
 			}
@@ -625,6 +644,11 @@ namespace MonoSound.Streaming {
 				return null;
 			}
 		}
+
+		/// <summary>
+		/// Gets a read-only collection of the filter instances currently applied to this stream package.
+		/// </summary>
+		public ReadOnlySpan<SoLoudFilterInstance> GetFilterInstances() => _activeFilters;
 
 		private bool disposed;
 		/// <summary>

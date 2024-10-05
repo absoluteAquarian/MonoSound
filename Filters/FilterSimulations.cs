@@ -93,6 +93,11 @@ namespace MonoSound.Filters {
 
 			int sampleCountForNextUpdate = Math.Min((int)Math.Ceiling(sampleRate * FADER_UPDATE_RATE), channelSize);  // Process at least one update
 
+			if (filter.pendingReset) {
+				filter.pendingReset = false;
+				filter.ResetFilterState();
+			}
+
 			filter.BeginFiltering(channelCount, channelSize, sampleRate);
 
 			for (int i = 0; i < channelSize; i += sampleCountForNextUpdate) {

@@ -54,7 +54,7 @@ namespace MonoSound {
 		public static SoundEffect GetFilteredEffect(string file, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
-			return FilterSimulations.ApplyFilterTo(FormatWav.FromFile(file), file, GetSingleton(filterID));
+			return FilterSimulations.CreateFilteredSFX(file, GetSingleton(filterID));
 		}
 
 		/// <summary>
@@ -66,7 +66,7 @@ namespace MonoSound {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			filter.ResetFilterState();
-			return FilterSimulations.ApplyFilterTo(FormatWav.FromFile(file), file, filter);
+			return FilterSimulations.CreateFilteredSFX(file, filter);
 		}
 
 		/// <summary>
