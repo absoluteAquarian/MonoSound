@@ -76,12 +76,20 @@ Furthermore, the parameter fading feature from SoLoud is how present in MonoSoun
     - `virtual byte[] ReadSamples(double)`
 - `EffectLoader`
   - New members:
+    - `SoundEffect GetBankFilteredEffect(string, string, string, SoLoudFilterInstance)`
+    - `SoundEffect GetBankFilteredEffect(Stream, string, Stream, string, string, SoLoudFilterInstance)`
+    - `SoundEffect GetBankMultiFilteredEffect(string, string, string, params SoLoudFilterInstance[])`
+    - `SoundEffect GetBankMultiFilteredEffect(Stream, string, Stream, string, string, params SoLoudFilterInstance[])`
     - `SoundEffect GetEffect(string, CustomAudioFormat, object)`
-    - `SoundEffect GetFilteredEffect(string, CustomAudioFormat, object, int)`
-    - `SoundEffect GetMultiFilteredEffect(string, CustomAudioFormat, object, params int[])`
     - `SoundEffect GetEffect(Stream, CustomAudioFormat, object)`
+    - `SoundEffect GetFilteredEffect(string, CustomAudioFormat, object, int)`
+    - `SoundEffect GetFilteredEffect(string, CustomAudioFormat, object, SoLoudFilterInstance)`
     - `SoundEffect GetFilteredEffect(Stream, CustomAudioFormat, object, string, int)`
+    - `SoundEffect GetFilteredEffect(Stream, CustomAudioFormat, object, string, SoLoudFilterInstance)`
+    - `SoundEffect GetMultiFilteredEffect(string, CustomAudioFormat, object, params int[])`
+    - `SoundEffect GetMultiFilteredEffect(string, CustomAudioFormat, object, params SoLoudFilterInstance[])`
     - `SoundEffect GetMultiFilteredEffect(Stream, CustomAudioFormat, object, string, params int[])`
+    - `SoundEffect GetMultiFilteredEffect(Stream, CustomAudioFormat, object, string, params SoLoudFilterInstance[])`
 - `FilterLoader`
   - New members:
     - `int RegisterFilter(SoLoudFilter)`

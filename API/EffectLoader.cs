@@ -50,19 +50,31 @@ namespace MonoSound {
 		/// Applies the wanted filter to the sound file
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
-		/// <param name="filterID">The ID of the filter to use.</param>
+		/// <param name="filterID">The ID of the filter singleton to use.</param>
 		public static SoundEffect GetFilteredEffect(string file, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			return FilterSimulations.ApplyFilterTo(FormatWav.FromFile(file), file, GetSingleton(filterID));
 		}
-		
+
+		/// <summary>
+		/// Applies the wanted filter to the sound file
+		/// </summary>
+		/// <param name="file">The path to the sound file. Extension required.</param>
+		/// <param name="filter">The filter instance to apply</param>
+		public static SoundEffect GetFilteredEffect(string file, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			filter.ResetFilterState();
+			return FilterSimulations.ApplyFilterTo(FormatWav.FromFile(file), file, filter);
+		}
+
 		/// <summary>
 		/// Applies the wanted filter to the sound file
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
-		/// <param name="filterID">The ID of the filter to use.</param>
+		/// <param name="filterID">The ID of the filter singleton to use.</param>
 		public static SoundEffect GetFilteredEffect(string file, CustomAudioFormat format, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -74,8 +86,21 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="filter">The filter instance to apply</param>
+		public static SoundEffect GetFilteredEffect(string file, CustomAudioFormat format, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			filter.ResetFilterState();
+			return FilterSimulations.ApplyFilterTo(format.ReadWav(file), file, filter);
+		}
+
+		/// <summary>
+		/// Applies the wanted filter to the sound file
+		/// </summary>
+		/// <param name="file">The path to the sound file. Extension required.</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
 		/// <param name="state">Extra information for the format to use</param>
-		/// <param name="filterID">The ID of the filter to use.</param>
+		/// <param name="filterID">The ID of the filter singletons to use.</param>
 		public static SoundEffect GetFilteredEffect(string file, CustomAudioFormat format, object state, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -83,10 +108,24 @@ namespace MonoSound {
 		}
 
 		/// <summary>
+		/// Applies the wanted filter to the sound file
+		/// </summary>
+		/// <param name="file">The path to the sound file. Extension required.</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="state">Extra information for the format to use</param>
+		/// <param name="filter">The filter instance to apply</param>
+		public static SoundEffect GetFilteredEffect(string file, CustomAudioFormat format, object state, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			filter.ResetFilterState();
+			return FilterSimulations.ApplyFilterTo(format.ReadWav(file, state), file, filter);
+		}
+
+		/// <summary>
 		/// Applies the wanted filters to the sound file in the order requested
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
-		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		/// <param name="filterIDs">The list of IDs of the filter singletons to use.</param>
 		public static SoundEffect GetMultiFilteredEffect(string file, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -97,8 +136,22 @@ namespace MonoSound {
 		/// Applies the wanted filters to the sound file in the order requested
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
+		/// <param name="filters">The list of filter instances to use.</param>
+		public static SoundEffect GetMultiFilteredEffect(string file, SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			foreach (SoLoudFilterInstance instance in filters)
+				instance.ResetFilterState();
+
+			return FilterSimulations.CreateFilteredSFX(file, filters);
+		}
+
+		/// <summary>
+		/// Applies the wanted filters to the sound file in the order requested
+		/// </summary>
+		/// <param name="file">The path to the sound file. Extension required.</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
-		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		/// <param name="filterIDs">The list of IDs of the filter singletons to use.</param>
 		public static SoundEffect GetMultiFilteredEffect(string file, CustomAudioFormat format, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -110,12 +163,43 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="file">The path to the sound file. Extension required.</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="filters">The list of filter instances to use.</param>
+		public static SoundEffect GetMultiFilteredEffect(string file, CustomAudioFormat format, params SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			foreach (SoLoudFilterInstance instance in filters)
+				instance.ResetFilterState();
+
+			return FilterSimulations.ApplyFiltersTo(format.ReadWav(file), file, filters);
+		}
+
+		/// <summary>
+		/// Applies the wanted filters to the sound file in the order requested
+		/// </summary>
+		/// <param name="file">The path to the sound file. Extension required.</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
 		/// <param name="state">Extra information for the format to use</param>
-		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		/// <param name="filterIDs">The list of IDs of the filter singletons to use.</param>
 		public static SoundEffect GetMultiFilteredEffect(string file, CustomAudioFormat format, object state, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			return FilterSimulations.ApplyFiltersTo(format.ReadWav(file, state), file, GetSingletons(filterIDs));
+		}
+
+		/// <summary>
+		/// Applies the wanted filters to the sound file in the order requested
+		/// </summary>
+		/// <param name="file">The path to the sound file. Extension required.</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="state">Extra information for the format to use</param>
+		/// <param name="filters">The list of filter instances to use.</param>
+		public static SoundEffect GetMultiFilteredEffect(string file, CustomAudioFormat format, object state, params SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			foreach (SoLoudFilterInstance instance in filters)
+				instance.ResetFilterState();
+
+			return FilterSimulations.ApplyFiltersTo(format.ReadWav(file, state), file, filters);
 		}
 
 		/// <summary>
@@ -161,7 +245,7 @@ namespace MonoSound {
 		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
 		/// <param name="type">The type of audio file the stream is supposed to represent</param>
 		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
-		/// <param name="filterID">The ID of the filter to use.</param>
+		/// <param name="filterID">The ID of the filter singleton to use.</param>
 		public static SoundEffect GetFilteredEffect(Stream stream, AudioType type, string nameIndicator, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -172,9 +256,23 @@ namespace MonoSound {
 		/// Applies the wanted filter to the sound stream
 		/// </summary>
 		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="type">The type of audio file the stream is supposed to represent</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filter">The filter instance to apply</param>
+		public static SoundEffect GetFilteredEffect(Stream stream, AudioType type, string nameIndicator, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			filter.ResetFilterState();
+			return FilterSimulations.ApplyFilterTo(FormatWav.FromStream(stream, type), nameIndicator, filter);
+		}
+
+		/// <summary>
+		/// Applies the wanted filter to the sound stream
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
 		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
-		/// <param name="filterID">The ID of the filter to use.</param>
+		/// <param name="filterID">The ID of the filter singleton to use.</param>
 		public static SoundEffect GetFilteredEffect(Stream stream, CustomAudioFormat format, string nameIndicator, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -186,13 +284,42 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filter">The filter instance to apply</param>
+		public static SoundEffect GetFilteredEffect(Stream stream, CustomAudioFormat format, string nameIndicator, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			filter.ResetFilterState();
+			return FilterSimulations.ApplyFilterTo(format.ReadWav(stream), nameIndicator, filter);
+		}
+
+		/// <summary>
+		/// Applies the wanted filter to the sound stream
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
 		/// <param name="state">Extra information for the format to use</param>
 		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
-		/// <param name="filterID">The ID of the filter to use.</param>
+		/// <param name="filterID">The ID of the filter singleton to use.</param>
 		public static SoundEffect GetFilteredEffect(Stream stream, CustomAudioFormat format, object state, string nameIndicator, int filterID) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			return FilterSimulations.ApplyFilterTo(format.ReadWav(stream, state), nameIndicator, GetSingleton(filterID));
+		}
+
+		/// <summary>
+		/// Applies the wanted filter to the sound stream
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="state">Extra information for the format to use</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filter">The filter instance to apply</param>
+		public static SoundEffect GetFilteredEffect(Stream stream, CustomAudioFormat format, object state, string nameIndicator, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			filter.ResetFilterState();
+			return FilterSimulations.ApplyFilterTo(format.ReadWav(stream, state), nameIndicator, filter);
 		}
 
 		/// <summary>
@@ -201,7 +328,7 @@ namespace MonoSound {
 		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
 		/// <param name="type">The type of audio file the stream is supposed to represent</param>
 		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
-		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		/// <param name="filterIDs">The list of IDs of the filter singletons to use.</param>
 		public static SoundEffect GetMultiFilteredEffect(Stream stream, AudioType type, string nameIndicator, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -212,9 +339,25 @@ namespace MonoSound {
 		/// Applies the wanted filters to the sound stream in the order requested
 		/// </summary>
 		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="type">The type of audio file the stream is supposed to represent</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filters">The list of filter instances to use.</param>
+		public static SoundEffect GetMultiFilteredEffect(Stream stream, AudioType type, string nameIndicator, params SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			foreach (SoLoudFilterInstance instance in filters)
+				instance.ResetFilterState();
+
+			return FilterSimulations.ApplyFiltersTo(FormatWav.FromStream(stream, type), nameIndicator, filters);
+		}
+
+		/// <summary>
+		/// Applies the wanted filters to the sound stream in the order requested
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
 		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
-		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		/// <param name="filterIDs">The list of IDs of the filter singletons to use.</param>
 		public static SoundEffect GetMultiFilteredEffect(Stream stream, CustomAudioFormat format, string nameIndicator, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
@@ -226,13 +369,46 @@ namespace MonoSound {
 		/// </summary>
 		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
 		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filters">The list of filter instances to use.</param>
+		public static SoundEffect GetMultiFileredEffect(Stream stream, CustomAudioFormat format, string nameIndicator, params SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			foreach (SoLoudFilterInstance instance in filters)
+				instance.ResetFilterState();
+
+			return FilterSimulations.ApplyFiltersTo(format.ReadWav(stream), nameIndicator, filters);
+		}
+
+		/// <summary>
+		/// Applies the wanted filters to the sound stream in the order requested
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
 		/// <param name="state">Extra information for the format to use</param>
 		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
-		/// <param name="filterIDs">The list of filter IDs to use.</param>
+		/// <param name="filterIDs">The list of IDs of the filter singletons to use.</param>
 		public static SoundEffect GetMultiFilteredEffect(Stream stream, CustomAudioFormat format, object state, string nameIndicator, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
 
 			return FilterSimulations.ApplyFiltersTo(format.ReadWav(stream, state), nameIndicator, GetSingletons(filterIDs));
+		}
+
+		/// <summary>
+		/// Applies the wanted filters to the sound stream in the order requested
+		/// </summary>
+		/// <param name="stream">The stream to retrieve the sound data from.  It is expected to be a full audio file</param>
+		/// <param name="format">An object representing how the format will decode the audio data to the WAVE format</param>
+		/// <param name="state">Extra information for the format to use</param>
+		/// <param name="nameIndicator">A string used to represent the filtered sound effect</param>
+		/// <param name="filters">The list of filter instances to use.</param>
+		public static SoundEffect GetMultiFilteredEffect(Stream stream, CustomAudioFormat format, object state, string nameIndicator, params SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			foreach (SoLoudFilterInstance instance in filters)
+				instance.ResetFilterState();
+
+			return FilterSimulations.ApplyFiltersTo(format.ReadWav(stream, state), nameIndicator, filters);
 		}
 
 		internal static SoLoudFilterInstance GetSingleton(int filterID) {

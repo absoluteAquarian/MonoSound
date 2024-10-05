@@ -79,6 +79,21 @@ namespace MonoSound {
 		/// <param name="soundBankFile">The path to the sound bank. Use the same path you would use in <see cref="SoundBank"/>'s constructor.</param>
 		/// <param name="waveBankFile">The path to the wave bank. Use the same path you would use in <see cref="WaveBank"/>'s constructor.</param>
 		/// <param name="cueName">The name of the cue. Use the same name you would use in <see cref="SoundBank.GetCue(string)"/>.</param>
+		/// <param name="filter">The filter to use.</param>
+		public static SoundEffect GetBankFilteredEffect(string soundBankFile, string waveBankFile, string cueName, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
+
+			return FilterSimulations.ApplyFilterTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, filter);
+		}
+
+		/// <summary>
+		/// Retrieves a given sound using the requested sound bank and wave bank, then applies the wanted filter to it.
+		/// </summary>
+		/// <param name="soundBankFile">The path to the sound bank. Use the same path you would use in <see cref="SoundBank"/>'s constructor.</param>
+		/// <param name="waveBankFile">The path to the wave bank. Use the same path you would use in <see cref="WaveBank"/>'s constructor.</param>
+		/// <param name="cueName">The name of the cue. Use the same name you would use in <see cref="SoundBank.GetCue(string)"/>.</param>
 		/// <param name="filterIDs">The list of filter IDs to use.</param>
 		public static SoundEffect GetBankMultiFilteredEffect(string soundBankFile, string waveBankFile, string cueName, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
@@ -86,6 +101,21 @@ namespace MonoSound {
 			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
 
 			return FilterSimulations.ApplyFiltersTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, GetSingletons(filterIDs));
+		}
+
+		/// <summary>
+		/// Retrieves a given sound using the requested sound bank and wave bank, then applies the wanted filter to it.
+		/// </summary>
+		/// <param name="soundBankFile">The path to the sound bank. Use the same path you would use in <see cref="SoundBank"/>'s constructor.</param>
+		/// <param name="waveBankFile">The path to the wave bank. Use the same path you would use in <see cref="WaveBank"/>'s constructor.</param>
+		/// <param name="cueName">The name of the cue. Use the same name you would use in <see cref="SoundBank.GetCue(string)"/>.</param>
+		/// <param name="filters">The list of filters to use.</param>
+		public static SoundEffect GetBankMultiFilteredEffect(string soundBankFile, string waveBankFile, string cueName, params SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankFile, waveBankFile, out string soundBank, out _);
+
+			return FilterSimulations.ApplyFiltersTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, filters);
 		}
 
 		/// <summary>
@@ -130,6 +160,23 @@ namespace MonoSound {
 		/// <param name="waveBankSource">A stream representing the wave bank's data</param>
 		/// <param name="waveBankIdentifier">A string used to identify the wave bank</param>
 		/// <param name="cueName">The name of the cue. Use the same name you would use in <see cref="SoundBank.GetCue(string)"/>.</param>
+		/// <param name="filter">The filter to use.</param>
+		public static SoundEffect GetBankFilteredEffect(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, SoLoudFilterInstance filter) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
+
+			return FilterSimulations.ApplyFilterTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, filter);
+		}
+
+		/// <summary>
+		/// Retrieves a given sound using the requested sound bank and wave bank, then applies the wanted filter to it.
+		/// </summary>
+		/// <param name="soundBankSource">A stream representing the sound bank's data</param>
+		/// <param name="soundBankIdentifier">A string used to identify the sound bank</param>
+		/// <param name="waveBankSource">A stream representing the wave bank's data</param>
+		/// <param name="waveBankIdentifier">A string used to identify the wave bank</param>
+		/// <param name="cueName">The name of the cue. Use the same name you would use in <see cref="SoundBank.GetCue(string)"/>.</param>
 		/// <param name="filterIDs">The list of filter IDs to use.</param>
 		public static SoundEffect GetBankMultiFilteredEffect(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, params int[] filterIDs) {
 			MonoSoundLibrary.ThrowIfNotInitialized();
@@ -137,6 +184,23 @@ namespace MonoSound {
 			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
 
 			return FilterSimulations.ApplyFiltersTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, GetSingletons(filterIDs));
+		}
+
+		/// <summary>
+		/// Retrieves a given sound using the requested sound bank and wave bank, then applies the wanted filter to it.
+		/// </summary>
+		/// <param name="soundBankSource">A stream representing the sound bank's data</param>
+		/// <param name="soundBankIdentifier">A string used to identify the sound bank</param>
+		/// <param name="waveBankSource">A stream representing the wave bank's data</param>
+		/// <param name="waveBankIdentifier">A string used to identify the wave bank</param>
+		/// <param name="cueName">The name of the cue. Use the same name you would use in <see cref="SoundBank.GetCue(string)"/>.</param>
+		/// <param name="filters">The list of filters to use.</param>
+		public static SoundEffect GetBankMultiFilteredEffect(Stream soundBankSource, string soundBankIdentifier, Stream waveBankSource, string waveBankIdentifier, string cueName, params SoLoudFilterInstance[] filters) {
+			MonoSoundLibrary.ThrowIfNotInitialized();
+
+			VerifyThatBanksExistInDictionary(soundBankSource, soundBankIdentifier, waveBankSource, waveBankIdentifier, out string soundBank, out _);
+
+			return FilterSimulations.ApplyFiltersTo(MonoSoundLibrary.soundBanks[soundBank].GetAudio(cueName), cueName, filters);
 		}
 	}
 }

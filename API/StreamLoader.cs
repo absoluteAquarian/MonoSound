@@ -40,7 +40,7 @@ namespace MonoSound {
 					throw new ArgumentException("XWB streams must be created via StreamLoader.GetStreamedXACTSound()");
 				default:
 					if (MonoSoundLibrary.AllValidExtensions.Contains(extension))
-						throw new ArgumentException("Custom streams should be created via StreamLoader.GetStreamedSound(Stream, object)");
+						throw new ArgumentException("Custom streams cannot be created using this overload of GetStreamedSound");
 					throw new ArgumentException($"Extension \"{extension}\" was not recognized by any known format");
 			}
 
@@ -83,7 +83,7 @@ namespace MonoSound {
 
 			return fileIdentifier switch {
 				AudioType.XWB => throw new ArgumentException("XWB streams must be created via StreamLoader.GetStreamedXACTSound()"),
-				AudioType.Custom => throw new ArgumentException("Custom streams should be created via StreamLoader.GetStreamedSound(Stream, object)"),
+				AudioType.Custom => throw new ArgumentException("Custom streams cannot be created using this overload of GetStreamedSound"),
 				_ => StreamManager.InitializeStream(sampleSource, looping, fileIdentifier),
 			};
 		}
