@@ -191,12 +191,11 @@ namespace MonoSound.Default {
 			ref Vector2 y = ref state.y;
 
 			// make sure we access pairs of samples (one sample may be skipped)
-			int numSamples = samples.Length & ~1;
 			ref float sample = ref samples[0];
 
 			float wet = paramStrength;
 
-			for (int i = 0; i < numSamples; i++, sample = ref Unsafe.Add(ref sample, 1)) {
+			for (int i = 0; i < samples.Length; i++, sample = ref Unsafe.Add(ref sample, 1)) {
 				// Generate outputs by filtering inputs.
 				// In order to take advantage of SIMD instructions better, this implementation does not do the variable permutation like SoLoud does
 
@@ -211,10 +210,6 @@ namespace MonoSound.Default {
 				x.Y = x.X;
 				y.Y = y.X;
 			}
-
-			// If we skipped a sample earlier, patch it by just copying the previous.
-			if (samples.Length != numSamples)
-				sample = Unsafe.Subtract(ref sample, 1);
 		}
 
 		/// <inheritdoc cref="SoLoudFilterInstance.ResetFilterState"/>

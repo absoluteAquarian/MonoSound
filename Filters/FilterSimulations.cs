@@ -75,9 +75,9 @@ namespace MonoSound.Filters {
 				// Due to the echo filter causing repetitions, a buffer of nothing will be used
 				// This will let the full echo sound play
 				double time = EchoTimeStretchFactor(targetVolume: 0.075f, echo.paramDecay, echo.paramDelay);
-				Array.Resize(ref samples, samples.Length + (int)(wav.ByteRate * time) / wav.ChannelCount * wav.ChannelCount);
+				Array.Resize(ref samples, samples.Length + (int)(wav.ByteRate * time) / channelCount * channelCount);
 
-				samples = FormatWav.UninterleaveSamples(samples, wav.ChannelCount);
+				samples = FormatWav.UninterleaveSamples(samples, channelCount);
 			} else {
 				// Perform both steps simultaneously
 				samples = wav.DeconstructAndUninterleaveSamples();
