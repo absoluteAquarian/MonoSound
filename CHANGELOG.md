@@ -14,6 +14,7 @@
 - Fixed `FormatWav` not implementing the `IDisposable` interface correctly
 - Fixed a few oversights that caused only `.ogg` files could be streamed
 - Fixed the Freeverb filter not processing the Right speaker for whatever reason (I had commented out the code for it???)
+- Fixed sound streams completely stopping if a filter threw an exception
 
 **New Types:**
 - `class BiquadResonantFilter`, `class BiquadResonantFilterInstance`
@@ -141,6 +142,8 @@
       - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = false;`
     - `void PreSubmitBuffer(ref WavSample[])`
 	  - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = true;`
+    - `void RemoveAllFilters()`
+      - Removes all filter instances currently applied to the stream
 - `WavSample`
   - Internal structure has been completely reworked to be more efficient and easier to work with
   - Removed members:

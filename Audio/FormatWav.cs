@@ -706,13 +706,19 @@ HeaderCheckStart:
 			if (BitsPerSample == 16) {
 				newData = new byte[samples.Length * 2];
 
-				for (int i = 0; i < samples.Length; i++)
-					new PCM16Bit(samples[i]).WriteToStream(newData, i * 2);
+				for (int i = 0; i < samples.Length; i++) {
+					float sample = samples[i];
+					ClampSample(ref sample);  // Filters can cause samples to go out of bounds... Restricting the value shouldn't affect the sound quality too much
+					new PCM16Bit(sample).WriteToStream(newData, i * 2);
+				}
 			} else if (BitsPerSample == 24) {
 				newData = new byte[samples.Length * 3];
 
-				for (int i = 0; i < samples.Length; i++)
-					new PCM24Bit(samples[i]).WriteToStream(newData, i * 3);
+				for (int i = 0; i < samples.Length; i++) {
+					float sample = samples[i];
+					ClampSample(ref sample);  // Filters can cause samples to go out of bounds... Restricting the value shouldn't affect the sound quality too much
+					new PCM24Bit(sample).WriteToStream(newData, i * 3);
+				}
 			} else
 				throw new InvalidOperationException("Attempted to process data for a bit depth that's not supported.  WAV files must use 16-bit or 24-bit PCM data");
 
@@ -735,10 +741,10 @@ HeaderCheckStart:
 		/// Forces the sample to be within (-1, 1)
 		/// </summary>
 		public static void ClampSample(ref float sample) {
-			if (sample <= -1)
-				sample = -1 + 4e-5f;
-			if (sample >= 1)
-				sample = 1 - 4e-5f;
+			if (sample < -1)
+				sample = -1;
+			else if (sample > 1)
+				sample = 1;
 		}
 
 		private bool disposed;

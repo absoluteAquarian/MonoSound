@@ -13,7 +13,6 @@ using System.Threading.Tasks;
 namespace MonoSound.Streaming {
 	internal static class StreamManager {
 		private static ConcurrentDictionary<string, StreamPackage> streams;
-		private static IEnumerator<KeyValuePair<string, StreamPackage>> _streamEnumerator;
 
 		private static int StreamSourceCreationIndex;
 
@@ -116,7 +115,6 @@ namespace MonoSound.Streaming {
 			package.IsLooping = loopedSound;
 
 			streams.AddOrUpdate(packageName, package, (k, s) => s);
-			_streamEnumerator = streams.GetEnumerator();
 		}
 
 		public static StreamPackage InitializeXWBStream(string soundBankPath, string waveBankPath, string cueName, bool loopedSound) {
@@ -126,7 +124,6 @@ namespace MonoSound.Streaming {
 
 			string name = GetSafeName(cueName);
 			streams.AddOrUpdate(name, package, (k, s) => s);
-			_streamEnumerator = streams.GetEnumerator();
 
 			return package;
 		}
@@ -138,7 +135,6 @@ namespace MonoSound.Streaming {
 
 			string name = GetSafeName(cueName);
 			streams.AddOrUpdate(name, package, (k, s) => s);
-			_streamEnumerator = streams.GetEnumerator();
 
 			return package;
 		}
@@ -159,12 +155,21 @@ namespace MonoSound.Streaming {
 		}
 
 		public static bool IsStreamActive(StreamPackage package) {
-			while (_streamEnumerator.MoveNext()) {
-				if (object.ReferenceEquals(package, _streamEnumerator.Current.Value))
+			foreach (var stream in streams.Values) {
+				if (object.ReferenceEquals(package, stream))
 					return true;
 			}
 
 			return false;
+		}
+
+		internal static string FindStreamName(StreamPackage package) {
+			foreach (var (key, stream) in streams) {
+				if (object.ReferenceEquals(package, stream))
+					return key;
+			}
+
+			return "<UNKNOWN>";
 		}
 
 		[Obsolete("Will be removed in a future update")]
@@ -176,13 +181,11 @@ namespace MonoSound.Streaming {
 				return;
 			}
 
-			while (_streamEnumerator.MoveNext()) {
-				var (key, stream) = _streamEnumerator.Current;
+			foreach (var (key, stream) in streams) {
 				if (object.ReferenceEquals(instance, stream.PlayingSound)) {
 					stream.PlayingSound.Stop();
 					stream.Dispose();
 					streams.TryRemove(key, out _);
-					_streamEnumerator = streams.GetEnumerator();
 					instance = null;
 					return;
 				}
@@ -201,11 +204,9 @@ namespace MonoSound.Streaming {
 				return;
 			}
 
-			while (_streamEnumerator.MoveNext()) {
-				var (key, stream) = _streamEnumerator.Current;
+			foreach (var (key, stream) in streams) {
 				if (object.ReferenceEquals(instance, stream)) {
 					streams.TryRemove(key, out _);
-					_streamEnumerator = streams.GetEnumerator();
 					break;
 				}
 			}
@@ -217,7 +218,6 @@ namespace MonoSound.Streaming {
 
 		internal static void Initialize() {
 			streams = new ConcurrentDictionary<string, StreamPackage>();
-			_streamEnumerator = streams.GetEnumerator();
 
 			_workToken = MonoSoundLibrary.GetCancellationToken();
 			_workThread = new Task(HandleStreamBuffering, _workToken, TaskCreationOptions.LongRunning);
@@ -247,22 +247,21 @@ namespace MonoSound.Streaming {
 
 
 		private static void HandleStreamBuffering() {
+			// Since ConcurrentDictionary's enumerator doesn't keep track of "versions", we can just create the object once and that will be "good enough"
+			var enumerator = streams.GetEnumerator();
+
 			// The CancellationToken will automatically force execution out of this loop when a cancellation is requested
 			while (true) {
 				// Wait for any locks to be released
 				_threadState.WaitForUnlock();
 
 				// Sanity check to ensure that the thread properly exits when the streams are disposed
-				if (_areStreamsDisposed) {
-					// Enumerator has to be destroyed here instead of Deinitialize() to avoid race conditions
-					_streamEnumerator = null;
+				if (_areStreamsDisposed)
 					break;
-				}
 
-				// Copy the object to a local in case the enumerator is recalculated during enumeration
-				var enumerator = _streamEnumerator;
 				Thread.MemoryBarrier();
 
+				enumerator.Reset();
 				while (enumerator.MoveNext()) {
 					var stream = enumerator.Current.Value;
 

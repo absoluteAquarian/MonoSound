@@ -141,11 +141,11 @@ namespace MonoSound.Default {
 			Span<float> samples = [ .. segmentLeft, .. segmentRight ];
 
 			// Processing modifies both channels at the same time
-			model.Process(samples, channelSize);
+			model.Process(samples, sampleCount);
 
 			// Copy the processed samples back to the original data
-			samples.CopyTo(segmentLeft);
-			samples[channelSize..].CopyTo(segmentRight);
+			samples[..sampleCount].CopyTo(segmentLeft);
+			samples[sampleCount..].CopyTo(segmentRight);
 		}
 
 		/// <inheritdoc cref="SoLoudFilterInstance.ApplyFilter"/>

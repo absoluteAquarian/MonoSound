@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 
 [assembly: IgnoresAccessChecksTo("MonoGame.Framework")]
@@ -198,8 +199,9 @@ namespace MonoSound.Audio {
 					for (int i = 0; i < count; i++)
 						handler(this, EventArgs.Empty);
 				}
-			} catch {
+			} catch (Exception ex) {
 				// Swallow any exceptions that occur here to prevent the handler thread from stopping.
+				Debug.WriteLine(ex);
 			}
 
 			_buffersNeeded = 0;

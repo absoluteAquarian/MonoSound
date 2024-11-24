@@ -95,6 +95,7 @@ namespace MonoSound.Filters {
 			/// <summary>
 			/// The value for the current instance
 			/// </summary>
+			/// <exception cref="ObjectDisposedException"/>
 			public T Value {
 				get => Valid ? _constraint.Value : throw new ObjectDisposedException(nameof(Parameter<T>));
 				set {
@@ -111,17 +112,26 @@ namespace MonoSound.Filters {
 			/// <summary>
 			/// The minimum allowed value for this parameter
 			/// </summary>
+			/// <exception cref="ObjectDisposedException"/>
 			public T MinValue => Valid ? _constraint.MinValue : throw new ObjectDisposedException(nameof(Parameter<T>));
 
 			/// <summary>
 			/// The maximum allowed value for this parameter
 			/// </summary>
+			/// <exception cref="ObjectDisposedException"/>
 			public T MaxValue => Valid ? _constraint.MaxValue : throw new ObjectDisposedException(nameof(Parameter<T>));
+
+			/// <summary>
+			/// The range of the parameter, i.e. <c><see cref="MaxValue"/> - <see cref="MinValue"/></c>
+			/// </summary>
+			/// <exception cref="ObjectDisposedException"/>
+			public T Range => Valid ? _constraint.MaxValue - _constraint.MinValue : throw new ObjectDisposedException(nameof(Parameter<T>));
 
 			private SoLoudFader<T> _fader;
 			/// <summary>
 			/// The fader for the current instance
 			/// </summary>
+			/// <exception cref="ObjectDisposedException"/>
 			public SoLoudFader<T> Fader {
 				get => Valid ? _fader : throw new ObjectDisposedException(nameof(Parameter<T>));
 				private set => _fader = value;
@@ -130,6 +140,75 @@ namespace MonoSound.Filters {
 			internal Parameter(SoLoudFilterInstance owner, T initialValue, T min, T max) : base(owner) {
 				_constraint = new(initialValue, min, max);
 				Fader = new(this);
+			}
+
+			/// <summary>
+			/// Generates a random value within the range of the parameter
+			/// </summary>
+			/// <param name="random">The object to generate random values</param>
+			/// <param name="inclusiveMax">Whether to include <see cref="MaxValue"/> in the range of random values.  Defaults to <see langword="true"/>.</param>
+			public T GenerateRandom(Random random, bool inclusiveMax = true) => Generate(random, MinValue, MaxValue, inclusiveMax);
+
+			/// <summary>
+			/// Generates a random value within the range of the specified lower bound and the parameter's maximum value
+			/// </summary>
+			/// <param name="random">The object to generate random values</param>
+			/// <param name="min">The minimum value in the range</param>
+			/// <param name="inclusiveMax">Whether to include <see cref="MaxValue"/> in the range of random values.  Defaults to <see langword="true"/>.</param>
+			/// <exception cref="ArgumentOutOfRangeException"/>
+			/// <exception cref="ObjectDisposedException"/>
+			public T GenerateRandomMin(Random random, T min, bool inclusiveMax = true) {
+				if (min < MinValue || min > MaxValue)
+					throw new ArgumentOutOfRangeException(nameof(min), min, "Minimum value was out of range");
+
+				return Generate(random, min, MaxValue, inclusiveMax);
+			}
+
+			/// <summary>
+			/// Generates a random value within the range of the specified lower bound and the parameter's maximum value
+			/// </summary>
+			/// <param name="random">The object to generate random values</param>
+			/// <param name="max">The maximum value in the range</param>
+			/// <param name="inclusiveMax">Whether to include <paramref name="max"/> in the range of random values.  Defaults to <see langword="true"/>.</param>
+			/// <exception cref="ArgumentOutOfRangeException"/>
+			/// <exception cref="ObjectDisposedException"/>
+			public T GenerateRandomMax(Random random, T max, bool inclusiveMax = true) {
+				if (max < MinValue || max > MaxValue)
+					throw new ArgumentOutOfRangeException(nameof(max), max, "Maximum value was out of range");
+
+				return Generate(random, MinValue, max, inclusiveMax);
+			}
+
+			/// <summary>
+			/// Generates a random value within the specified bounds
+			/// </summary>
+			/// <param name="random">The object to generate random values</param>
+			/// <param name="min">The minimum value in the range</param>
+			/// <param name="max">The maximum value in the range</param>
+			/// <param name="inclusiveMax">Whether to include <paramref name="max"/> in the range of random values.  Defaults to <see langword="true"/>.</param>
+			/// <exception cref="ArgumentException"/>
+			/// <exception cref="ArgumentOutOfRangeException"/>
+			public T GenerateRandom(Random random, T min, T max, bool inclusiveMax = true) {
+				if (min > max)
+					throw new ArgumentException("Minimum value was greater than the maximum value", nameof(min));
+				if (max > MaxValue)
+					throw new ArgumentOutOfRangeException(nameof(max), max, "Maximum value was out of range");
+				if (min < MinValue)
+					throw new ArgumentOutOfRangeException(nameof(min), min, "Minimum value was out of range");
+
+				return Generate(random, min, max, inclusiveMax);
+			}
+
+			private T Generate(Random random, T min, T max, bool inclusiveMax) {
+				if (!Valid)
+					throw new ObjectDisposedException(nameof(Parameter<T>));
+
+				// To ensure an inclusive upper bound, favor 0 slightly less
+				double rng = random.NextDouble();
+				if (inclusiveMax && rng == 0 && random.Next(2) == 0)
+					rng = 1d - random.NextDouble();
+
+				return T.CreateChecked(double.CreateChecked(min) + rng * double.CreateChecked(max - min));
 			}
 
 			internal void UpdateFader(double time) {
@@ -147,9 +226,11 @@ namespace MonoSound.Filters {
 			}
 
 			/// <inheritdoc cref="__GenericParameter.GetBoxedValue"/>
+			/// <exception cref="ObjectDisposedException"/>
 			public override object GetBoxedValue() => Value;
 
 			/// <inheritdoc cref="__GenericParameter.SetValueFromBoxed"/>
+			/// <exception cref="ArgumentException"/>
 			public override void SetValueFromBoxed(object value) {
 				if (value is not T val)
 					throw new ArgumentException("Value type mismatch, could not set value to provided object", nameof(value));
@@ -160,6 +241,7 @@ namespace MonoSound.Filters {
 			/// <summary>
 			/// Copies the value and clones the fader from another parameter
 			/// </summary>
+			/// <exception cref="ArgumentException"/>
 			protected override void CopyFrom(Parameter other) {
 				if (other is not Parameter<T> otherAs)
 					throw new ArgumentException("Parameter type mismatch, could not copy from provided parameter", nameof(other));
@@ -282,9 +364,9 @@ namespace MonoSound.Filters {
 		public bool IsSingleton { get; internal set; }
 
 		/// <summary>
-		/// Whether any parameters have changed.  Reading this property will reset the flags.
+		/// Whether any parameters have changed
 		/// </summary>
-		public bool HasAnyParameterChanged => Interlocked.Exchange(ref _changed, 0) != 0uL;
+		public bool HasAnyParameterChanged => Interlocked.Read(ref _changed) != 0;
 
 		/// <summary>
 		/// The number of parameters in this filter instance
@@ -305,11 +387,11 @@ namespace MonoSound.Filters {
 			paramStrength = CreateParameter(1f, 0f, 1f);
 		}
 		
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		internal int ReserveParameterIndex() => _nextID++;
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		internal void MarkChanged(in SoLoudFilter.Parameter parameter) => _changed |= 1uL << parameter.ID;
+		internal void MarkChanged(in SoLoudFilter.Parameter parameter) => Interlocked.Or(ref _changed, 1UL << parameter.ID);
+
+		internal void MarkNoneChanged() => Interlocked.Exchange(ref _changed, 0);
 
 		/// <summary>
 		/// Creates a new filter parameter

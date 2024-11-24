@@ -35,12 +35,12 @@ namespace MonoSound.DataStructures {
 		/// <exception cref="ArgumentOutOfRangeException"/>
 		/// <exception cref="ArgumentException"/>
 		public ConstrainedValue(T initialValue, T min, T max) {
-			if (min > default(T))
-				throw new ArgumentOutOfRangeException(nameof(min), "Minimum value must be less than or equal to the default value of the type");
-			if (max < default(T))
-				throw new ArgumentOutOfRangeException(nameof(max), "Maximum value must be greater than or equal to the default value of the type");
 			if (min > max)
 				throw new ArgumentException("Minimum value must be less than or equal to the maximum value");
+			if (initialValue < min)
+				throw new ArgumentOutOfRangeException(nameof(initialValue), "Initial value cannot be less than the minimum value");
+			if (initialValue > max)
+				throw new ArgumentOutOfRangeException(nameof(initialValue), "Initial value cannot be greater than the maximum value");
 
 			_min = min;
 			_max = max;

@@ -1,17 +1,22 @@
 ﻿using Microsoft.Xna.Framework.Audio;
 using MonoSound.API;
 using MonoSound.Audio;
+using MonoSound.DataStructures;
+using MonoSound.FFT;
 using MonoSound.Filters;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
-namespace MonoSound.Streaming {
-	/// <summary>
-	/// An object representing streamed audio from a data stream
-	/// </summary>
-	public abstract class StreamPackage : IDisposable {
+namespace MonoSound.Streaming
+{
+    /// <summary>
+    /// An object representing streamed audio from a data stream
+    /// </summary>
+    public abstract class StreamPackage : IDisposable {
 		/// <summary>
 		/// The instance responsible for dynamically playing streamed audio
 		/// </summary>
@@ -116,7 +121,7 @@ namespace MonoSound.Streaming {
 
 		private readonly object _filterLock = new object();
 		private SoLoudFilterInstance[] _activeFilters;
-		private double _filterFaderTime;
+		private double[] _filterFaderTime;
 
 		private readonly ConcurrentQueue<byte[]> _queuedReads = [];
 
@@ -300,7 +305,12 @@ namespace MonoSound.Streaming {
 				// Forcibly set CurrentDuration to where the jump started at
 				Interlocked.Exchange(ref _playTime, TimeSpan.FromSeconds(_jumpReadStart).Ticks);
 				SecondsRead = _jumpReadStart;
-				_filterFaderTime = _jumpReadStart;
+
+				if (_filterFaderTime is not null) {
+					for (int i = 0; i < _filterFaderTime.Length; i++)
+						_filterFaderTime[i] = _jumpReadStart;
+				}
+
 				_jumpReadStart = 0;
 				_hasActiveJump = false;
 			} else {
@@ -453,18 +463,38 @@ namespace MonoSound.Streaming {
 					break;
 				}
 
-				lock (_filterLock) {
-					ProcessFilters(ref read);
-				}
-
 				ReadBytes += bytesRead;
 
 				SecondsRead += GetSecondDuration(read.Length);
 
-				_queuedReads.Enqueue(read);
+				try {
+					float[] samples;
 
-				if (checkLooping)
-					HandleLooping();
+					lock (_filterLock) {
+						ProcessFilters(ref read, out samples);
+					}
+
+					// Process the samples with the FFT if it's active
+					if (_fft is not null) {
+						lock (_fftLock) {
+							_fft.Process(samples);
+							/*
+							_fftSamples.AddSamples(samples);
+							_fftSamples.AttemptFFTSignal(_fft);
+							*/
+						}
+					}
+				} catch {
+					// Replace the buffer with an empty array so that it's obvious that something went wrong
+					read = new byte[read.Length];
+					throw;
+				} finally {
+					// Always execute this logic, even if the filters fail
+					_queuedReads.Enqueue(read);
+
+					if (checkLooping)
+						HandleLooping();
+				}
 			}
 		}
 
@@ -493,10 +523,7 @@ namespace MonoSound.Streaming {
 			}
 		}
 
-		private void ProcessFilters(ref byte[] data) {
-			if (_activeFilters is null)
-				return;
-			
+		private void ProcessFilters(ref byte[] data, out float[] processedSamples) {
 			// Convert the byte samples to float samples
 			int size = BitsPerSample == 16 ? 2 : 3;
 			int length = data.Length / size;
@@ -505,6 +532,12 @@ namespace MonoSound.Streaming {
 			for (int i = 0; i < data.Length; i += size) {
 				filterSamples[i / size] = size == 2 ? new PCM16Bit(data, i).ToFloatSample() : new PCM24Bit(data, i).ToFloatSample();
 				FormatWav.ClampSample(ref filterSamples[i / size]);
+			}
+
+			if (_activeFilters is null) {
+				// Nothing extra to do besides decoding the samples
+				processedSamples = filterSamples;
+				return;
 			}
 
 			filterSamples = FormatWav.UninterleaveSamples(filterSamples, (int)Channels);
@@ -518,7 +551,12 @@ namespace MonoSound.Streaming {
 				else if (!object.ReferenceEquals(filter.audioSource, this))
 					throw new InvalidOperationException("Cannot use a filter instance that is not attached to this instance");
 
-				FilterSimulations.SimulateOneFilter(filter, filterSamples.AsSpan(), (int)Channels, SampleRate, ref _filterFaderTime);
+				try {
+					FilterSimulations.SimulateOneFilter(filter, filterSamples.AsSpan(), (int)Channels, SampleRate, ref _filterFaderTime[i]);
+				} catch (Exception ex) {
+					// Report what filter caused the exception
+					throw new InvalidOperationException($"Filter #{i + 1} ({filter.Parent.GetType().FullName}) threw an exception when processing samples for a SteamPackage\nName: {StreamManager.FindStreamName(this)}", ex);
+				}
 			}
 
 			filterSamples = FormatWav.InterleaveSamples(filterSamples, (int)Channels);
@@ -533,6 +571,8 @@ namespace MonoSound.Streaming {
 				else
 					new PCM24Bit(filterSamples[i]).WriteToStream(data, i * size);
 			}
+
+			processedSamples = filterSamples;
 		}
 
 		/// <summary>
@@ -563,18 +603,9 @@ namespace MonoSound.Streaming {
 		/// <param name="ids">The list of filters to use, or <see langword="null"/> if no filters should be used.</param>
 		public void ApplyFilters(params int[] ids) {
 			lock (_filterLock) {
-				if (ids is not { Length: > 0 }) {
-					// Disable filtering
-					if (_activeFilters is not null) {
-						foreach (var filter in _activeFilters) {
-							// NOTE: disposing isn't neccessary; allow the filter to be re-used by another audio source
-							filter.ResetFilterState();
-							filter.audioSource = null;
-						}
+				DetachActiveFilters();
 
-						_activeFilters = null;
-					}
-				} else {
+				if (ids is { Length: > 0 }) {
 					// Initialize INSTANCED filters (streams cannot use the singletons!)
 					_activeFilters = new SoLoudFilterInstance[ids.Length];
 					for (int i = 0; i < ids.Length; i++) {
@@ -582,6 +613,8 @@ namespace MonoSound.Streaming {
 						instance.audioSource = this;
 						_activeFilters[i] = instance;
 					}
+
+					_filterFaderTime = new double[_activeFilters.Length];
 				}
 			}
 		}
@@ -596,18 +629,9 @@ namespace MonoSound.Streaming {
 		/// </param>
 		public void ApplyFilters(params SoLoudFilterInstance[] instances) {
 			lock (_filterLock) {
-				if (instances is not { Length: > 0 }) {
-					// Disable filtering
-					if (_activeFilters is not null) {
-						foreach (var filter in _activeFilters) {
-							// NOTE: disposing isn't neccessary; allow the filter to be re-used by another audio source
-							filter.ResetFilterState();
-							filter.audioSource = null;
-						}
+				DetachActiveFilters();
 
-						_activeFilters = null;
-					}
-				} else {
+				if (instances is { Length: > 0 }) {
 					// Make sure that they're INSTANCED filters (streams cannot use the singletons!)
 					_activeFilters = new SoLoudFilterInstance[instances.Length];
 					for (int i = 0; i < instances.Length; i++) {
@@ -623,7 +647,31 @@ namespace MonoSound.Streaming {
 						instance.audioSource = this;
 						_activeFilters[i] = instance;
 					}
+
+					_filterFaderTime = new double[_activeFilters.Length];
 				}
+			}
+		}
+
+		private void DetachActiveFilters() {
+			if (_activeFilters is not null) {
+				foreach (var filter in _activeFilters) {
+					// NOTE: disposing isn't neccessary; allow the filter to be re-used by another audio source
+					filter.ResetFilterState();
+					filter.audioSource = null;
+				}
+			}
+
+			_activeFilters = null;
+			_filterFaderTime = null;
+		}
+
+		/// <summary>
+		/// Removes all filters from this package.
+		/// </summary>
+		public void RemoveAllFilters() {
+			lock (_filterLock) {
+				DetachActiveFilters();
 			}
 		}
 
@@ -649,6 +697,77 @@ namespace MonoSound.Streaming {
 		/// Gets a read-only collection of the filter instances currently applied to this stream package.
 		/// </summary>
 		public ReadOnlySpan<SoLoudFilterInstance> GetFilterInstances() => _activeFilters;
+
+		/*
+		private class FFTSampleWatcher {
+			private readonly double _sampleDuration;
+			private readonly CyclicalBuffer<float[]> _samples;
+			private bool _reprocessFFT;
+
+			const double WATCH_DURATION = 0.4d;
+
+			public FFTSampleWatcher() {
+				_sampleDuration = Controls.StreamBufferLengthInSeconds;
+				int fftSamplesPerSecond = (int)Math.Ceiling(WATCH_DURATION / _sampleDuration);
+				_samples = new(fftSamplesPerSecond);
+			}
+
+			public void AddSamples(float[] samples) {
+				_samples.Enqueue(samples);
+				_reprocessFFT = true;
+			}
+
+			public void AttemptFFTSignal(FastFourierTransform fft) {
+				if (_samples.Count < _samples.Capacity) {
+					// Not enough samples to perform an effective FFT
+					return;
+				}
+
+				if (_reprocessFFT) {
+					// Perform the FFT
+					fft.Process([.. _samples.SelectMany(static a => a)]);
+					_reprocessFFT = false;
+				}
+			}
+		}
+
+		private FFTSampleWatcher _fftSamples;
+		*/
+
+		private FastFourierTransform _fft;
+		/// <summary>
+		/// The Fast Fourier Transform (FFT) of the audio data streamed by this package, if it is being tracked
+		/// </summary>
+		public FastFourierTransform FFT {
+			get {
+				lock (_fftLock) {
+					return _fft;
+				}
+			}
+		}
+
+		private readonly object _fftLock = new();
+
+		/// <summary>
+		/// Begins tracking the FFT of the audio data streamed by this package
+		/// </summary>
+		public FastFourierTransform BeginTrackingFFT() {
+			lock (_fftLock) {
+				_fft = new FastFourierTransform(SampleRate);
+			//	_fftSamples = new FFTSampleWatcher();
+				return _fft;
+			}
+		}
+
+		/// <summary>
+		/// Stops tracking the FFT of the audio data streamed by this package
+		/// </summary>
+		public void StopTrackingFFT() {
+			lock (_fftLock) {
+				_fft = null;
+			//	_fftSamples = null;
+			}
+		}
 
 		private bool disposed;
 		/// <summary>

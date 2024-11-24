@@ -2,6 +2,7 @@
 using MonoSound.Audio;
 using MonoSound.Default;
 using System;
+using System.Diagnostics;
 using System.IO;
 
 namespace MonoSound.Filters {
@@ -13,8 +14,11 @@ namespace MonoSound.Filters {
 		public static SoundEffect ApplyFilterTo(FormatWav wav, string fileIdentifier, SoLoudFilterInstance instance) {
 			try {
 				SimulateFilter(instance, wav);
-			} catch {
+			} catch (Exception ex) {
 				// Swallow any exceptions
+				Debug.WriteLine($"An exception was thrown when trying to apply a {instance.Parent.GetType().FullName} filter.");
+				Debug.WriteLine($"Asset: {fileIdentifier}");
+				Debug.WriteLine(ex);
 				return null;
 			}
 
@@ -25,11 +29,18 @@ namespace MonoSound.Filters {
 		}
 
 		public static SoundEffect ApplyFiltersTo(FormatWav wav, string fileIdentifier, params SoLoudFilterInstance[] filters) {
+			int index = 0;
 			try {
-				foreach (SoLoudFilterInstance filter in filters)
+				foreach (SoLoudFilterInstance filter in filters) {
 					SimulateFilter(filter, wav);
-			} catch {
+					index++;
+				}
+			} catch (Exception ex) {
 				// Swallow any exceptions
+				SoLoudFilterInstance badFilter = filters[index];
+				Debug.WriteLine($"An exception was thrown when trying to apply a {badFilter.Parent.GetType().FullName} filter.");
+				Debug.WriteLine($"Asset: {fileIdentifier}");
+				Debug.WriteLine(ex);
 				return null;
 			}
 
@@ -100,21 +111,27 @@ namespace MonoSound.Filters {
 
 			filter.BeginFiltering(channelCount, channelSize, sampleRate);
 
-			for (int i = 0; i < channelSize; i += sampleCountForNextUpdate) {
+			for (int i = 0; i < channelSize;) {
 				// Update the faders
 				filter.UpdateParameterFaders(currentTime);
 
 				// Apply the filter to the samples
 				filter.ApplyFilteringToAllChannels(uninterleavedSamples, i, sampleCountForNextUpdate, channelCount, channelSize, sampleRate);
 
-				double deltaTime = sampleCountForNextUpdate / sampleRate;
+				filter.MarkNoneChanged();
+
+				double deltaTime = sampleCountForNextUpdate / (double)sampleRate;
+				double oldTime = currentTime;
 				currentTime += deltaTime;
 				// Adjust the next slice to keep the update rate consistent
-				double timeError = FADER_UPDATE_RATE - currentTime;
+				int nextSampleStart = i + sampleCountForNextUpdate;
+				double timeError = FADER_UPDATE_RATE - (currentTime - oldTime);
 				sampleCountForNextUpdate = (int)Math.Ceiling(sampleRate * (FADER_UPDATE_RATE + timeError));
 
 				// The last iteration may have fewer samples than the rest
-				sampleCountForNextUpdate = Math.Max(1, Math.Min(sampleCountForNextUpdate, channelSize - 1 - i));
+				sampleCountForNextUpdate = Math.Min(sampleCountForNextUpdate, channelSize - nextSampleStart);
+
+				i = nextSampleStart;
 			}
 		}
 

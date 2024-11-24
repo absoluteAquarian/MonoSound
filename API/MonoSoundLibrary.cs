@@ -41,6 +41,13 @@ namespace MonoSound {
 		/// <returns></returns>
 		public static CancellationToken GetCancellationToken() => cancelSource.Token;
 
+		private static Thread _mainThread;
+
+		/// <summary>
+		/// Gets whether the current thread is the main thread, i.e. the thread that <see cref="Init(Game)"/> was called on
+		/// </summary>
+		public static bool IsMainThread => Thread.CurrentThread == _mainThread;
+
 		/// <summary>
 		/// The next filter ID should one be registered.  Automatically assigned to new filters
 		/// </summary>
@@ -82,6 +89,8 @@ namespace MonoSound {
 			waveBanks = [];
 			streamedWaveBanks = [];
 			soundBanks = [];
+
+			_mainThread = Thread.CurrentThread;
 
 			NextFilterID = 0;
 

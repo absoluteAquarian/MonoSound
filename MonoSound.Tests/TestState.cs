@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
@@ -33,7 +34,7 @@ namespace MonoSound.Tests {
 
 		public IEnumerable<TestState> Get(IEnumerable<Keys> sequence) {
 			if (!sequence.Any())
-				return Array.Empty<TestState>();
+				return [];
 
 			TestState state = this;
 
@@ -45,7 +46,7 @@ namespace MonoSound.Tests {
 				if (state != null)
 					tree.Add(state);
 				else
-					return Array.Empty<TestState>();
+					return [];
 			}
 
 			return tree;
@@ -62,7 +63,7 @@ namespace MonoSound.Tests {
 		public IEnumerable<string> ReportCurrentTree(IEnumerable<Keys> sequence) {
 			yield return "State:";
 			
-			StringBuilder indent = new StringBuilder("  ");
+			StringBuilder indent = new("  ");
 
 			IEnumerable<TestState> tree = tests.Get(sequence);
 
@@ -83,6 +84,13 @@ namespace MonoSound.Tests {
 
 		public TestState GetCurrentNode(IEnumerable<Keys> sequence) => tests.Get(sequence).LastOrDefault();
 
-		public void InvokeCurrent(IEnumerable<Keys> sequence) => GetCurrentNode(sequence)?.onSelected?.Invoke();
+		public void InvokeCurrent(IEnumerable<Keys> sequence) {
+			try {
+				GetCurrentNode(sequence)?.onSelected?.Invoke();
+			} catch (Exception ex) {
+				// Swallow any exceptions
+				Debug.WriteLine(ex);
+			}
+		}
 	}
 }

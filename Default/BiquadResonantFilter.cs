@@ -26,6 +26,7 @@ using MonoSound.Filters;
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 
 namespace MonoSound.Default {
 	/// <summary>
@@ -82,7 +83,7 @@ namespace MonoSound.Default {
 			// float y1, y2, x1, x2;
 			// Changed to Vector2 and Vector3 to allow for SIMD optimization
 			public Vector2 y;
-			public Vector3 x;  // x.X will contain the sample data, x.Y and x.Z are the coefficients
+			public Vector3 x;
 		}
 
 		// Filter coefficients
@@ -165,12 +166,13 @@ namespace MonoSound.Default {
 			}
 
 			a *= scalar;
-			b = new Vector2(2.0f * cos_omega, 1.0f - alpha) * scalar;
+			b = new Vector2(-2.0f * cos_omega, 1.0f - alpha) * scalar;
 		}
 
 		/// <inheritdoc cref="SoLoudFilterInstance.BeginFiltering"/>
 		protected internal override void BeginFiltering(int channelCount, int channelSize, int sampleRate) {
 			// https://github.com/jarikomppa/soloud/blob/master/src/filter/soloud_biquadresonantfilter.cpp#L106
+
 			if (channelStates.Length < channelCount)
 				Array.Resize(ref channelStates, channelCount);
 
@@ -194,35 +196,31 @@ namespace MonoSound.Default {
 
 			float wet = paramStrength;
 
-			for (int i = 0; i < numSamples; i += 2, sample = ref Unsafe.Add(ref sample, 1)) {
+			for (int i = 0; i < numSamples; i++, sample = ref Unsafe.Add(ref sample, 1)) {
 				// Generate outputs by filtering inputs.
+				// In order to take advantage of SIMD instructions better, this implementation does not do the variable permutation like SoLoud does
+
 				x.X = sample;
-				y.Y = Vector3.Dot(a, x) - Vector2.Dot(b, y);
+				y.X = Vector3.Dot(a, x) - Vector2.Dot(b, y);
 				sample += (y.Y - sample) * wet;
 
-				sample = ref Unsafe.Add(ref sample, 1);
-
-				// Permute filter operations to reduce data movement.
-				// Just substitute variables instead of doing mX1=x, etc.
-				x.Z = sample;
-				y.X = Vector3.Dot(a, new Vector3(x.Z, x.X, x.Y)) - Vector2.Dot(b, new Vector2(y.Y, y.X));
-				sample += (y.X - sample) * wet;
-
-				// Only move a little data.
-				x.Y = x.Z;
-				x.Z = x.X;
+				// Shift the sample memory
+				// [ x0, x1, x2 ] -> [ x0, x0, x1 ]  (x0 gets overwritten with the next sample)
+				// [ y0, y1 ] -> [ y0, y0 ]  (y0 gets overwritten with the next output)
+				x.Z = x.Y;
+				x.Y = x.X;
+				y.Y = y.X;
 			}
 
 			// If we skipped a sample earlier, patch it by just copying the previous.
 			if (samples.Length != numSamples)
-				sample = samples[numSamples - 1];
+				sample = Unsafe.Subtract(ref sample, 1);
 		}
 
 		/// <inheritdoc cref="SoLoudFilterInstance.ResetFilterState"/>
 		protected internal override void ResetFilterState() {
 			channelStates = [];
-			a = default;
-			b = default;
+			CalculateBQRCoefficients();
 		}
 
 		/// <inheritdoc cref="SoLoudFilterInstance.Dispose(bool)"/>

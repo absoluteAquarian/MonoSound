@@ -123,7 +123,7 @@ namespace MonoSound.Default {
 			// https://github.com/jarikomppa/soloud/blob/master/src/filter/soloud_echofilter.cpp#L57
 
 			EchoState state = channelStates[channel];
-			float[] buffer = state.buffer;
+			Span<float> buffer = state.buffer;
 			ref int offset = ref state.offset;
 
 			int usableBufferLength = Math.Min((int)Math.Ceiling(paramDelay * sampleRate), maxEchoBufferLength);
