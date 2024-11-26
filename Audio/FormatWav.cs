@@ -640,9 +640,11 @@ HeaderCheckStart:
 				float[] newSamples = new float[samples.Length];
 				int channelSize = samples.Length / channelCount;
 
-				for (int i = 0; i < samples.Length; i += channelCount) {
+				// [ A B A B A B A B ] -> [ A A A A B B B B ]
+
+				for (int s = 0; s < channelSize; s++) {
 					for (int c = 0; c < channelCount; c++)
-						newSamples[i / channelCount + c * channelSize] = samples[i + c];
+						newSamples[c * channelSize + s] = samples[s * channelCount + c];
 				}
 
 				samples = newSamples;
@@ -662,11 +664,11 @@ HeaderCheckStart:
 
 				int channelSize = samples.Length / channelCount;
 
-				for (int i = 0; i < samples.Length; i += channelCount) {
+				for (int s = 0; s < channelSize; s++) {
 					for (int c = 0; c < channelCount; c++) {
-						float sample = samples[i + c].ToFloatSample();
+						float sample = samples[s * channelCount + c].ToFloatSample();
 						ClampSample(ref sample);
-						allSamples[i / channelCount + c * channelSize] = sample;
+						allSamples[c * channelSize + s] = sample;
 					}
 				}
 			} else {
@@ -689,9 +691,9 @@ HeaderCheckStart:
 				float[] newSamples = new float[samples.Length];
 				int channelSize = samples.Length / channelCount;
 
-				for (int i = 0; i < samples.Length; i += channelCount) {
+				for (int s = 0; s < channelSize; s++) {
 					for (int c = 0; c < channelCount; c++)
-						newSamples[i + c] = samples[i / channelCount + c * channelSize];
+						newSamples[s * channelCount + c] = samples[c * channelSize + s];
 				}
 
 				samples = newSamples;

@@ -47,7 +47,7 @@ namespace MonoSound.FFT {
 			while (k > 1) {
 				n = k;
 				k >>= 1;
-				phiT = phiT * phiT;
+				phiT *= phiT;
 				T = 1;
 
 				for (int l = 0; l < k; l++) {

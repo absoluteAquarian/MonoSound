@@ -86,7 +86,7 @@ namespace MonoSound.Filters {
 			double currentTime = 0d;
 			SimulateOneFilter(filter, samples, channelCount, sampleRate, ref currentTime);
 
-			wav.ReconstructFromSamples(FormatWav.InterleaveSamples(samples, wav.ChannelCount));
+			wav.ReconstructFromSamples(FormatWav.InterleaveSamples(samples, channelCount));
 		}
 
 		public static void SimulateOneFilter(SoLoudFilterInstance filter, ref float[] interleavedSamples, int channelCount, int sampleRate, ref double currentTime) {

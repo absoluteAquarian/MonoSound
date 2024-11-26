@@ -35,14 +35,17 @@ namespace MonoSound.Tests {
 				// Different pan testing
 				new TestState(Keys.D1, "Sound Panning", null).WithChildren(
 					new TestState(Keys.D1, "Stereo Channel - Broken", PlayStereoPanning),
-					new TestState(Keys.D2, "Mono Channel - Working", PlayMonoPanning)),
+					new TestState(Keys.D2, "Mono Channel - Working", PlayMonoPanning)
+				),
 				new TestState(Keys.D2, "Sound Streaming", null).WithChildren(
 					new TestState(Keys.D1, "Play Song", PlayStreamedSong),
 					new TestState(Keys.D2, "Stop Song", StopStreamedSong),
 					new TestState(Keys.D3, "Clear Filters", ClearStreamedSongFilters),
 					new TestState(Keys.D4, "Apply Low Pass Filter", ApplyLowPassFilterToStreamedSong),
 					new TestState(Keys.D5, "Apply High Pass Filter", ApplyHighPassFilterToStreamedSong),
-					new TestState(Keys.D6, "Apply Band Pass Filter", ApplyBandPassFilterToStreamedSong)),
+					new TestState(Keys.D6, "Apply Band Pass Filter", ApplyBandPassFilterToStreamedSong),
+					new TestState(Keys.D7, "Toggle FFT", StreamedSong_ToggleFFTRender)
+				),
 				new TestState(Keys.D3, "Segmented Sound Streaming", null).WithChildren(
 					new TestState(Keys.D1, "Play Song", PlaySegmentedSong),
 					new TestState(Keys.D2, "Stop Song", StopSegmentedSong),
@@ -66,7 +69,8 @@ namespace MonoSound.Tests {
 							new TestState(Keys.D2, "After Current", JumpToSection_2_Delayed),
 							new TestState(Keys.D3, "Fade To", JumpToSection_2_Fade)
 						)
-					)
+					),
+					new TestState(Keys.D8, "Toggle FFT", SegmentedSong_ToggleFFTRender)
 				),
 				new TestState(Keys.D4, "Filtered Sounds", null).WithChildren(
 					new TestState(Keys.D1, "Direct", null).WithChildren(
@@ -136,7 +140,9 @@ namespace MonoSound.Tests {
 		static SoundEffect sfx, song, filteredSfx;
 		static SoundEffectInstance songInstance, filteredSfxInstance;
 		static StreamPackage streamedSound;
+		static FastFourierTransform streamedFFT;
 		static SegmentedOggStream streamedSegmentedSound;
+		static FastFourierTransform streamedSegmentedFFT;
 		static float segmentedSongVolume;
 		static float segmentFade;
 
@@ -146,6 +152,8 @@ namespace MonoSound.Tests {
 		static SoLoudFilterInstance liveUpdateFilterInstance;
 		static StreamPackage liveUpdateStream;
 		static FastFourierTransform liveUpdateFFT;
+
+		const double FFT_FADE_FACTOR = 0.962350626398;  // 0.1 ^ (1 / 60)
 
 		static readonly Random random = new();
 
@@ -215,8 +223,11 @@ namespace MonoSound.Tests {
 		private static void PlayMonoPanning() {
 			// Different pan testing (succeeds due to the sound using Mono)
 			StreamLoader.FreeStreamedSound(ref streamedSound);
+			streamedFFT = null;
 			StreamLoader.FreeStreamedSound(ref streamedSegmentedSound);
+			streamedSegmentedFFT = null;
 			StreamLoader.FreeStreamedSound(ref liveUpdateStream);
+			liveUpdateFFT = null;
 
 			song ??= EffectLoader.GetEffect("Content/chill-mono.ogg");
 
@@ -239,7 +250,9 @@ namespace MonoSound.Tests {
 			}
 
 			StreamLoader.FreeStreamedSound(ref streamedSegmentedSound);
+			streamedSegmentedFFT = null;
 			StreamLoader.FreeStreamedSound(ref liveUpdateStream);
+			liveUpdateFFT = null;
 
 			if (!StreamLoader.IsStreaming(streamedSound)) {
 				streamedSound = StreamLoader.GetStreamedSound("Content/chill-mono.ogg", looping: true);
@@ -251,6 +264,7 @@ namespace MonoSound.Tests {
 
 		private static void StopStreamedSong() {
 			StreamLoader.FreeStreamedSound(ref streamedSound);
+			streamedFFT = null;
 		}
 
 		private static void ClearStreamedSongFilters() {
@@ -273,6 +287,19 @@ namespace MonoSound.Tests {
 			streamedSound?.ApplyFilters(ids: bandPass);
 		}
 
+		private static void StreamedSong_ToggleFFTRender() {
+			if (streamedSound is null)
+				return;
+
+			if (streamedFFT is null) {
+				streamedFFT = streamedSound.BeginTrackingFFT();
+				streamedFFT.SetGraphToDecayRenderMode(FFT_FADE_FACTOR);
+			} else {
+				streamedSound.StopTrackingFFT();
+				streamedFFT = null;
+			}
+		}
+
 		private static void PlaySegmentedSong() {
 			// Streamed audio testing
 			if (songInstance != null) {
@@ -281,7 +308,9 @@ namespace MonoSound.Tests {
 			}
 
 			StreamLoader.FreeStreamedSound(ref streamedSound);
+			streamedFFT = null;
 			StreamLoader.FreeStreamedSound(ref liveUpdateStream);
+			liveUpdateFFT = null;
 
 			if (!StreamLoader.IsStreaming(streamedSegmentedSound)) {
 				streamedSegmentedSound = (SegmentedOggStream)StreamLoader.GetStreamedSound("Content/bonetrousle.ogg", new SegmentedOggFormat(), true, new IAudioSegment[] {
@@ -300,6 +329,7 @@ namespace MonoSound.Tests {
 
 		private static void StopSegmentedSong() {
 			StreamLoader.FreeStreamedSound(ref streamedSegmentedSound);
+			streamedSegmentedFFT = null;
 		}
 
 		private static void ClearSegmentedSongFilters() {
@@ -401,6 +431,19 @@ namespace MonoSound.Tests {
 			
 			if (segmentFade == 0)
 				segmentFade = 1;
+		}
+
+		private static void SegmentedSong_ToggleFFTRender() {
+			if (streamedSegmentedSound is null)
+				return;
+
+			if (streamedSegmentedFFT is null) {
+				streamedSegmentedFFT = streamedSegmentedSound.BeginTrackingFFT();
+				streamedSegmentedFFT.SetGraphToDecayRenderMode(FFT_FADE_FACTOR);
+			} else {
+				streamedSegmentedSound.StopTrackingFFT();
+				streamedSegmentedFFT = null;
+			}
 		}
 
 		private static void PlayNoFilterFilteredSound() {
@@ -549,7 +592,9 @@ namespace MonoSound.Tests {
 			}
 
 			StreamLoader.FreeStreamedSound(ref streamedSound);
+			streamedFFT = null;
 			StreamLoader.FreeStreamedSound(ref streamedSegmentedSound);
+			streamedSegmentedFFT = null;
 
 			if (liveUpdateStream is null) {
 				// Start a new stream
@@ -643,7 +688,7 @@ namespace MonoSound.Tests {
 
 			if (liveUpdateStream.FFT is null) {
 				liveUpdateFFT = liveUpdateStream.BeginTrackingFFT();
-				liveUpdateFFT.SetGraphToDecayRenderMode(0.962350626398);  // 0.1 ^ (1 / 60)
+				liveUpdateFFT.SetGraphToDecayRenderMode(FFT_FADE_FACTOR);
 			} else {
 				liveUpdateStream.StopTrackingFFT();
 				liveUpdateFFT = null;
@@ -728,9 +773,11 @@ namespace MonoSound.Tests {
 
 			_spriteBatch.End();
 
-			if (StreamLoader.IsStreaming(liveUpdateStream) && liveUpdateFFT is not null) {
+			FastFourierTransform fft = streamedFFT ?? streamedSegmentedFFT ?? liveUpdateFFT;
+
+			if (fft is not null) {
 				InitFFTGraph(300, 200);
-				RenderFFTGraph(400, 40 + font.LineHeight * 6 + 2 + 220);
+				RenderFFTGraph(fft, 400, 40 + font.LineHeight * 6 + 2 + 220);
 
 				_fftTime += gameTime.ElapsedGameTime.TotalSeconds;
 			} else
@@ -825,7 +872,7 @@ namespace MonoSound.Tests {
 			}
 		}
 
-		private void RenderFFTGraph(float x, float y) {
+		private void RenderFFTGraph(FastFourierTransform fft, float x, float y) {
 			// Update the matrix
 			var viewport = GraphicsDevice.Viewport;
 			_graphEffect.World = Matrix.CreateTranslation(new Vector3(x, y, 0));
@@ -847,11 +894,11 @@ namespace MonoSound.Tests {
 			// Get the data points
 			const float X_MIN_FREQ = GRAPH_PADDING + 5;
 			float xMaxFreq = _graphWidth - GRAPH_PADDING - 5;
-			float yZeroDB = _graphHeight - GRAPH_PADDING - 5;
-			const float Y_MIN_DB = GRAPH_PADDING + 5;
+			const float Y_ZERO_DB = GRAPH_PADDING + 5;
+			float yMinDB = _graphHeight - GRAPH_PADDING - 5;
 
 			const float MIN_DB = -120f;
-			List<FFTGraphPoint> points = [ .. liveUpdateFFT.QueryDBGraph(ref _fftTime) ];
+			List<FFTGraphPoint> points = [ .. fft.QueryDBGraph(ref _fftTime) ];
 
 			if (points.Count == 0) {
 				// No data to render
@@ -862,7 +909,7 @@ namespace MonoSound.Tests {
 			VertexPositionColor[] vertices = new VertexPositionColor[points.Count * 2];
 
 			float xRange = xMaxFreq - X_MIN_FREQ;
-			float yRange = yZeroDB - Y_MIN_DB;
+			float yRange = yMinDB - Y_ZERO_DB;
 
 			for (int i = 0; i < points.Count; i++) {
 				var point = points[i];
@@ -871,12 +918,12 @@ namespace MonoSound.Tests {
 			//	float pointX = (float)(X_MIN_FREQ + (point.Frequency / liveUpdateFFT.sampleRate) * xRange);
 			//	float pointY = (float)(yZeroDB - (point.Value / MIN_DB) * yRange);
 				float pointX = (float)(X_MIN_FREQ + point.Frequency * xRange);
-				float pointY = (float)(Y_MIN_DB - point.Value / MIN_DB * yRange);
+				float pointY = (float)(Y_ZERO_DB + point.Value / MIN_DB * yRange);
 
-				pointY = Math.Clamp(pointY, Y_MIN_DB, yZeroDB);
+				pointY = Math.Clamp(pointY, Y_ZERO_DB, yMinDB);
 
 				vertices[i * 2] = new VertexPositionColor(new Vector3(pointX, pointY, 0), Color.Blue);
-				vertices[i * 2 + 1] = new VertexPositionColor(new Vector3(pointX, yZeroDB, 0), Color.Blue);
+				vertices[i * 2 + 1] = new VertexPositionColor(new Vector3(pointX, yMinDB, 0), Color.Blue);
 			}
 
 			if (_graphDataVertexCount != vertices.Length) {

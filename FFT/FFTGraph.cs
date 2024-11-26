@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace MonoSound.FFT {
 	internal enum FFTGraphRenderMode {
@@ -81,13 +82,14 @@ namespace MonoSound.FFT {
 			_frequencyPoints = FFTOperations.GetFrequencyPoints(query.sampleRate, fftBuffer.Length, out _resolution);
 			*/
 
-			// From: https://github.com/jiwoojang/AudioVisualizer/blob/master/AudioVis/AudioObject.cpp#L170
-
-			float maxSampleIndex = Math.Min(query.samples.Length / 2f, 20000f);
-			double logMax = Math.Log(maxSampleIndex);
-
 			List<double> frequencies = [];
 			List<double> values = [];
+
+			// From: https://github.com/jiwoojang/AudioVisualizer/blob/master/AudioVis/AudioObject.cpp#L170
+			
+		//	float maxSampleIndex = Math.Min(query.samples.Length / 2f, 20000f);
+			float maxSampleIndex = fftBuffer.Length / 2f;
+			double logMax = Math.Log(maxSampleIndex);
 
 			for (float i = 1; i < maxSampleIndex; i *= 1.05f) {
 				double x = Math.Log(i) / logMax;
@@ -96,6 +98,19 @@ namespace MonoSound.FFT {
 				frequencies.Add(x);
 				values.Add(y);
 			}
+
+			/*
+			int halfLength = fftBuffer.Length / 2;  // Graph ends up being mirrored, so we only need to show half of the data
+			ref Complex fft = ref fftBuffer[halfLength];
+
+			for (int i = halfLength; i < fftBuffer.Length; i++, fft = ref Unsafe.Add(ref fft, 1)) {
+				double x = (double)(i - halfLength) / halfLength;
+				double y = T.ModifyMagnitude(2 * fft.Magnitude);
+
+				frequencies.Add(x);
+				values.Add(y);
+			}
+			*/
 
 			_frequencyPoints = [.. frequencies];
 			_magnitudes = [.. values];
@@ -110,8 +125,9 @@ namespace MonoSound.FFT {
 	internal readonly struct DecibelGraph : IFFTFrequencyGraph<DecibelGraph> {
 	//	public static double ModifyMagnitude(double magnitude, int fftLength) => 20 * Math.Log10(magnitude / fftLength);
 		public static double ModifyMagnitude(double magnitude) {
-			double mag = -20 * Math.Log(magnitude);
+		//	double mag = -20 * Math.Log(magnitude);
 		//	return mag < 0 ? mag : 0;
+			double mag = 20 * Math.Log(magnitude);
 			return mag;
 		}
 	}

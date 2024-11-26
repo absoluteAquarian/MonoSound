@@ -125,6 +125,8 @@ namespace MonoSound.Streaming
 
 		private readonly ConcurrentQueue<byte[]> _queuedReads = [];
 
+		private readonly CancellationTokenSource strobeCancel = new();
+
 		/// <summary>
 		/// Creates a new instance of <see cref="StreamPackage"/><br/>
 		/// This constructor does not call <see cref="Initialize"/>
@@ -284,6 +286,18 @@ namespace MonoSound.Streaming
 		protected virtual void Initialize() => InitSound();
 
 		private void QueueBuffers(object sender, EventArgs e) {
+			if (disposed) {
+				// This event may still be raised after disposal due to StreamManager using a worker thread
+				// So, just ignore it
+				return;
+			}
+
+			try {
+				QueueBuffers_Impl(sender);
+			} catch when (strobeCancel.IsCancellationRequested) { }
+		}
+		
+		private void QueueBuffers_Impl(object sender) {
 			SubmitBufferControls controls = SubmitBufferControls.Create();
 			PreQueueBuffers(ref controls);
 
@@ -477,11 +491,9 @@ namespace MonoSound.Streaming
 					// Process the samples with the FFT if it's active
 					if (_fft is not null) {
 						lock (_fftLock) {
-							_fft.Process(samples);
-							/*
+						//	_fft.Process(samples);
 							_fftSamples.AddSamples(samples);
 							_fftSamples.AttemptFFTSignal(_fft);
-							*/
 						}
 					}
 				} catch {
@@ -552,7 +564,7 @@ namespace MonoSound.Streaming
 					throw new InvalidOperationException("Cannot use a filter instance that is not attached to this instance");
 
 				try {
-					FilterSimulations.SimulateOneFilter(filter, filterSamples.AsSpan(), (int)Channels, SampleRate, ref _filterFaderTime[i]);
+					FilterSimulations.SimulateOneFilter(filter, filterSamples, (int)Channels, SampleRate, ref _filterFaderTime[i]);
 				} catch (Exception ex) {
 					// Report what filter caused the exception
 					throw new InvalidOperationException($"Filter #{i + 1} ({filter.Parent.GetType().FullName}) threw an exception when processing samples for a SteamPackage\nName: {StreamManager.FindStreamName(this)}", ex);
@@ -698,7 +710,6 @@ namespace MonoSound.Streaming
 		/// </summary>
 		public ReadOnlySpan<SoLoudFilterInstance> GetFilterInstances() => _activeFilters;
 
-		/*
 		private class FFTSampleWatcher {
 			private readonly double _sampleDuration;
 			private readonly CyclicalBuffer<float[]> _samples;
@@ -706,10 +717,16 @@ namespace MonoSound.Streaming
 
 			const double WATCH_DURATION = 0.4d;
 
+			/*
 			public FFTSampleWatcher() {
 				_sampleDuration = Controls.StreamBufferLengthInSeconds;
 				int fftSamplesPerSecond = (int)Math.Ceiling(WATCH_DURATION / _sampleDuration);
 				_samples = new(fftSamplesPerSecond);
+			}
+			*/
+
+			public FFTSampleWatcher(int batchSize) {
+				_samples = new(batchSize);
 			}
 
 			public void AddSamples(float[] samples) {
@@ -732,7 +749,6 @@ namespace MonoSound.Streaming
 		}
 
 		private FFTSampleWatcher _fftSamples;
-		*/
 
 		private FastFourierTransform _fft;
 		/// <summary>
@@ -755,6 +771,7 @@ namespace MonoSound.Streaming
 			lock (_fftLock) {
 				_fft = new FastFourierTransform(SampleRate);
 			//	_fftSamples = new FFTSampleWatcher();
+				_fftSamples = new FFTSampleWatcher(8);  // TODO: should this have a Controls property?
 				return _fft;
 			}
 		}
@@ -812,6 +829,8 @@ namespace MonoSound.Streaming
 
 					underlyingStream?.Dispose();
 				}
+
+				strobeCancel.Cancel();  // Force the strobe to stop if it's currently in progress
 
 				Dispose(disposing);
 

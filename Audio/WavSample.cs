@@ -296,7 +296,7 @@ namespace MonoSound.Audio {
 		/// The sample represented as an integer
 		/// </summary>
 		public int Sample {
-			readonly get => _sample >> 8;
+			readonly get => (_sample >> 8) & VALUE_MASK;
 			set {
 				if (unchecked((uint)value) > VALUE_MASK)
 					throw new ArgumentOutOfRangeException(nameof(value), $"0x{value:X08}", "Sample value was outside the range of a 24-bit PCM sample");
