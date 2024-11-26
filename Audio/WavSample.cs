@@ -266,7 +266,7 @@ namespace MonoSound.Audio {
 		/// <summary>
 		/// Converts the sample to a float value between -1 and 1
 		/// </summary>
-		public readonly float ToFloatSample() => Sample >= 0 ? Sample / (float)MaxValue : Sample / (float)MinValue;
+		public readonly float ToFloatSample() => Sample >= 0 ? Sample / (float)MaxValue : -(Sample / (float)MinValue);
 
 		/// <summary>
 		/// Converts the sample to a byte array
@@ -372,7 +372,7 @@ namespace MonoSound.Audio {
 		/// <summary>
 		/// Converts the sample to a float value between -1 and 1
 		/// </summary>
-		public readonly float ToFloatSample() => Sample >= MinValue ? -1 * Sample / (float)MinValue : Sample / (float)MaxValue;
+		public readonly float ToFloatSample() => Sample >= MinValue ? -1 * Sample / (float)MinValue : -(Sample / (float)MaxValue);
 
 		/// <summary>
 		/// Converts the sample to a byte array
