@@ -12,7 +12,7 @@
 **Fixes:**
 - Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object
 - Fixed `FormatWav` not implementing the `IDisposable` interface correctly
-- Fixed a few oversights that caused only `.ogg` files could be streamed
+- Fixed a few oversights that resulted in only `.ogg` files being streamable
 - Fixed the Freeverb filter not processing the Right speaker for whatever reason (I had commented out the code for it???)
 - Fixed the Freeverb filter not getting an extra sample buffer when filtering a sound file, unlike how the Echo filter is handled
 - Fixed sound streams completely stopping if a filter threw an exception
@@ -107,7 +107,7 @@
     - `FreeverbFilterInstance GetReverbFilterSingleton(int)`
   - Changed members:
     - The parameters for most of the methods were renamed to fit the constructors of the new `SoLoudFilter`-deriving types
-  - Obsolte members:
+  - Obsolete members:
     - `void UpdateBiquadResonantFilter(int, SoundFilterType?, float?, float?, float?)`
     - `void UpdateEchoFilter(int, float?, float?, float?, float?)`
     - `void UpdateReverbFilter(int, float?, float?, float?, float?)`
@@ -134,7 +134,7 @@
     - `void ApplyFilters(params SoLoudFilterInstance[])`
       - Alternative for applying instances directly
       - Provided instances cannot be a filter singleton
-    - `SoLoudFilterInstance GetFilterInstance(int)
+    - `SoLoudFilterInstance GetFilterInstance(int)`
       - Returns the first filter instance whose parent's ID matches the provided filter ID or `null` if no filter instance is found
     - `ReadOnlySpan<SoLoudFilterInstance> GetFilterInstances()`
       - Returns a read-only collection of the currently active filter instances
