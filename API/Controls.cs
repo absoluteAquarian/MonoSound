@@ -8,7 +8,7 @@ namespace MonoSound {
 	/// </summary>
 	public static class Controls {
 		/// <summary>
-		/// Whether the Echo filter is allowed to generate over 30 seconds' worth of samples for a sound, which can happen when using high Delay and low Decay parameters.
+		/// Whether the Echo and Freevarb filters are allowed to generate over 30 seconds' worth of samples for a sound, which can happen when using high Delay and low Decay parameters (for Echo) or a low Feedback parameter (for Freeverb).
 		/// </summary>
 		public static bool AllowEchoOversampling { get; set; }
 

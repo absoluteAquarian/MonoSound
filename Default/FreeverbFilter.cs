@@ -49,7 +49,7 @@ namespace MonoSound.Default {
 		/// </param>
 		public FreeverbFilter(float strength, float feedback, float dampness, float stereoWidth) : base(strength) {
 			FreeverbFilterInstance singleton = Singleton;
-			singleton.paramFeeback.Value = feedback;
+			singleton.paramFeedback.Value = feedback;
 			singleton.paramDampness.Value = dampness;
 			singleton.paramStereoWidth.Value = stereoWidth;
 		}
@@ -72,7 +72,7 @@ namespace MonoSound.Default {
 		/// The room size of the reverb, with larger values creating a longer reverb time.<br/>
 		/// Range is 0 to 1, with a default of 0.5.
 		/// </summary>
-		public readonly SoLoudFilter.Parameter<float> paramFeeback;  // SoLoud::FreeverbFilter::ROOMSIZE, mRoomSize
+		public readonly SoLoudFilter.Parameter<float> paramFeedback;  // SoLoud::FreeverbFilter::ROOMSIZE, mRoomSize
 		/// <summary>
 		/// The damping factor of the reverb.  High damping results in reduced sharpness of the reverb and a more muted sound, whereas low damping results in a sharper and more aggressive reverb.<br/>
 		/// Range is 0 to 1, with a default of 0.5.
@@ -89,7 +89,7 @@ namespace MonoSound.Default {
 		/// </summary>
 		public FreeverbFilterInstance(FreeverbFilter parent) : base(parent) {
 			paramFrozen = CreateParameter(false);
-			paramFeeback = CreateParameter(0.5f, 0f, 1f);
+			paramFeedback = CreateParameter(0.5f, 0f, 1f);
 			paramDampness = CreateParameter(0.5f, 0f, 1f);
 			paramStereoWidth = CreateParameter(1f, 0f, 1f);
 
@@ -99,7 +99,7 @@ namespace MonoSound.Default {
 		/// <inheritdoc cref="SoLoudFilterInstance.UpdateParameterFaders"/>
 		protected internal override void UpdateParameterFaders(double time) {
 			base.UpdateParameterFaders(time);
-			paramFeeback.UpdateFader(time);
+			paramFeedback.UpdateFader(time);
 			paramDampness.UpdateFader(time);
 			paramStereoWidth.UpdateFader(time);
 		}
@@ -109,7 +109,7 @@ namespace MonoSound.Default {
 			base.CopyParametersTo(other);
 			FreeverbFilterInstance instance = (FreeverbFilterInstance)other;
 			paramFrozen.CopyTo(instance.paramFrozen);
-			paramFeeback.CopyTo(instance.paramFeeback);
+			paramFeedback.CopyTo(instance.paramFeedback);
 			paramDampness.CopyTo(instance.paramDampness);
 			paramStereoWidth.CopyTo(instance.paramStereoWidth);
 		}
@@ -124,7 +124,7 @@ namespace MonoSound.Default {
 			if (HasAnyParameterChanged) {
 				model.SetDamp(paramDampness);
 				model.SetFreezeMode(paramFrozen);
-				model.SetFeedback(paramFeeback);
+				model.SetFeedback(paramFeedback);
 				model.SetStereoWidth(paramStereoWidth);
 				model.SetWet(paramStrength);
 				model.SetDry(1 - paramStrength);
@@ -163,7 +163,7 @@ namespace MonoSound.Default {
 
 			if (disposing) {
 				paramFrozen.Dispose();
-				paramFeeback.Dispose();
+				paramFeedback.Dispose();
 				paramDampness.Dispose();
 				paramStereoWidth.Dispose();
 			}

@@ -10,10 +10,11 @@
 - The _Echo_ and _Reverb_ filters can now be applied to audio streams
 
 **Fixes:**
-- Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object and only updating it when new streams are added
+- Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object
 - Fixed `FormatWav` not implementing the `IDisposable` interface correctly
 - Fixed a few oversights that caused only `.ogg` files could be streamed
 - Fixed the Freeverb filter not processing the Right speaker for whatever reason (I had commented out the code for it???)
+- Fixed the Freeverb filter not getting an extra sample buffer when filtering a sound file, unlike how the Echo filter is handled
 - Fixed sound streams completely stopping if a filter threw an exception
 
 **New Types:**

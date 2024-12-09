@@ -669,7 +669,7 @@ namespace MonoSound.Tests {
 
 			FreeverbFilterInstance instance = (FreeverbFilterInstance)liveUpdateFilterInstance;
 			instance.paramStrength.Value = instance.paramStrength.GenerateRandomMin(random, min: 0.1f);  // [0.1, 1.0]
-			instance.paramFeeback.Value = instance.paramFeeback.GenerateRandom(random);                  // [0.0, 1.0]
+			instance.paramFeedback.Value = instance.paramFeedback.GenerateRandom(random);                  // [0.0, 1.0]
 			instance.paramDampness.Value = instance.paramDampness.GenerateRandom(random);                // [0.0, 1.0]
 			instance.paramStereoWidth.Value = instance.paramStereoWidth.GenerateRandom(random);          // [0.0, 1.0]
 		}
@@ -758,7 +758,7 @@ namespace MonoSound.Tests {
 				} else if (liveUpdateFilterInstance is FreeverbFilterInstance reverb) {
 					_spriteBatch.DrawString(font, "Filter: Reverb", new Vector2(26, 40 + font.LineHeight + 2), Color.White);
 					_spriteBatch.DrawString(font, filterStrength, new Vector2(32, 40 + font.LineHeight * 2 + 2), Color.White);
-					_spriteBatch.DrawString(font, $"Feedback: {reverb.paramFeeback.Value:N2}", new Vector2(32, 40 + font.LineHeight * 3 + 2), Color.White);
+					_spriteBatch.DrawString(font, $"Feedback: {reverb.paramFeedback.Value:N2}", new Vector2(32, 40 + font.LineHeight * 3 + 2), Color.White);
 					_spriteBatch.DrawString(font, $"Dampness: {reverb.paramDampness.Value:N2}", new Vector2(32, 40 + font.LineHeight * 4 + 2), Color.White);
 					_spriteBatch.DrawString(font, $"Stereo Width: {reverb.paramStereoWidth.Value:N2}", new Vector2(32, 40 + font.LineHeight * 5 + 2), Color.White);
 					_spriteBatch.DrawString(font, $"Frozen: {reverb.paramFrozen.Value}", new Vector2(32, 40 + font.LineHeight * 6 + 2), Color.White);

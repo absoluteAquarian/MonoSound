@@ -281,7 +281,7 @@ namespace MonoSound {
 				if (f < 0 || f > 1)
 					throw new ArgumentException("Feedback modifier must be between 0 and 1", nameof(feedback));
 
-				singleton.paramFeeback.Value = f;
+				singleton.paramFeedback.Value = f;
 			}
 
 			if (dampness is float d) {

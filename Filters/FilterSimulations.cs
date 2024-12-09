@@ -69,12 +69,39 @@ namespace MonoSound.Filters {
 
 			float[] samples;
 
-			if (filter is EchoFilterInstance echo) {
+			if (filter is EchoFilterInstance or FreeverbFilterInstance) {
 				samples = wav.DeconstructToFloatSamples();
+
+				double time;
+				if (filter is EchoFilterInstance echo) {
+					// Calculate the time it will take for the echo to decay to the target volume
+					time = EchoTimeStretchFactor(targetVolume: 0.075f, echo.paramDecay, echo.paramDelay);
+
+					// Don't let it go overboard...
+					time = Math.Min(time, 60d);
+				} else if (filter is FreeverbFilterInstance reverb) {
+					// It's difficult to derive the decay and delay parameters for a Freeverb filter from the actual parameters,
+					// so some guesswork will have to be used instead
+					if (reverb.paramFrozen) {
+						// Reverb will never decay, so just add a static amount of time
+						time = 2d;
+					} else {
+						// Reverb will decay, so guess a time based on the feedback parameter
+						time = 1d / (1 - Math.Min(reverb.paramFeedback, 0.99f));
+
+						if (time > 30d && !Controls.AllowEchoOversampling)
+							throw new Exception($"Freeverb filter contained parameters which would cause MonoSound to generate over 30 seconds' worth of samples.\nFeedback: {reverb.paramFeedback:N3}");
+
+						// Don't let it go overboard...
+						time = Math.Min(time, 60d);
+					}
+				} else {
+					// This path should never be reached, but is included to prevent compilation errors
+					time = 0d;
+				}
 
 				// Due to the echo filter causing repetitions, a buffer of nothing will be used
 				// This will let the full echo sound play
-				double time = EchoTimeStretchFactor(targetVolume: 0.075f, echo.paramDecay, echo.paramDelay);
 				Array.Resize(ref samples, samples.Length + (int)(wav.ByteRate * time) / channelCount * channelCount);
 
 				samples = FormatWav.UninterleaveSamples(samples, channelCount);
@@ -136,11 +163,11 @@ namespace MonoSound.Filters {
 		}
 
 		private static double EchoTimeStretchFactor(float targetVolume, float decayFactor, float delayFactor) {
-			//Calculate how many iterations it will take to get to the final volume
-			//(decay)^x = (target)     x = log(decay, target)
+			// Calculate how many iterations it will take to get to the final volume
+			// (decay)^x = (target)     x = log(decay, target)
 			double decayIterations = Math.Log(targetVolume, decayFactor);
 
-			//Then calculate the time it would take based on the above and the (delay) factor
+			// Then calculate the time it would take based on the above and the (delay) factor
 			double time = decayIterations * delayFactor;
 
 			if (!Controls.AllowEchoOversampling && time > 30d)
