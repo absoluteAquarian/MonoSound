@@ -218,7 +218,7 @@ namespace MonoSound.Audio {
 				throw new ArgumentOutOfRangeException(nameof(sample), sample, "Sample value was outside the range of a 16-bit PCM sample");
 
 			_sample = 0;
-			Sample = (short)(sample < 0 ? sample * MinValue : sample * MaxValue);
+			Sample = (short)(sample < 0 ? -(sample * MinValue) : sample * MaxValue);
 		}
 
 		/// <summary>
@@ -323,7 +323,7 @@ namespace MonoSound.Audio {
 				throw new ArgumentOutOfRangeException(nameof(sample), sample, "Sample value was outside the range of a 24-bit PCM sample");
 
 			_sample = 0;
-			Sample = (int)(sample < 0 ? sample * MinValue : sample * MaxValue);
+			Sample = (int)(sample < 0 ? -(sample * MinValue) : sample * MaxValue);
 		}
 
 		/// <summary>

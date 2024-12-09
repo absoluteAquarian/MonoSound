@@ -742,12 +742,7 @@ HeaderCheckStart:
 		/// <summary>
 		/// Forces the sample to be within (-1, 1)
 		/// </summary>
-		public static void ClampSample(ref float sample) {
-			if (sample < -1)
-				sample = -1;
-			else if (sample > 1)
-				sample = 1;
-		}
+		public static void ClampSample(ref float sample) => sample = Math.Clamp(sample, -1, 1);
 
 		private bool disposed;
 
