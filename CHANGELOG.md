@@ -8,6 +8,7 @@
   - Previously hidden `class`es for filters are now `public`
 - Improved the performance and API of `FormatWav` and `WavSample`
 - The _Echo_ and _Reverb_ filters can now be applied to audio streams
+- Added builtin support for generating Fast Fourier Transform (FFT) graphs from audio streams
 
 **Fixes:**
 - Reduced allocations from `StreamManager` by caching the `IEnumerator<T>` object
@@ -47,6 +48,25 @@
     - `float paramDecay`
     - `float paramBias`
   - Read [Sound Filtering | Echo](https://github.com/absoluteAquarian/MonoSound/wiki/Sound-Filtering#echo) for more info
+- `class FastFourierTransform`
+  - A class used to generate Fast Fourier Transform (FFT) graphs from audio streams
+  - Check `/MonoSound.Tests/Game1.cs` for an example of rendering an FFT graph
+  - Methods:
+    - `void Process(float[])`
+      - Begins a query of the FFT graph for the provided audio sample data
+    - `void SetGraphToStaticRenderMode()`
+      - Sets the graph to render the same data every frame until `Process(float[])` is called again
+    - `void SetGraphToDecayRenderMode(double)`
+      - Sets the graph to render the data with a decay-over-time effect, where the values decrease by the provided factor every frame
+    - `IEnuemrable<FFTGraphPoint> QueryRMSGraph()`
+      - Returns an enumeration of FFT graph points representing the Root Mean Square (RMS) values of the audio data, i.e. the raw FFT results from the query
+    = `IEnumerable<FFTGraphPoint> QueryDBGraph()`
+      - Returns an enumeration of FFT graph points representing the Decibel (dB) values of the audio data
+- `struct FFTGraphPoint`
+  - Represents a point on an FFT graph
+  - Members:
+    - `double Frequency`
+    - `double Value`
 - `class FreeverbFilter`, `class FreeverbFilterInstance`
   - Represents a filter using the Freeverb algorithm
   - Parameters:
@@ -145,6 +165,13 @@
 	  - Called when `PreQueueBuffers()` sets `controls.requestPCMSamplesForEvent = true;`
     - `void RemoveAllFilters()`
       - Removes all filter instances currently applied to the stream
+    - `FastFourierTransform FFT { get; }`
+      - The currently active FFT graph for the stream, or `null` if there is none
+    - `FastFourierTransform BeginTrackingFFT()`
+      - Begins tracking the FFT graph for the stream
+	  - Returns the FFT graph object
+    - `void StopTrackingFFT()` 
+	  - Stops tracking the FFT graph for the stream
 - `WavSample`
   - Internal structure has been completely reworked to be more efficient and easier to work with
   - Removed members:
