@@ -60,7 +60,7 @@
       - Sets the graph to render the data with a decay-over-time effect, where the values decrease by the provided factor every frame
     - `IEnuemrable<FFTGraphPoint> QueryRMSGraph()`
       - Returns an enumeration of FFT graph points representing the Root Mean Square (RMS) values of the audio data, i.e. the raw FFT results from the query
-    = `IEnumerable<FFTGraphPoint> QueryDBGraph()`
+    - `IEnumerable<FFTGraphPoint> QueryDBGraph()`
       - Returns an enumeration of FFT graph points representing the Decibel (dB) values of the audio data
 - `struct FFTGraphPoint`
   - Represents a point on an FFT graph
