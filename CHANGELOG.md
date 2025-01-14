@@ -1,4 +1,7 @@
-﻿## v1.8
+﻿## v1.8.0.1
+- Fixed an oversight where audio streams could not properly parse certain `.wav` files due to unexpected metadata
+
+## v1.8
 **Summary:**
 - Many bug fixes
 - Complete overhaul of the sound filter system

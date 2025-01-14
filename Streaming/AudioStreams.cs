@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
+using MonoSound.Audio;
 using MonoSound.XACT;
 using System;
 using System.IO;
@@ -37,15 +38,15 @@ namespace MonoSound.Streaming {
 
 		/// <inheritdoc cref="StreamPackage.Initialize"/>
 		protected override void Initialize() {
-			//Read the header
-			byte[] header = new byte[44];
-			underlyingStream.Read(header, 0, 44);
-			Channels = (AudioChannels)BitConverter.ToInt16(header, 22);
-			SampleRate = BitConverter.ToInt32(header, 24);
-			BitsPerSample = BitConverter.ToInt16(header, 34);
-			TotalBytes = BitConverter.ToInt32(header, 40);
+			// Read the header data
+			using WAVEReader reader = new WAVEReader(underlyingStream);
+			reader.ReadFormat(out AudioChannels channels, out int sampleRate, out _, out _, out short bitsPerSample);
+			reader.ReadDataHeader(out int totalBytes);
 
-			sampleReadStart = underlyingStream.Position;
+			Channels = channels;
+			SampleRate = sampleRate;
+			BitsPerSample = bitsPerSample;
+			TotalBytes = totalBytes;
 
 			InitSound();  // REQUIRED!  This initializes PlayingSound and Metrics
 		}

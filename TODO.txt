@@ -2,8 +2,5 @@
 
 - Implement the rest of SoLoud's sound filters
 
-Filter Testing:
-- test low pass filter with various frequencies and resonance values
-
 Feature Requests:
 - none
