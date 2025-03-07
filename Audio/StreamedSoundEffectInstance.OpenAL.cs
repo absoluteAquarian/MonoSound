@@ -52,13 +52,17 @@ namespace MonoSound.Audio {
 
 			// Remove all queued buffers
 			AL.Source(SourceId, ALSourcei.Buffer, 0);
-			while (_queuedBuffers.Count > 0) {
-                if (_queuedBuffers.TryDequeue(out var buffer))
+            lock (_queuedBuffers)
+            {
+                while (_queuedBuffers.Count > 0)
                 {
-                    buffer.Dispose();
+                    if (_queuedBuffers.TryDequeue(out var buffer))
+                    {
+                        buffer.Dispose();
+                    }
                 }
-			}
-		}
+            }
+        }
 
 		private void PlatformSubmitBuffer(byte[] buffer, int offset, int count) {
 			// Get a buffer
