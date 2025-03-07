@@ -53,8 +53,10 @@ namespace MonoSound.Audio {
 			// Remove all queued buffers
 			AL.Source(SourceId, ALSourcei.Buffer, 0);
 			while (_queuedBuffers.Count > 0) {
-				var buffer = _queuedBuffers.Dequeue();
-				buffer.Dispose();
+                if (_queuedBuffers.TryDequeue(out var buffer))
+                {
+                    buffer.Dispose();
+                }
 			}
 		}
 
