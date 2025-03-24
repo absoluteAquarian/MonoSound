@@ -58,7 +58,7 @@ namespace MonoSound {
 		internal const string VersionLiteral_FilterOverhaul = "1.8";
 
 		/// <inheritdoc cref="Version"/>
-		public const string VersionLiteral = "1.8.0.1";
+		public const string VersionLiteral = "1.8.0.2";
 
 		/// <summary>
 		/// The version for MonoSound

@@ -189,6 +189,8 @@ namespace MonoSound.Audio {
 
 		internal void StrobeQueue() {
 			try {
+				AssertNotDisposed();
+
 				// Update the buffers
 				PlatformUpdateQueue();
 

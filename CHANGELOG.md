@@ -1,4 +1,7 @@
-﻿## v1.8.0.1
+﻿## v1.8.0.2
+- Fixed a bug where disposing streams would sometimes throw exceptions or not fully dispose the stream's audio buffers
+
+## v1.8.0.1
 - Fixed an oversight where audio streams could not properly parse certain `.wav` files due to unexpected metadata
 
 ## v1.8

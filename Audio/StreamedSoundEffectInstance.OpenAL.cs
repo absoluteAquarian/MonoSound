@@ -87,13 +87,11 @@ namespace MonoSound.Audio {
 
 		private void PlatformDispose(bool disposing) {
 			// SFXI disposal handles buffer detachment and source recycling
-			base.Dispose(disposing);
+		//	base.Dispose(disposing);
 
 			if (disposing) {
-				while (_queuedBuffers.Count > 0) {
-					var buffer = _queuedBuffers.Dequeue();
+				while (_queuedBuffers.TryDequeue(out var buffer))
 					buffer.Dispose();
-				}
 			}
 		}
 
