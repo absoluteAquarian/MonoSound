@@ -27,9 +27,10 @@ Check CHANGELOG.md for the full list of changes.</PackageReleaseNotes>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.0.1641" />
+    <PackageReference Include="MonoGame.Framework.DesktopGL" Version="3.8.4" />
     <PackageReference Include="MP3SharpWithMonoFix" Version="1.0.6" />
 	<PackageReference Include="Krafs.Publicizer" Version="2.2.1" PrivateAssets="all" />
+    <PackageReference Include="NVorbis" Version="0.10.5" />
 	
 	<Publicize Include="MonoGame.Framework" />
 

@@ -172,7 +172,7 @@ namespace MonoSound.Streaming {
 		/// <param name="file">The absolute or relative location of the file to read from</param>
 		public OggStream(string file) : base(AudioType.OGG) {
 			// NOTE: VorbisReader(string) uses File.OpenRead() and we need TitleContainer.OpenStream() instead
-			vorbisStream = new NVorbis.VorbisReader(TitleContainer.OpenStream(file), closeStreamOnDispose: true);
+			vorbisStream = new NVorbis.VorbisReader(TitleContainer.OpenStream(file), closeOnDispose: true);
 
 			Initialize();
 		}
@@ -182,7 +182,7 @@ namespace MonoSound.Streaming {
 		/// </summary>
 		/// <param name="stream">The data stream to read from</param>
 		public OggStream(Stream stream) : base(AudioType.OGG) {
-			vorbisStream = new NVorbis.VorbisReader(stream, closeStreamOnDispose: true);
+			vorbisStream = new NVorbis.VorbisReader(stream, closeOnDispose: true);
 
 			Initialize();
 		}
