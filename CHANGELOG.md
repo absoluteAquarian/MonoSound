@@ -1,4 +1,7 @@
-﻿## v1.8.0.2
+﻿## v1.8.0.3
+- Updated the MonoGame dependency to v3.8.4
+
+## v1.8.0.2
 - Fixed a bug where disposing streams would sometimes throw exceptions or not fully dispose the stream's audio buffers
 
 ## v1.8.0.1
