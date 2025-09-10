@@ -272,7 +272,7 @@ namespace MonoSound.Audio {
 			 *  ----
 			 */
 
-			using VorbisReader reader = new VorbisReader(readStream, closeStreamOnDispose: true);
+			using VorbisReader reader = new VorbisReader(readStream, closeOnDispose: true);
 
 			byte[] fmtChunk = [
 				0x01, 0x00,

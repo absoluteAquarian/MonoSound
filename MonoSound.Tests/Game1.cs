@@ -161,7 +161,7 @@ namespace MonoSound.Tests {
 
 		static readonly List<Keys> currentSequence = [];
 
-		protected override void OnExiting(object sender, EventArgs args) {
+		protected override void OnExiting(object sender, ExitingEventArgs args) {
 			MonoSoundLibrary.DeInit();
 		}
 
