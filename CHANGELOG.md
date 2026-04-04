@@ -1,4 +1,8 @@
-﻿## v1.8.0.3
+﻿## v1.8.0.4
+- Updated the MonoGame dependency to v3.8.4.1
+- `SegmentedOggStream` now allows jumping to the start of its currently playing audio segment
+
+## v1.8.0.3
 - Updated the MonoGame dependency to v3.8.4
 
 ## v1.8.0.2

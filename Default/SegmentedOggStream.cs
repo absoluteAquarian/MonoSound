@@ -158,8 +158,11 @@ namespace MonoSound.Default {
 				return;
 			}
 
+			// CHANGE: v1.8.0.4 - allow jumping to the start of the current segment
+			/*
 			if (section == tracker.TargetSegment)
 				return;
+			*/
 
 			tracker.TargetSegment = section;
 

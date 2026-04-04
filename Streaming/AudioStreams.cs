@@ -235,7 +235,7 @@ namespace MonoSound.Streaming {
 			checkLooping = readOggSamples < samplesToRead;
 
 			// SecondsRead is manually set here since the second duration can't really be determined based off of what was read
-			SecondsRead = vorbisStream.DecodedTime.TotalSeconds;
+			SecondsRead = vorbisStream.TimePosition.TotalSeconds;
 		}
 
 		/// <inheritdoc cref="StreamPackage.SetStreamPosition"/>
@@ -243,8 +243,8 @@ namespace MonoSound.Streaming {
 			if (seconds < 0)
 				throw new ArgumentOutOfRangeException(nameof(seconds), "Position must be a positive number");
 
-			vorbisStream.DecodedTime = TimeSpan.FromSeconds(seconds);
-			ReadBytes = vorbisStream.DecodedPosition;
+			vorbisStream.TimePosition = TimeSpan.FromSeconds(seconds);
+			ReadBytes = vorbisStream.SamplePosition;
 			ApplyImmediateJump(seconds);
 		}
 
@@ -252,13 +252,13 @@ namespace MonoSound.Streaming {
 		/// Reset the stream here.  By default, this sets the next audio buffer to read to the point in the stream set by <see cref="loopTargetTime"/>
 		/// </summary>
 		public override void Reset() {
-			vorbisStream.DecodedTime = loopTargetTime;
+			vorbisStream.TimePosition = loopTargetTime;
 
-			long pos = vorbisStream.DecodedPosition;
-			vorbisStream.DecodedPosition = Math.Max(pos, ModifyResetOffset(pos));
+			long pos = vorbisStream.SamplePosition;
+			vorbisStream.SamplePosition = Math.Max(pos, ModifyResetOffset(pos));
 
-			ReadBytes = vorbisStream.DecodedPosition;
-			ApplyImmediateJump(vorbisStream.DecodedTime.TotalSeconds);
+			ReadBytes = vorbisStream.SamplePosition;
+			ApplyImmediateJump(vorbisStream.TimePosition.TotalSeconds);
 		}
 
 		/// <inheritdoc cref="StreamPackage.Dispose(bool)"/>
