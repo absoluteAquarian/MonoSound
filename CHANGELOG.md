@@ -1,4 +1,51 @@
-﻿## v1.8.0.4
+﻿## v1.8.1
+**Summary:**
+- Bug fixes related to audio streaming and `SegmentedOggStream` controls
+- `StreamPackage` now provides methods for handling a lightweight lock (useful for controlling access to critical variables)
+- `StartSegment`, `Segment` and `EndSegment` can now individually control whether they will loop
+
+**Fixes:**
+- Fixed a bug where very small sample read durations (typically caused by `SegmentedOggStream` having bad segment bounds due to `float` imprecision) would cause the streamed samples handler to get stuck at the current sample read position
+- Fixed several race conditions in `SegmentedOggStream`
+
+**New types:**
+- `interface ILoopableAudioSegment : IAudioSegment`
+  - An extension of `IAudioSegment` with a new property, added to make changes to the default segment structs while preserving backward compatibility
+  - Members:
+    - `bool Looping { get; }`
+
+**API Changes:**
+- `EndSegment`
+  - Now implements `ILoopableAudioSegment`
+  - New members:
+    - `bool Looping { get; }`
+	- `EndSegment..ctor(TimeSpan, bool)`
+	  - Existing constructor defaults `Looping` to `true`
+- `Segment`
+  - Now implements `ILoopableAudioSegment`
+  - New members:
+    - `bool Looping { get; }`
+	- `Segment..ctor(TimeSpan, TimeSpan, bool)`
+	  - Existing constructor defaults `Looping` to `true`
+- `StartSegment`
+  - Now implements `ILoopableAudioSegment`
+  - New members:
+    - `bool Looping { get; }`
+	- `StartSegment..ctor(TimeSpan, bool)`
+	  - Existing constructor defaults `Looping` to `false`
+- `StreamPackage`
+  - New members:
+	- `void AcquireLock()`
+	  - Acquires a lightweight lock for use in controlling access to critical variables
+	  - Blocks the current thread until the lock is free if the thread that acquired the lock wasn't the current thread
+	  - Must be paired with a call to `ReleaseLock()`
+    - `int GetSampleCount(double)`
+	  - Converts a duration in seconds to a sample count
+	- `void ReleaseLock()`
+	  - Releases the lock from `AcquireLock()`
+	  - Does nothing if no lock is present; otherwise, throws an exception if the current thread was not the thread which acquired the lock
+
+## v1.8.0.4
 - Updated the MonoGame dependency to v3.8.4.1
 - `SegmentedOggStream` now allows jumping to the start of its currently playing audio segment
 
