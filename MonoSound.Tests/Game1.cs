@@ -315,7 +315,7 @@ namespace MonoSound.Tests {
 			if (!StreamLoader.IsStreaming(streamedSegmentedSound)) {
 				streamedSegmentedSound = (SegmentedOggStream)StreamLoader.GetStreamedSound("Content/bonetrousle.ogg", new SegmentedOggFormat(), true, new IAudioSegment[] {
 					// Intro
-					new Segment(TimeSpan.Zero, TimeSpan.FromSeconds(31.95)),
+					new StartSegment(TimeSpan.FromSeconds(31.95)),
 					// Main loop
 					new Segment(TimeSpan.FromSeconds(31.95), TimeSpan.FromSeconds(89.55)),
 					// Ending

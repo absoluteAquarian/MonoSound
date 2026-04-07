@@ -23,15 +23,29 @@ namespace MonoSound.Default {
 		bool Loop(out TimeSpan loopTarget);
 	}
 
+	// Stupid hack for backwards compatibility
+
+	/// <inheritdoc cref="IAudioSegment"/>
+	public interface ILoopableAudioSegment : IAudioSegment {
+		/// <summary>
+		/// Whether this segment should loop.<br/>
+		/// If <see langword="true"/>, the audio stream will jump to the start of this audio segment once the end is reached; otherwise, the audio stream will continue reading past the end of this segment.<br/>
+		/// </summary>
+		bool Looping { get; }
+	}
+
 	/// <summary>
-	/// A structure representing a non-looping audio segment that begins at the start of the audio data
+	/// A structure representing a loopable audio segment that begins at the start of the audio data
 	/// </summary>
-	public readonly struct StartSegment : IAudioSegment {
+	public readonly struct StartSegment : ILoopableAudioSegment {
 		/// <inheritdoc cref="IAudioSegment.Start"/>
 		public TimeSpan Start => TimeSpan.Zero;
 
 		/// <inheritdoc cref="IAudioSegment.End"/>
 		public TimeSpan End { get; }
+
+		/// <inheritdoc cref="ILoopableAudioSegment.Looping"/>
+		public bool Looping { get; }
 
 		/// <summary>
 		/// Creates a non-looping audio segment that begins at the start of the audio data
@@ -43,24 +57,39 @@ namespace MonoSound.Default {
 				throw new ArgumentException("End point must be positive");
 
 			End = end;
+			Looping = false;
+		}
+
+		/// <summary>
+		/// Creates an optionally looping audio segment that begins at the start of the audio data
+		/// </summary>
+		/// <param name="end">Where the segment ends</param>
+		/// <param name="looping">Whether the segment should loop</param>
+		/// <exception cref="ArgumentException"/>
+		public StartSegment(TimeSpan end, bool looping) : this(end) {
+			Looping = looping;
 		}
 
 		/// <inheritdoc cref="IAudioSegment.Loop"/>
 		public bool Loop(out TimeSpan loopTarget) {
 			loopTarget = default;
-			return false;
+			return Looping;
 		}
 	}
 
 	/// <summary>
-	/// A structure representing a looping audio segment that starts somewhere between the start and end of the audio data
+	/// A structure representing a loopable audio segment that starts somewhere between the start and end of the audio data
 	/// </summary>
-	public readonly struct Segment : IAudioSegment {
+	public readonly struct Segment : ILoopableAudioSegment {
 		/// <inheritdoc cref="IAudioSegment.Start"/>
 		public TimeSpan Start { get; }
 
 		/// <inheritdoc cref="IAudioSegment.End"/>
 		public TimeSpan End { get; }
+
+		/// <inheritdoc cref="ILoopableAudioSegment.Looping"/>
+		public bool Looping => !_notLooping;
+		private readonly bool _notLooping;  // Implemented so that "false" is treated as "true" in logic, for backwards compatibility
 
 		/// <summary>
 		/// Creates a looping audio segment that starts somewhere between the start and end of the audio data
@@ -74,27 +103,43 @@ namespace MonoSound.Default {
 
 			Start = start;
 			End = end;
+			_notLooping = false;
+		}
+
+		/// <summary>
+		/// Creates an optionally looping audio segment that starts somewhere between the start and end of the audio data
+		/// </summary>
+		/// <param name="start">Where the segment starts</param>
+		/// <param name="end">Where the segment ends</param>
+		/// <param name="looping">Whether the segment should loop</param>
+		/// <exception cref="ArgumentException"/>
+		public Segment(TimeSpan start, TimeSpan end, bool looping) : this(start, end) {
+			_notLooping = !looping;
 		}
 
 		/// <inheritdoc cref="IAudioSegment.Loop"/>
 		public bool Loop(out TimeSpan loopTarget) {
 			loopTarget = Start;
-			return true;
+			return Looping;
 		}
 	}
 
 	/// <summary>
-	/// A structure representing a looping audio segment that ends at the end of the audio data
+	/// A structure representing a loopable audio segment that ends at the end of the audio data
 	/// </summary>
-	public struct EndSegment : IAudioSegment {
+	public struct EndSegment : ILoopableAudioSegment {
 		/// <inheritdoc cref="IAudioSegment.Start"/>
-		public TimeSpan Start { get; }
+		public readonly TimeSpan Start { get; }
 
 		/// <inheritdoc cref="IAudioSegment.End"/>
 		public TimeSpan End { get; internal set; }
 
+		/// <inheritdoc cref="ILoopableAudioSegment.Looping"/>
+		public readonly bool Looping => !_notLooping;
+		private readonly bool _notLooping;  // Implemented so that "false" is treated as "true" in logic, for backwards compatibility
+
 		/// <summary>
-		/// Whether the audio stream should jump to the start of audio data (<see langword="true"/>) or to <see cref="Start"/> (<see langword="false"/>).<br/>
+		/// Whether the audio stream should jump to the start of audio data (<see langword="true"/>) or to <see cref="Start"/> (<see langword="false"/>) if this audio segment loops.<br/>
 		/// Defaults to <see langword="true"/>.
 		/// </summary>
 		public bool LoopToStartOfAudio { get; set; }
@@ -110,14 +155,25 @@ namespace MonoSound.Default {
 
 			Start = start;
 			End = default;  // Cannot determine until stream has been initialized
+			_notLooping = false;
 			LoopToStartOfAudio = true;
+		}
+
+		/// <summary>
+		/// Creates an optionally looping audio segment that ends at the end of the audio data
+		/// </summary>
+		/// <param name="start">Where the segment starts</param>
+		/// <param name="looping">Whether the segment should loop</param>
+		/// <exception cref="ArgumentException"/>
+		public EndSegment(TimeSpan start, bool looping) : this(start) {
+			_notLooping = !looping;
 		}
 
 		/// <inheritdoc cref="IAudioSegment.Loop"/>
 		public readonly bool Loop(out TimeSpan loopTarget) {
 			// Jump to the start of the audio file or segment
 			loopTarget = LoopToStartOfAudio ? TimeSpan.Zero : Start;
-			return true;
+			return Looping;
 		}
 	}
 }
