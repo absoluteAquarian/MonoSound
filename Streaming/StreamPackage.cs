@@ -146,6 +146,67 @@ namespace MonoSound.Streaming
 			Initialize();
 		}
 
+		private int _locker;
+		private int _lockingThread = -1;
+		private int _lockingThreadLock;
+
+		/// <summary>
+		/// Acquires a lightweight lock used for controlling access to critical variables<br/>
+		/// If the lock is already held by another thread, this method waits until the lock is released.
+		/// </summary>
+		protected void AcquireLock() {
+			int currentThread = Environment.CurrentManagedThreadId;
+			if (GetLockingThread() == currentThread) {
+				Interlocked.Increment(ref _locker);
+				return;
+			}
+
+			while (Interlocked.CompareExchange(ref _locker, 1, 0) > 0)
+				Thread.Yield();
+
+			AcquireThreadLock();
+			Interlocked.Exchange(ref _lockingThread, currentThread);
+			ReleaseThreadLock();
+		}
+
+		/// <summary>
+		/// Releases the lock acquired by <see cref="AcquireLock"/>
+		/// </summary>
+		/// <exception cref="SynchronizationLockException"/>
+		protected void ReleaseLock() {
+			int lockingThread = GetLockingThread();
+
+			if (lockingThread == -1)
+				return;
+
+			int currentThread = Environment.CurrentManagedThreadId;
+			if (lockingThread != currentThread)
+				throw new SynchronizationLockException($"The thread which acquired the lock (ID: {lockingThread}) is not the current thread (ID: {currentThread})");
+
+			AcquireThreadLock();
+
+			if (Interlocked.Decrement(ref _locker) == 0)
+				Interlocked.Exchange(ref _lockingThread, -1);
+
+			ReleaseThreadLock();
+		}
+
+		private int GetLockingThread() {
+			AcquireThreadLock();
+			int thread = Interlocked.CompareExchange(ref _lockingThread, 0, 0);
+			ReleaseThreadLock();
+			return thread;
+		}
+
+		private void AcquireThreadLock() {
+			while (Interlocked.CompareExchange(ref _lockingThreadLock, 1, 0) == 1)
+				Thread.Yield();
+		}
+
+		private void ReleaseThreadLock() {
+			Interlocked.Exchange(ref _lockingThreadLock, 0);
+		}
+
 		internal StreamFocusBehavior GetActualFocusBehavior() => FocusBehavior ?? Controls.DefaultStreamFocusBehavior;
 
 		internal void FocusPause() {
@@ -180,8 +241,10 @@ namespace MonoSound.Streaming
 		/// This method is automatically called by <see cref="SetStreamPosition"/>
 		/// </summary>
 		protected void ApplyImmediateJump(double seconds) {
+			AcquireLock();
 			_jumpReadStart = seconds;
 			_hasActiveJump = true;
+			ReleaseLock();
 		}
 
 		/// <inheritdoc cref="StreamedSoundEffectInstance.Play"/>
@@ -275,6 +338,14 @@ namespace MonoSound.Streaming
 		}
 
 		/// <summary>
+		/// Converts the given duration in seconds to a sample count
+		/// </summary>
+		public virtual int GetSampleCount(double seconds) {
+			// Float samples = 2 bytes per sample (converted to short samples)
+			return (int)(seconds * BitsPerSample / 8 * SampleRate * (short)Channels);
+		}
+
+		/// <summary>
 		/// Adjust where the audio stream will reset to when looping here.
 		/// </summary>
 		/// <param name="byteOffset">The offset in the data stream.  Defaults to the start of sample data.</param>
@@ -309,34 +380,45 @@ namespace MonoSound.Streaming
 			if (deltaTime > 0)
 				UpdatePlayTime(deltaTime);
 
-			if (controls.permitAudioJumps && _hasActiveJump) {
-				if (PlayingSound.PendingBufferCount > 0) {
-					// Don't submit new buffers until the current buffers have been exhaused
-					_lastBufferDuration = CalculateBufferTime();
-					return;
+			CheckForEmptyBufferJump:
+
+			try {
+				AcquireLock();
+
+				if (controls.permitAudioJumps && _hasActiveJump) {
+					if (PlayingSound.PendingBufferCount > 0) {
+						// Don't submit new buffers until the current buffers have been exhaused
+						_lastBufferDuration = CalculateBufferTime();
+						return;
+					}
+
+					// Forcibly set CurrentDuration to where the jump started at
+					Interlocked.Exchange(ref _playTime, TimeSpan.FromSeconds(_jumpReadStart).Ticks);
+					SecondsRead = _jumpReadStart;
+
+					if (_filterFaderTime is not null) {
+						for (int i = 0; i < _filterFaderTime.Length; i++)
+							_filterFaderTime[i] = _jumpReadStart;
+					}
+
+					_jumpReadStart = 0;
+					_hasActiveJump = false;
+				} else {
+					// Reset the related variables
+					_hasActiveJump = false;
+					_jumpReadStart = 0;
 				}
-
-				// Forcibly set CurrentDuration to where the jump started at
-				Interlocked.Exchange(ref _playTime, TimeSpan.FromSeconds(_jumpReadStart).Ticks);
-				SecondsRead = _jumpReadStart;
-
-				if (_filterFaderTime is not null) {
-					for (int i = 0; i < _filterFaderTime.Length; i++)
-						_filterFaderTime[i] = _jumpReadStart;
-				}
-
-				_jumpReadStart = 0;
-				_hasActiveJump = false;
-			} else {
-				// Reset the related variables
-				_hasActiveJump = false;
-				_jumpReadStart = 0;
+			} finally {
+				ReleaseLock();
 			}
 
 			if (PlayingSound.State != SoundState.Playing)
 				return;  // Don't fill the queues
 
 			FillQueue(3);  // Must be at least 2 for the buffering to work properly, for whatever reason
+
+			if (_queuedReads.Count == 0 && _hasActiveJump)
+				goto CheckForEmptyBufferJump;
 
 			var sfx = sender as StreamedSoundEffectInstance;
 			while (_queuedReads.TryDequeue(out byte[] read)) {
@@ -450,7 +532,10 @@ namespace MonoSound.Streaming
 			while (_queuedReads.Count < max) {
 				seconds = origSeconds;
 				ModifyReadSeconds(ref seconds);
-				if (seconds <= 0) {
+
+				// FIX: v1.8.1 - Float imprecisions can cause buffer lengths to be unusually small, so a sample count check was added here
+
+				if (seconds <= 0 || GetSampleCount(seconds) <= 0) {
 					HandleLooping();
 					break;
 				}

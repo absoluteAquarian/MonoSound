@@ -53,7 +53,7 @@ namespace MonoSound.Streaming {
 
 		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
-			int samplesToRead = (int)(seconds * BitsPerSample / 8 * SampleRate * (short)Channels);
+			int samplesToRead = GetSampleCount(seconds);
 
 			if (samplesToRead == 0) {
 				string suffix = TotalBytes == -1 ? "" : $" out of {TotalBytes / BitsPerSample * 8 / (int)Channels}";
@@ -202,10 +202,16 @@ namespace MonoSound.Streaming {
 		/// <inheritdoc cref="StreamPackage.GetSecondDuration"/>
 		public sealed override double GetSecondDuration(long byteSampleCount) => 0;
 
+		/// <inheritdoc cref="StreamPackage.GetSampleCount"/>
+		public override int GetSampleCount(double seconds) {
+			// BitsPerSample isn't needed here; VorbisReader uses float[] instead of byte[]
+            return (int)(seconds * SampleRate * (short)Channels);
+		}
+
 		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
-			//Float samples = 2 bytes per sample (converted to short samples)
-			int samplesToRead = (int)(seconds * SampleRate * (short)Channels);
+			// Float samples = 2 bytes per sample (converted to short samples)
+			int samplesToRead = GetSampleCount(seconds);
 
 			if (samplesToRead == 0) {
 				throw new InvalidOperationException("MonoSound internals error: Streamed audio requested an invalid amount of samples to read" +
@@ -234,8 +240,12 @@ namespace MonoSound.Streaming {
 
 			checkLooping = readOggSamples < samplesToRead;
 
+			// FIX: v1.8.1 - While fixing a SegmentedOggStream bug, I found that adding the seconds read here is still accurate.  Not sure why this comment is here
+			/*
 			// SecondsRead is manually set here since the second duration can't really be determined based off of what was read
 			SecondsRead = vorbisStream.TimePosition.TotalSeconds;
+			*/
+			SecondsRead += seconds;
 		}
 
 		/// <inheritdoc cref="StreamPackage.SetStreamPosition"/>
@@ -338,7 +348,7 @@ namespace MonoSound.Streaming {
 
 		/// <inheritdoc cref="StreamPackage.ReadSamples"/>
 		public override void ReadSamples(double seconds, out byte[] samples, out int bytesRead, out bool checkLooping) {
-			int samplesToRead = (int)(seconds * BitsPerSample / 8 * SampleRate * (short)Channels);
+			int samplesToRead = GetSampleCount(seconds);
 
 			if (samplesToRead == 0) {
 				string suffix = TotalBytes == -1 ? "" : $" out of {TotalBytes / BitsPerSample * 8 / (int)Channels}";

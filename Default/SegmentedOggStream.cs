@@ -137,9 +137,14 @@ namespace MonoSound.Default {
 		/// Immediately jumps to the currently delayed segment, if one was set
 		/// </summary>
 		public void JumpToDelayedSection() {
-			if (_delayedJumpTarget >= 0) {
-				JumpTo(_delayedJumpTarget, false);
-				_delayedJumpTarget = -1;
+			try {
+				base.AcquireLock();
+				if (_delayedJumpTarget >= 0) {
+					JumpTo(_delayedJumpTarget, false);
+					_delayedJumpTarget = -1;
+				}
+			} finally {
+				base.ReleaseLock();
 			}
 		}
 
@@ -150,25 +155,31 @@ namespace MonoSound.Default {
 		/// <param name="onCurrentCheckpointEnd">Whether to jump immediately (<see langword="false"/>) or when the current segment ends (<see langword="true"/>)</param>
 		/// <exception cref="ArgumentOutOfRangeException"/>
 		public void JumpTo(int section, bool onCurrentCheckpointEnd = false) {
-			if (section < 0 || section >= tracker.Count)
-				throw new ArgumentOutOfRangeException(nameof(section));
+			try {
+				base.AcquireLock();
 
-			if (onCurrentCheckpointEnd) {
-				_delayedJumpTarget = section;
-				return;
+				if (section < 0 || section >= tracker.Count)
+					throw new ArgumentOutOfRangeException(nameof(section));
+
+				if (onCurrentCheckpointEnd) {
+					_delayedJumpTarget = section;
+					return;
+				}
+
+				// CHANGE: v1.8.0.4 - allow jumping to the start of the current segment
+				/*
+				if (section == tracker.TargetSegment)
+					return;
+				*/
+
+				tracker.TargetSegment = section;
+
+				tracker.GetLoopBounds(section, out TimeSpan start, out _);
+				loopTargetTime = start;
+				base.SetStreamPosition(start.TotalSeconds);
+			} finally {
+				base.ReleaseLock();
 			}
-
-			// CHANGE: v1.8.0.4 - allow jumping to the start of the current segment
-			/*
-			if (section == tracker.TargetSegment)
-				return;
-			*/
-
-			tracker.TargetSegment = section;
-
-			tracker.GetLoopBounds(out TimeSpan start, out _);
-			base.SetStreamPosition(start.TotalSeconds);
-			loopTargetTime = start;
 		}
 
 		private bool _delayedForcedLoopCheck;
@@ -176,30 +187,47 @@ namespace MonoSound.Default {
 		/// <inheritdoc cref="StreamPackage.ModifyReadSeconds"/>
 		protected override void ModifyReadSeconds(ref double seconds) {
 			// If the next read would bleed across the loop boundary, cut it short
-			tracker.GetLoopBounds(out TimeSpan start, out TimeSpan loop);
 
-			// Ensure that the tracker is always in a valid segment
-			if (ReadTime < start || ReadTime > loop)
-				FindValidTrackerSegment(ReadTime);
+			try {
+				base.AcquireLock();
 
-			// First read from the delayed section will ALWAYS be exactly at the starting point
-			if (ReadTime == start && OnDelayedSectionStart != null) {
-				OnDelayedSectionStart(this);
-				OnDelayedSectionStart = null;
-			}
+				tracker.GetLoopBounds(out TimeSpan start, out TimeSpan loop);
 
-			if (ReadTime + TimeSpan.FromSeconds(seconds) > loop && tracker.CurrentSegment.Loop(out TimeSpan loopTarget)) {
-				if (tracker.CurrentSegment is EndSegment end && end.LoopToStartOfAudio) {
-					// Reset the tracker
-					tracker.TargetSegment = 0;
+				// Ensure that the tracker is always in a valid segment
+				if (ReadTime < start || ReadTime > loop) {
+					FindValidTrackerSegment(ReadTime);
+					tracker.GetLoopBounds(out start, out loop);
 				}
 
-				// Clamp the seconds to the remaining portion of this loop
-				seconds = (loop - ReadTime).TotalSeconds;
+				// First read from the delayed section will ALWAYS be exactly at the starting point
+				if (ReadTime == start && OnDelayedSectionStart != null) {
+					OnDelayedSectionStart(this);
+					OnDelayedSectionStart = null;
+				}
 
-				loopTargetTime = loopTarget;
+				if (ReadTime + TimeSpan.FromSeconds(seconds) > loop) {
+					IAudioSegment segment = tracker.CurrentSegment;
 
-				_delayedForcedLoopCheck = true;
+					if (segment.Loop(out TimeSpan loopTarget)) {
+						if (segment is EndSegment end && end.LoopToStartOfAudio) {
+							// Reset the tracker
+							tracker.TargetSegment = 0;
+						}
+
+						// Clamp the seconds to the remaining portion of this loop
+						seconds = (loop - ReadTime).TotalSeconds;
+
+						// NOTE: Assigning "loopTargetTime" and setting the delayed loop check forces a jump to the time
+						loopTargetTime = loopTarget;
+
+						_delayedForcedLoopCheck = true;
+					} else {
+						// Segment will fall through to the next segment
+						loopTargetTime = loop;
+					}
+				}
+			} finally {
+				base.ReleaseLock();
 			}
 		}
 
@@ -221,7 +249,12 @@ namespace MonoSound.Default {
 			base.SetStreamPosition(seconds);
 		}
 
+		private static readonly TimeSpan _epsilon = TimeSpan.FromSeconds(0.00005d);
+
 		private void FindValidTrackerSegment(TimeSpan position) {
+			// FIX: 1.8.1 - Float imprecision can cause the position to be unusually close to the end of a segment, so a small epsilon adjustment was added
+			position += _epsilon;
+
 			for (int i = 0; i < tracker.Count; i++) {
 				tracker.GetLoopBounds(i, out TimeSpan start, out _);
 
@@ -233,16 +266,22 @@ namespace MonoSound.Default {
 
 		/// <inheritdoc cref="StreamPackage.Reset"/>
 		public override void Reset() {
-			// If the audio stream was stopped, reset the loop info to the start of the audio
-			if (PlayingSound.State == Microsoft.Xna.Framework.Audio.SoundState.Stopped) {
-				loopTargetTime = TimeSpan.Zero;
-				tracker.TargetSegment = 0;
-				_delayedJumpTarget = -1;
+			try {
+				base.AcquireLock();
+
+				// If the audio stream was stopped, reset the loop info to the start of the audio
+				if (PlayingSound.State == Microsoft.Xna.Framework.Audio.SoundState.Stopped) {
+					loopTargetTime = TimeSpan.Zero;
+					tracker.TargetSegment = 0;
+					_delayedJumpTarget = -1;
+				}
+
+				JumpToDelayedSection();
+
+				base.Reset();
+			} finally {
+				base.ReleaseLock();
 			}
-
-			JumpToDelayedSection();
-
-			base.Reset();
 		}
 
 		/// <inheritdoc cref="StreamPackage.HandleLooping"/>
