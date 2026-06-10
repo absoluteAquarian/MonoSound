@@ -134,10 +134,13 @@ namespace MonoSound.Tests {
 
 			_fontSystem = new FontSystem();
 			_fontSystem.AddFont(File.ReadAllBytes("C:/Windows/Fonts/times.ttf"));
+
+			// 1.8.1.1 - Added XNB file load check
+			xnbSfx = EffectLoader.GetEffect("Content/MunchMunch-resaved.xnb");
 		}
 
 		static KeyboardState kb, oldKb;
-		static SoundEffect sfx, song, filteredSfx;
+		static SoundEffect sfx, song, filteredSfx, xnbSfx;
 		static SoundEffectInstance songInstance, filteredSfxInstance;
 		static StreamPackage streamedSound;
 		static FastFourierTransform streamedFFT;

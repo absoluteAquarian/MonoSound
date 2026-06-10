@@ -6,20 +6,19 @@
     <TieredCompilation>false</TieredCompilation>
     <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
 	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-	<Version>1.8.1</Version>
+	<Version>1.8.1.1</Version>
 	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	<Authors>John Baglio</Authors>
 	<Description>A library built for use with MonoGame DesktopGL and Android projects.
 This project allows for easy loading of SoundEffect instances without the content pipeline, along with XACT wavebank sounds.
 Additional features include streaming audio from files and applying SoLoud sound filters to sounds.
 The repository for MonoGame can be viewed at https://github.com/MonoGame/MonoGame</Description>
-	<Copyright>Copyright © John Baglio 2025</Copyright>
+	<Copyright>Copyright © John Baglio 2026</Copyright>
 	<PackageProjectUrl></PackageProjectUrl>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
 	<RepositoryUrl>https://github.com/absoluteAquarian/MonoSound</RepositoryUrl>
 	<PackageTags>monogame;sound;sound-filters;filters;xact;audio</PackageTags>
-	<PackageReleaseNotes>Version 1.8.1 includes bug fixes and quality of life changes to the audio streaming classes.
-Check CHANGELOG.md for the full list of changes.</PackageReleaseNotes>
+	<PackageReleaseNotes>Version 1.8.1.1 includes a small fix for .xnb file loading.</PackageReleaseNotes>
 	<GenerateDocumentationFile>True</GenerateDocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

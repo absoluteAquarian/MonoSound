@@ -83,6 +83,12 @@ namespace MonoSound{
 				using BinaryReader decompressedReader = new BinaryReader(decompressedStream);
 				
 				data = Simulate_ContentReader_ReadAsset(decompressedReader, out pcmData, out fmtChunk);
+
+				// FIX: v1.8.1.1 - XNB header includes the audio buffer length, but the WAVE "fmt " header does not.
+				//                 To ensure that the FormatWav initializer has the correct chunk, this extra data has to be trimmed off.
+				byte[] actualChunk = new byte[16];
+				Array.Copy(fmtChunk, actualChunk, 16);
+				fmtChunk = actualChunk;
 			}
 
 			return data;

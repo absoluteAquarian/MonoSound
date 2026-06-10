@@ -1,4 +1,7 @@
-﻿## v1.8.1
+﻿## v1.8.1.1
+- Fixed an oversight that caused `.xnb` files to be unreadable
+
+## v1.8.1
 **Summary:**
 - Bug fixes related to audio streaming and `SegmentedOggStream` controls
 - `StreamPackage` now provides methods for handling a lightweight lock (useful for controlling access to critical variables)
